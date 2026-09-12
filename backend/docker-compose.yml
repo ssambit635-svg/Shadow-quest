@@ -1,0 +1,12 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: liferpg-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - liferpg_mongo_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  liferpg_mongo_data:

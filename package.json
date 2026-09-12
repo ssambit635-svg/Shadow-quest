@@ -1,0 +1,17 @@
+{
+  "name": "shadow-quest",
+  "private": true,
+  "description": "LifeRPG (Shadow-quest) — productivity RPG. Backend lives in /backend.",
+  "workspaces": [
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w liferpg-backend",
+    "start": "npm run start -w liferpg-backend",
+    "seed": "npm run seed -w liferpg-backend",
+    "test": "npm run test -w liferpg-backend"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

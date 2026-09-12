@@ -1,0 +1,49 @@
+LifeRPG backend — PowerShell start (Windows)
+
+1. Unzip this folder, then in PowerShell:
+
+   cd path\to\LifeRPG-backend
+
+2. Install Node.js LTS if you do not have it: https://nodejs.org
+   Check:  node -v
+
+3. Install packages:
+
+   npm install
+
+4. Environment file (already included as .env). Edit if needed:
+
+   notepad .env
+
+   Default MongoDB:
+   MONGODB_URI=mongodb://127.0.0.1:27017/liferpg
+
+5. Start MongoDB (one of these):
+   - Docker:  docker compose up -d
+   - Or start MongoDB Community / MongoDB Compass locally on port 27017
+
+6. Seed shop + achievements:
+
+   npm run seed
+
+7. Start API:
+
+   npm run dev
+
+   API: http://localhost:5000
+   Health: http://localhost:5000/api/health
+
+8. Automated tests (no Mongo needed):
+
+   npm test
+
+9. Full API docs: open README.md
+
+PowerShell register example:
+
+  $reg = Invoke-RestMethod -Method POST http://localhost:5000/api/auth/register `
+    -ContentType 'application/json' `
+    -Body '{"name":"Sam","email":"sam@example.com","password":"password123"}'
+  $TOKEN = $reg.data.token
+  $headers = @{ Authorization = "Bearer $TOKEN" }
+  Invoke-RestMethod http://localhost:5000/api/user/dashboard -Headers $headers
