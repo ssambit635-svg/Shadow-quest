@@ -3,18 +3,19 @@
  *
  * The HP bar is drawn as a brush stroke that shortens from the tip inward
  * (real 切腹 logic, not a left-to-right progress bar), and ki is pips rather
- * than a second bar, because pips make a budget feel countable.
+ * than a second bar, because pips make a budget feel countable. The fighter
+ * is identified by their painted portrait — no glyphs, no shorthand.
  */
 import type { Combatant } from "../../api/types";
 
 export function CombatantPanel({
   c,
   mirror = false,
-  kanji,
+  portraitUrl,
 }: {
   c: Combatant;
   mirror?: boolean;
-  kanji?: string;
+  portraitUrl?: string;
 }) {
   const hpPct = Math.max(0, Math.min(100, (c.hp / c.hpMax) * 100));
   const hpTick = Math.round(hpPct);
@@ -32,9 +33,9 @@ export function CombatantPanel({
       </div>
 
       <div className="cp__idrow">
-        <span className="cp__kanji kanji" aria-hidden="true">
-          {kanji ?? "影"}
-        </span>
+        {portraitUrl && (
+          <img className="cp__portrait" src={portraitUrl} alt="" width={64} height={64} />
+        )}
         <div className="cp__ids">
           <h3 className="cp__name">{c.displayName}</h3>
           <span className="cp__shadow label">{c.shadowId}</span>

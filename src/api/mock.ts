@@ -29,6 +29,7 @@ export const ROSTER: Shadow[] = [
     school: "Shadows of the Ford",
     vow: "Strikes once. The river does the rest.",
     stats: { cut: 8, guard: 3, speed: 9, ki: 5 },
+    portraitUrl: "/img/shadows/kage.jpg",
   },
   {
     id: "hannya",
@@ -37,6 +38,7 @@ export const ROSTER: Shadow[] = [
     school: "Oni Gate",
     vow: "Wears her grief as armour, and never removes it.",
     stats: { cut: 9, guard: 8, speed: 3, ki: 4 },
+    portraitUrl: "/img/shadows/hannya.jpg",
   },
   {
     id: "suzume",
@@ -45,6 +47,7 @@ export const ROSTER: Shadow[] = [
     school: "Nine Sparks",
     vow: "Faster than the sound of his own footwork.",
     stats: { cut: 5, guard: 4, speed: 10, ki: 7 },
+    portraitUrl: "/img/shadows/suzume.jpg",
   },
   {
     id: "bokushi",
@@ -53,6 +56,7 @@ export const ROSTER: Shadow[] = [
     school: "Ink Widow",
     vow: "Writes the ending, then performs it.",
     stats: { cut: 6, guard: 5, speed: 6, ki: 10 },
+    portraitUrl: "/img/shadows/bokushi.jpg",
   },
   {
     id: "tetsu",
@@ -61,6 +65,7 @@ export const ROSTER: Shadow[] = [
     school: "Iron Veil",
     vow: "Has never drawn. Has never needed to.",
     stats: { cut: 4, guard: 10, speed: 4, ki: 6 },
+    portraitUrl: "/img/shadows/tetsu.jpg",
   },
   {
     id: "yami",
@@ -69,6 +74,7 @@ export const ROSTER: Shadow[] = [
     school: "Blind Path",
     vow: "Reads the breath two beats before the cut.",
     stats: { cut: 7, guard: 6, speed: 7, ki: 8 },
+    portraitUrl: "/img/shadows/yami.jpg",
   },
 ];
 

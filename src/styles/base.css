@@ -82,9 +82,9 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.02;
-  letter-spacing: -0.015em;
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: 0.015em;
 }
 
 /* ---------- micro-label ---------- */
@@ -102,8 +102,9 @@ h3 {
   font-feature-settings: "tnum";
 }
 
+/* Header-only Japanese. Nothing below the hero may use this class. */
 .kanji {
-  font-family: var(--font-display);
+  font-family: var(--font-jp);
   font-weight: 800;
   line-height: 0.86;
 }
@@ -262,10 +263,16 @@ body[data-cursor="hide"] {
 .rail__vertical {
   writing-mode: vertical-rl;
   font-family: var(--font-display);
-  font-size: 0.75rem;
+  font-weight: 700;
+  font-size: 0.72rem;
   letter-spacing: 0.42em;
   color: var(--fg-dim);
   pointer-events: auto;
+}
+
+.rail--l .rail__vertical {
+  font-family: var(--font-jp);
+  font-weight: 800;
 }
 
 .rail__dot {

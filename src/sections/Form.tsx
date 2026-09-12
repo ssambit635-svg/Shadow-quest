@@ -11,22 +11,22 @@ import { useReveals } from "../lib/reveal";
 
 const STATIONS = [
   {
-    k: "構",
+    k: "01",
     title: "Stance",
     body: "The clock opens at twenty seconds. Both sides can see the other's ki, guard count, and how many turns they have spent cutting. Nothing is hidden except intent.",
   },
   {
-    k: "切",
+    k: "02",
     title: "Commit",
     body: "One verb per turn: strike, guard, riposte, technique. It is sent to the server on its own — there is no queue, no cancel, no taking it back because the animation looked wrong.",
   },
   {
-    k: "決",
+    k: "03",
     title: "Resolve",
     body: "Both commitments land in the same beat. Damage is cut minus the other side's guard soak, so a read is worth more than a statistic, and the log says exactly what happened.",
   },
   {
-    k: "残",
+    k: "04",
     title: "Zanshin",
     body: "Hold the posture. The round is not yours until the sheath clicks, and the field keeps the score whether or not you are still looking at it.",
   },
@@ -55,11 +55,14 @@ export function Form() {
       const state = { p: 0 };
       const seg = 1 / STATIONS.length;
 
+      const progress = root.current?.querySelector<HTMLElement>("[data-form-progress]");
+      const prevActive = { i: -1 };
       const render = () => {
         const p = state.p;
         if (ring.current) {
           gsap.set(ring.current, { rotate: p * 240 });
         }
+        if (progress) gsap.set(progress, { scaleX: p });
         panels.forEach((el, i) => {
           const center = seg * i + seg / 2;
           const d = Math.abs(p - center) / seg; // 0 at its own centre, 1 one segment away
@@ -67,8 +70,20 @@ export function Form() {
           gsap.set(el, {
             autoAlpha: t,
             yPercent: (1 - t) * 14,
+            x: (1 - t) * -26,
+            filter: `blur(${(1 - t) * 5}px)`,
           });
         });
+        const now = Math.min(STATIONS.length - 1, Math.floor(p * STATIONS.length + 1e-4));
+        // The ring inhales each time a new station takes over.
+        if (now !== prevActive.i && ring.current) {
+          prevActive.i = now;
+          gsap.fromTo(
+            ring.current,
+            { scale: 0.965 },
+            { scale: 1, duration: 0.7, ease: "brush", overwrite: "auto" },
+          );
+        }
         const active = Math.min(STATIONS.length - 1, Math.floor(p * STATIONS.length + 1e-4));
         dots.forEach((el, i) => {
           const on = i === active;
@@ -78,10 +93,17 @@ export function Form() {
           const on = i === active;
           gsap.to(el, {
             opacity: on ? 1 : 0.22,
-            scale: on ? 1.16 : 1,
+            scale: on ? 1.22 : 1,
             color: on ? "var(--vermilion-lit)" : "var(--bone-400)",
             duration: 0.45,
             ease: "snap",
+            overwrite: "auto",
+          });
+        });
+        dots.forEach((el) => {
+          gsap.to(el, {
+            boxShadow: "0 0 0 rgba(0,0,0,0)",
+            duration: 0.01,
             overwrite: "auto",
           });
         });
@@ -113,7 +135,7 @@ export function Form() {
     <section className="form section" id="form" ref={root}>
       <div className="form__stage shell">
         <p className="label form__tag" data-rv="rise">
-          第三 — the turn
+          03 — the turn
         </p>
 
         <div className="form__grid">
@@ -134,7 +156,7 @@ export function Form() {
             </div>
             <div className="form__orbit" aria-hidden="true">
               {STATIONS.map((s) => (
-                <span className="form__kanji kanji" key={s.k}>
+                <span className="form__kanji num" key={s.k}>
                   {s.k}
                 </span>
               ))}
@@ -148,14 +170,17 @@ export function Form() {
             <div className="form__stations">
               {STATIONS.map((s, i) => (
                 <article className="form__station" key={s.title} data-i={i}>
-                  <span className="form__n num">0{i + 1}</span>
+                  <span className="form__n num">0{i + 1} / 04</span>
                   <h3 className="form__h">
-                    <span className="form__hk kanji">{s.k}</span>
+                    <span className="form__hk num">{s.k}</span>
                     {s.title}
                   </h3>
                   <p className="form__body">{s.body}</p>
                 </article>
               ))}
+            </div>
+            <div className="form__progress" aria-hidden="true">
+              <span data-form-progress />
             </div>
           </div>
         </div>

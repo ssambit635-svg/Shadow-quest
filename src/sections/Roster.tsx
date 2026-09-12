@@ -1,15 +1,16 @@
 /**
  * Roster.tsx — character select, drawn from the API (`GET /v1/shadows`).
  *
- * Cards are paper plates on the ink page. Hover does three things at once and
- * nothing else: the ink wash bleeds up behind the figure, the stat bars fill,
- * the blade line draws. Selecting a shadow is a real action — it's what the
- * field screen boots with.
+ * Cards are paper plates on the ink page, each carrying a painted portrait.
+ * Hover does five things at once and nothing else: the card tilts in 3D, a
+ * spotlight follows the pointer, the portrait pushes in, the ink wash bleeds
+ * up, and the blade line draws. Selecting a shadow stamps the card and fires
+ * a pulse ring — that's what the field screen boots with.
  */
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { Shadow } from "../api/types";
-import { gsap, REDUCED, ScrollTrigger } from "../lib/motion";
+import { gsap, REDUCED, ScrollTrigger, tiltCard } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
 import { useResource } from "../hooks/useApi";
 import { prefs } from "../lib/prefs";
@@ -18,6 +19,8 @@ const loadShadows = () => api.listShadows();
 
 /** 0–10 authored scale → 0–100% bar width, one place. */
 const pct = (v: number) => `${Math.max(4, Math.min(100, v * 10))}%`;
+
+const portrait = (s: Shadow) => s.portraitUrl ?? `/img/shadows/${s.id}.jpg`;
 
 export function Roster({ onPick }: { onPick: (id: string) => void }) {
   const root = useRef<HTMLElement>(null);
@@ -28,10 +31,14 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
   useReveals(root, [shadows.length]);
 
   // Bars fill once, when the card first enters — a readout, not a loop.
+  // Cards also get their 3D tilt + spotlight here, in the same pass.
   useEffect(() => {
-    if (REDUCED || !shadows.length) return;
+    if (!shadows.length) return;
+    const detaches: Array<() => void> = [];
     const ctx = gsap.context(() => {
       gsap.utils.toArray<HTMLElement>(".roster__card").forEach((card) => {
+        if (REDUCED) return;
+        detaches.push(tiltCard(card, 6));
         const bars = card.querySelectorAll<HTMLElement>(".roster__bar-fill");
         gsap.set(bars, { scaleX: 0, transformOrigin: "left center" });
         ScrollTrigger.create({
@@ -47,34 +54,57 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
               onComplete: () => gsap.set(bars, { clearProps: "transform" }),
             }),
         });
+        // Portrait drifts against the card on scroll — depth without motion.
+        gsap.fromTo(
+          card.querySelector(".roster__pic img"),
+          { yPercent: -6 },
+          {
+            yPercent: 6,
+            ease: "none",
+            scrollTrigger: { trigger: card, start: "top bottom", end: "bottom top", scrub: 0.8 },
+          },
+        );
       });
     }, root);
-    return () => ctx.revert();
+    return () => {
+      detaches.forEach((d) => d());
+      ctx.revert();
+    };
   }, [shadows.length]);
 
   const pick = (id: string) => {
     setSelected(id);
     prefs.setShadow(id);
     const card = root.current?.querySelector<HTMLElement>(`[data-shadow="${id}"]`);
-    // A stamp, not a bounce: the card compresses and the kanji flashes.
+    // A stamp, not a bounce: the card compresses, the frame flashes, and a
+    // pulse ring fires out of the portrait.
     if (card && !REDUCED) {
       gsap
         .timeline()
         .to(card, { scale: 0.985, duration: 0.09, ease: "power2.in" })
         .to(card, { scale: 1, duration: 0.5, ease: "brush" })
-        .to(
-          card.querySelector(".roster__kanji"),
-          { color: "var(--vermilion)", duration: 0.12, yoyo: true, repeat: 1, ease: "none" },
+        .fromTo(
+          card.querySelector(".roster__ring"),
+          { scale: 0.4, opacity: 0.9 },
+          { scale: 1.6, opacity: 0, duration: 0.7, ease: "brush" },
+          0,
+        )
+        .fromTo(
+          card.querySelector(".roster__frame"),
+          { opacity: 1 },
+          { opacity: 0.25, duration: 0.5, ease: "brush" },
           0,
         );
     }
   };
 
+  const chosen = shadows.find((s) => s.id === selected);
+
   return (
     <section className="roster section" id="roster" ref={root}>
       <header className="roster__head">
         <div>
-          <p className="label roster__tag">第二段 — the shadows</p>
+          <p className="label roster__tag">02 — the shadows</p>
           <h2 className="roster__title" data-rv="brush">
             Six of them. You get one.
           </h2>
@@ -101,7 +131,7 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
         <ul className="roster__grid" aria-hidden="true">
           {Array.from({ length: 6 }).map((_, i) => (
             <li className="roster__card roster__card--skeleton" key={i}>
-              <span className="sk sk--kanji" />
+              <span className="sk sk--pic" />
               <span className="sk sk--line" />
               <span className="sk sk--line sk--short" />
               <span className="sk sk--bar" />
@@ -138,6 +168,11 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
                         duration: 0.7,
                         ease: "brush",
                       });
+                      gsap.to(`[data-shadow="${s.id}"] .roster__pic img`, {
+                        scale: 1.07,
+                        duration: 0.8,
+                        ease: "brush",
+                      });
                       gsap.fromTo(
                         `[data-shadow="${s.id}"] .roster__blade`,
                         { drawSVG: "0% 0%" },
@@ -152,16 +187,26 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
                         duration: 0.8,
                         ease: "brush",
                       });
+                      gsap.to(`[data-shadow="${s.id}"] .roster__pic img`, {
+                        scale: 1,
+                        duration: 0.9,
+                        ease: "brush",
+                      });
                     }}
                     aria-pressed={isSel}
                   >
                     <span className="roster__wash" aria-hidden="true" />
+                    <span className="roster__spot" aria-hidden="true" />
+                    <span className="roster__pic" data-tilt-inner aria-hidden="true">
+                      <img src={portrait(s)} alt="" loading="lazy" />
+                      <span className="roster__frame" />
+                      <span className="roster__ring" />
+                    </span>
                     <span className="roster__top">
-                      <span className="roster__kanji kanji">{s.kanji}</span>
+                      <span className="roster__name">{s.name}</span>
                       <span className="roster__id num">{String(i + 1).padStart(2, "0")}</span>
                     </span>
 
-                    <span className="roster__name">{s.name}</span>
                     <span className="roster__school label">{s.school}</span>
                     <span className="roster__vow">{s.vow}</span>
 
@@ -195,12 +240,19 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
 
           <div className="roster__cta">
             <p className="label">chosen</p>
-            <p className="roster__chosen">
-              {shadows.find((s) => s.id === selected)?.name ?? "—"}
-              <span className="roster__chosen-kanji kanji">
-                {shadows.find((s) => s.id === selected)?.kanji}
-              </span>
-            </p>
+            {chosen && (
+              <p className="roster__chosen">
+                <img
+                  className="roster__chosen-pic"
+                  src={portrait(chosen)}
+                  alt=""
+                  width={44}
+                  height={44}
+                />
+                {chosen.name}
+                <span className="roster__chosen-school label">{chosen.school}</span>
+              </p>
+            )}
             <button
               className="btn btn--primary"
               type="button"

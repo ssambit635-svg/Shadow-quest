@@ -40,6 +40,9 @@ export function initMotion() {
   CustomEase.create("snap", "M0,0 C0.2,0.9 0.05,1 1,1");
   CustomEase.create("steel", "M0,0 C0.65,0 0.35,1 1,1");
   CustomEase.create("breath", "M0,0 C0.4,0 0.2,1 0.6,1 0.8,1 1,0.6 1,1");
+  // Slash: held breath, then the cut. For shines, sweeps, and anything that
+  // should arrive like a blade rather than a brush.
+  CustomEase.create("slash", "M0,0 C0.8,0 0.15,1 1,1");
 
   gsap.defaults({ ease: "brush", duration: 1 });
   if (REDUCED) gsap.globalTimeline.timeScale(100);
@@ -200,6 +203,76 @@ export function attachCursorRing(ring: HTMLElement, dot: HTMLElement) {
     window.removeEventListener("pointerdown", down);
     window.removeEventListener("pointerup", up);
     window.removeEventListener("pointerover", over);
+  };
+}
+
+/**
+ * Magnetic pull: an element leans toward the pointer while it is near, then
+ * settles home. One listener per element, transforms only — layout never
+ * moves, so it stays cheap at 60fps.
+ */
+export function magnetic(el: HTMLElement, strength = 0.28, radius = 140) {
+  if (REDUCED) return () => undefined;
+  const xTo = gsap.quickTo(el, "x", { duration: 0.5, ease: "brush" });
+  const yTo = gsap.quickTo(el, "y", { duration: 0.5, ease: "brush" });
+  const onMove = (e: PointerEvent) => {
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > radius + Math.max(r.width, r.height) / 2) {
+      xTo(0);
+      yTo(0);
+      return;
+    }
+    xTo(dx * strength);
+    yTo(dy * strength);
+  };
+  const onLeave = () => {
+    xTo(0);
+    yTo(0);
+  };
+  window.addEventListener("pointermove", onMove, { passive: true });
+  el.addEventListener("pointerleave", onLeave, { passive: true });
+  return () => {
+    window.removeEventListener("pointermove", onMove);
+    el.removeEventListener("pointerleave", onLeave);
+    gsap.set(el, { x: 0, y: 0 });
+  };
+}
+
+/**
+ * 3D tilt for cards: pointer position maps to rotation, the portrait inside
+ * counter-translates for depth, and a `--mx/--my` spotlight follows. All
+ * writes are transforms + CSS vars — no layout thrash.
+ */
+export function tiltCard(card: HTMLElement, max = 7) {
+  if (REDUCED) return () => undefined;
+  const inner = card.querySelector<HTMLElement>("[data-tilt-inner]");
+  const rX = gsap.quickTo(card, "rotationX", { duration: 0.6, ease: "brush" });
+  const rY = gsap.quickTo(card, "rotationY", { duration: 0.6, ease: "brush" });
+  const onMove = (e: PointerEvent) => {
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    rX((0.5 - py) * max * 2);
+    rY((px - 0.5) * max * 2);
+    card.style.setProperty("--mx", `${Math.round(px * 100)}%`);
+    card.style.setProperty("--my", `${Math.round(py * 100)}%`);
+    if (inner) gsap.to(inner, { x: (px - 0.5) * -14, y: (py - 0.5) * -10, duration: 0.6, ease: "brush", overwrite: "auto" });
+  };
+  const onLeave = () => {
+    rX(0);
+    rY(0);
+    if (inner) gsap.to(inner, { x: 0, y: 0, duration: 0.9, ease: "brush", overwrite: "auto" });
+  };
+  card.addEventListener("pointermove", onMove, { passive: true });
+  card.addEventListener("pointerleave", onLeave, { passive: true });
+  return () => {
+    card.removeEventListener("pointermove", onMove);
+    card.removeEventListener("pointerleave", onLeave);
   };
 }
 

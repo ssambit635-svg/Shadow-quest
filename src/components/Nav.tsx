@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "../lib/motion";
 import { useSession } from "../hooks/useApi";
 import { IS_MOCK } from "../api";
-import { SamuraiMark } from "./SamuraiMark";
+import { Sigil } from "./Sigil";
 
 const LINKS = [
   { label: "The Way", href: "#way", id: "way" },
@@ -74,7 +74,7 @@ export function Nav({
           onNavigate("home");
         }}
       >
-        <SamuraiMark size={22} blade={false} className="nav__mark" />
+        <Sigil size={24} className="nav__mark" />
         <span className="nav__word">
           Shadow<em>Quest</em>
         </span>

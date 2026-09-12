@@ -12,7 +12,7 @@ AI-generated "game site" ships with.
 | **Light** | bone paper `#f4efe6` → `#7e766a` |
 | **Accent** | vermilion `#c1362b`, used for exactly three things: the blade line, the active state, one dot per screen |
 | **Support** | aged brass `#a98a55` for ki/guard readouts only |
-| **Type** | Shippori Mincho (display, a Japanese mincho serif) · Barlow (body) · Barlow Condensed (labels, readouts) |
+| **Type** | Cinzel (display, epic game serif) · Manrope (body) · Oswald (labels, readouts) · Shippori Mincho kept for header Japanese accents only |
 | **Corners** | 2px. No soft card radii, no glass, no aurora gradients, no glow |
 
 Light sections are **paper plates mounted on the ink page** — the sumi-e painting

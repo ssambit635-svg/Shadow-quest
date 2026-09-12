@@ -130,9 +130,25 @@
   margin-inline-start: auto;
 }
 
-.field__phase-k {
-  font-size: 1.3rem;
-  color: var(--vermilion);
+.field__pip {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  background: var(--vermilion);
+  transform: rotate(45deg);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vermilion) 60%, transparent);
+  animation: pip-pulse 1.8s var(--e-brush) infinite;
+}
+
+.field__pip[data-over] {
+  background: var(--bone-400);
+  box-shadow: none;
+  animation: none;
+}
+
+@keyframes pip-pulse {
+  0%, 100% { transform: rotate(45deg) scale(1); opacity: 1; }
+  50% { transform: rotate(45deg) scale(0.72); opacity: 0.7; }
 }
 
 .field__round {
@@ -257,8 +273,12 @@
 }
 
 .field__mid-k {
-  font-size: clamp(2.6rem, 6vw, 4.2rem);
-  color: var(--bone-300);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  letter-spacing: 0.06em;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--bone-400);
   line-height: 0.9;
 }
 
@@ -357,18 +377,26 @@
   gap: 0.9rem;
 }
 
-.cp__kanji {
-  font-size: clamp(2.4rem, 5vw, 3.4rem);
-  line-height: 0.85;
-  color: var(--bone-200);
-  opacity: 0.9;
-  -webkit-text-stroke: 0.6px color-mix(in srgb, var(--vermilion) 40%, transparent);
+.cp__portrait {
+  width: clamp(3rem, 6vw, 4rem);
+  height: clamp(3rem, 6vw, 4rem);
+  object-fit: cover;
+  object-position: center 20%;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  filter: contrast(1.03) saturate(0.96);
+}
+
+.cp[data-active="true"] .cp__portrait {
+  border-color: var(--vermilion);
 }
 
 .cp__name {
   font-family: var(--font-display);
-  font-size: clamp(1.1rem, 2vw, 1.5rem);
-  font-weight: 600;
+  font-size: clamp(1.05rem, 1.9vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   line-height: 1.15;
 }
 
@@ -566,16 +594,15 @@
   color: var(--bone-400);
 }
 
-.dock__kanji {
+.dock__icon {
   grid-row: span 2;
-  font-size: clamp(1.6rem, 3.4vw, 2.2rem);
   color: var(--bone-200);
   transition: color var(--t-2) var(--e-snap), transform var(--t-3) var(--e-brush);
 }
 
-.dock__btn:hover:not(:disabled) .dock__kanji {
-  color: var(--vermilion);
-  transform: translateY(-2px);
+.dock__btn:hover:not(:disabled) .dock__icon {
+  color: var(--vermilion-lit);
+  transform: translateY(-2px) rotate(-4deg);
 }
 
 .dock__text {
@@ -735,15 +762,25 @@
 }
 
 .result__k {
-  font-size: clamp(2.2rem, 5vw, 3.2rem);
-  color: var(--vermilion);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--vermilion);
   line-height: 0.8;
+}
+
+.result[data-win] .result__k {
+  color: var(--vermilion);
+  -webkit-text-stroke: 0;
 }
 
 .result__title {
   font-family: var(--font-display);
   font-size: clamp(1.15rem, 2.4vw, 1.7rem);
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .result__sub {
@@ -772,11 +809,13 @@
 }
 
 .lobby__title {
-  font-size: clamp(1.9rem, 4.6vw, 3.6rem);
-  font-weight: 600;
+  font-size: clamp(1.9rem, 4.6vw, 3.4rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--bone-100);
   margin-top: 0.9rem;
-  max-width: 22ch;
+  max-width: 24ch;
 }
 
 .lobby__grid {
@@ -827,14 +866,19 @@
   background: var(--vermilion);
 }
 
-.lobby__chip-k {
-  font-size: 1.6rem;
-  color: var(--bone-100);
-  transform-origin: left center;
+.lobby__chip-pic {
+  width: 100%;
+  height: 3.5rem;
+  object-fit: cover;
+  object-position: center 20%;
+  filter: contrast(1.03) saturate(0.9);
+  transform-origin: center;
 }
 
-.lobby__chip[data-sel="true"] .lobby__chip-k {
-  color: var(--vermilion);
+.lobby__chip[data-sel="true"] .lobby__chip-pic {
+  outline: 1px solid var(--vermilion);
+  outline-offset: 2px;
+  filter: contrast(1.05) saturate(1);
 }
 
 .lobby__chip-n {
