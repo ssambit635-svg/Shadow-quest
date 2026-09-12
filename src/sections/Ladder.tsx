@@ -6,6 +6,7 @@
 import { useEffect, useRef } from "react";
 import { api, IS_MOCK } from "../api";
 import { gsap, REDUCED, ScrollTrigger } from "../lib/motion";
+import { useReveals } from "../lib/reveal";
 import { useResource } from "../hooks/useApi";
 
 const loadLadder = () => api.leaderboard();
@@ -14,6 +15,7 @@ export function Ladder() {
   const root = useRef<HTMLElement>(null);
   const { data, loading, error, reload } = useResource(loadLadder);
   const rows = data ?? [];
+  useReveals(root, [rows.length]);
 
   // Rows arrive as one sweep down the table, then the hairline settles.
   useEffect(() => {
@@ -63,8 +65,10 @@ export function Ladder() {
       <div className="shell">
         <header className="ladder__head">
           <div>
-            <p className="label ladder__tag">第四 — the ladder</p>
-            <h2 className="ladder__title">Kept on one number.</h2>
+            <p className="label ladder__tag">04 — the ladder</p>
+            <h2 className="ladder__title" data-rv="brush">
+              Kept on one number.
+            </h2>
           </div>
           <p className="ladder__lede">
             Wins, losses, and the longest run you held before someone read you.

@@ -71,6 +71,13 @@ export function Boot({ onDone }: { onDone: () => void }) {
       )
       .add(wipeIn("[data-boot-line]", { duration: 0.7 }), 0.8)
       .to("[data-boot-copy]", { opacity: 1, duration: 0.5 }, 0.9)
+      // The mark takes one breath before the curtain lifts.
+      .to(
+        "[data-boot-kanji]",
+        { scale: 1.07, duration: 0.32, ease: "power2.out", transformOrigin: "center" },
+        1.55,
+      )
+      .to("[data-boot-kanji]", { scale: 1, duration: 0.4, ease: "brush" }, 1.87)
       // 3 — curtain leaves upward in three unequal panels: a page turn, not a fade.
       .to(
         "[data-boot-panel]",

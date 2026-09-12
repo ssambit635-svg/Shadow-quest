@@ -15,7 +15,7 @@ import { gsap, hitStop, REDUCED, scrambleTo, shake } from "../lib/motion";
 import { CombatantPanel, TurnRing } from "../components/hud/CombatantPanel";
 import { ActionDock } from "../components/hud/ActionDock";
 import { DuelLog } from "../components/hud/DuelLog";
-import { SamuraiMark } from "../components/SamuraiMark";
+
 
 const loadShadows = () => api.listShadows();
 
@@ -46,8 +46,11 @@ export function Field({ onExit }: { onExit: () => void }) {
   const me = state?.combatants.find((c) => c.seat === state.you) ?? null;
   const foe = state?.combatants.find((c) => c.seat !== state.you) ?? null;
 
-  const kanjiOf = useCallback(
-    (id?: string) => shadows.find((s) => s.id === id)?.kanji ?? "影",
+  const portraitOf = useCallback(
+    (id?: string) => {
+      const s = shadows.find((x) => x.id === id);
+      return s?.portraitUrl ?? (id ? `/img/shadows/${id}.jpg` : undefined);
+    },
     [shadows],
   );
 
@@ -159,10 +162,16 @@ export function Field({ onExit }: { onExit: () => void }) {
           0.1,
         )
         .fromTo(
-          "[data-fx-mark] .mark__stroke",
-          { drawSVG: "0% 0%" },
-          { drawSVG: "100% 0%", duration: 2, stagger: 0.05, ease: "steel" },
-          0.4
+          "[data-fx-mark]",
+          { clipPath: "inset(0 0 100% 0)", autoAlpha: 0 },
+          { clipPath: "inset(0 0 0% 0)", autoAlpha: 1, duration: 1.4, ease: "brush" },
+          0.4,
+        )
+        .fromTo(
+          "[data-fx-mark] img",
+          { scale: 1.15 },
+          { scale: 1, duration: 2, ease: "brush" },
+          0.4,
         );
     }, root);
     return () => {
@@ -247,7 +256,7 @@ export function Field({ onExit }: { onExit: () => void }) {
     return (
       <section className="field field--lobby" ref={root}>
         <header className="lobby__head shell" data-fx-lobby>
-          <p className="label">影 — open a field</p>
+          <p className="label">open a field</p>
           <h1 className="lobby__title">
             Choose the shadow you will
             <br />
@@ -271,14 +280,21 @@ export function Field({ onExit }: { onExit: () => void }) {
                     setPick(s.id);
                     prefs.setShadow(s.id);
                     gsap.fromTo(
-                      `[data-shadow-chip="${s.id}"] .lobby__chip-k`,
-                      { scale: 0.7 },
+                      `[data-shadow-chip="${s.id}"] .lobby__chip-pic`,
+                      { scale: 0.82 },
                       { scale: 1, duration: 0.5, ease: "brush" },
                     );
                   }}
                   data-shadow-chip={s.id}
                 >
-                  <span className="lobby__chip-k kanji">{s.kanji}</span>
+                  <img
+                    className="lobby__chip-pic"
+                    src={s.portraitUrl ?? `/img/shadows/${s.id}.jpg`}
+                    alt=""
+                    loading="lazy"
+                    width={72}
+                    height={56}
+                  />
                   <span className="lobby__chip-n">{s.name}</span>
                 </button>
               ))}
@@ -317,7 +333,7 @@ export function Field({ onExit }: { onExit: () => void }) {
         </div>
 
         <div className="lobby__mark" aria-hidden="true" data-fx-mark>
-          <SamuraiMark size="100%" inked />
+          <img src="/img/duel-wide.jpg" alt="" loading="lazy" />
         </div>
       </section>
     );
@@ -345,7 +361,7 @@ export function Field({ onExit }: { onExit: () => void }) {
         </div>
 
         <div className="field__phase">
-          <span className="field__phase-k kanji">{over ? "残" : "構"}</span>
+          <span className="field__pip" data-over={over || undefined} aria-hidden="true" />
           <span className="label">{phaseLabel[state.phase]}</span>
           <span className="field__round num">R{String(state.round).padStart(2, "0")}</span>
         </div>
@@ -361,18 +377,18 @@ export function Field({ onExit }: { onExit: () => void }) {
         <div className="field__vs">
           {foe && (
             <div data-fx-panel>
-              <CombatantPanel c={foe} mirror kanji={kanjiOf(foe.shadowId)} />
+              <CombatantPanel c={foe} mirror portraitUrl={portraitOf(foe.shadowId)} />
             </div>
           )}
 
           <div className="field__mid" aria-hidden="true">
-            <span className="field__mid-k kanji">{pending ? "決" : "対"}</span>
-            <span className="field__mid-label label">{pending ? "resolving" : "vs"}</span>
+            <span className="field__mid-k">{pending ? "···" : "VS"}</span>
+            <span className="field__mid-label label">{pending ? "resolving" : "versus"}</span>
           </div>
 
           {me && (
             <div data-fx-panel>
-              <CombatantPanel c={me} kanji={kanjiOf(me.shadowId)} />
+              <CombatantPanel c={me} portraitUrl={portraitOf(me.shadowId)} />
             </div>
           )}
         </div>
@@ -398,7 +414,7 @@ export function Field({ onExit }: { onExit: () => void }) {
         <div className="field__actions" data-fx-dock>
           {over ? (
             <div className="result" data-win={state.phase === "victory" || undefined}>
-              <p className="result__k kanji">{state.phase === "victory" ? "勝" : "負"}</p>
+              <p className="result__k">{state.phase === "victory" ? "W" : "L"}</p>
               <div className="result__body">
                 <h2 className="result__title">
                   {state.phase === "victory" ? "The field is yours." : "You were read."}

@@ -39,13 +39,16 @@
   --line-strong: color-mix(in srgb, var(--bone-200) 26%, transparent);
   --panel: color-mix(in srgb, var(--ink-800) 92%, var(--bone-100));
 
-  /* --- type --- */
-  --font-display: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", Georgia, serif;
-  --font-body: "Barlow", "Helvetica Neue", Arial, sans-serif;
-  --font-label: "Barlow Condensed", "Barlow", Arial, sans-serif;
+  /* --- type: epic game stack. Cinzel carries titles (engraved, heavy),
+     Manrope carries UI copy, Oswald carries HUD labels. Shippori Mincho
+     survives ONLY for the header Japanese accents (.kanji). --- */
+  --font-display: "Cinzel", "Trajan Pro", "Times New Roman", Georgia, serif;
+  --font-body: "Manrope", "Helvetica Neue", Arial, sans-serif;
+  --font-label: "Oswald", "Arial Narrow", Arial, sans-serif;
+  --font-jp: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", serif;
 
-  --fs-hero: clamp(3.4rem, 12.5vw, 12.5rem);
-  --fs-display: clamp(2.1rem, 5.4vw, 4.6rem);
+  --fs-hero: clamp(2.7rem, 8.2vw, 7.75rem);
+  --fs-display: clamp(1.9rem, 4.6vw, 3.7rem);
   --fs-h2: clamp(1.5rem, 3vw, 2.5rem);
   --fs-h3: clamp(1.05rem, 1.5vw, 1.3rem);
   --fs-body: clamp(0.95rem, 1.05vw, 1.0625rem);
