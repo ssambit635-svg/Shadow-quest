@@ -39,10 +39,11 @@
   --line-strong: color-mix(in srgb, var(--bone-200) 26%, transparent);
   --panel: color-mix(in srgb, var(--ink-800) 92%, var(--bone-100));
 
-  /* --- type: epic game stack. Cinzel carries titles (engraved, heavy),
-     Manrope carries UI copy, Oswald carries HUD labels. Shippori Mincho
-     survives ONLY for the header Japanese accents (.kanji). --- */
-  --font-display: "Cinzel", "Trajan Pro", "Times New Roman", Georgia, serif;
+  /* --- type: Eurostile for headings per request (Rosnoc Eurostile).
+     Eurostile is the primary display — geometric, technical, blade-like.
+     Manrope for body, Oswald for micro labels. --- */
+  --font-display: "Eurostile", "Eurostile Extended", "Eurostile LT Std", "Space Grotesk", "Orbitron", sans-serif;
+  --font-heading: "Eurostile", "Eurostile Extended", "Eurostile LT Std", "Space Grotesk", sans-serif;
   --font-body: "Manrope", "Helvetica Neue", Arial, sans-serif;
   --font-label: "Oswald", "Arial Narrow", Arial, sans-serif;
   --font-jp: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", serif;

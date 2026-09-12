@@ -1,9 +1,8 @@
 /**
- * Outro.tsx — the closing stroke: a painted plate wipes in beside a line of
- * huge type, then the site ends. No newsletter, no "stay in the loop".
+ * Outro.tsx — no magnetic, Eurostile.
  */
 import { useEffect, useRef } from "react";
-import { gsap, magnetic, REDUCED, ScrollTrigger, wipeIn } from "../lib/motion";
+import { gsap, REDUCED, ScrollTrigger, wipeIn } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
 
 export function Outro({ onEnter }: { onEnter: () => void }) {
@@ -14,7 +13,6 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
   useEffect(() => {
     if (REDUCED) return;
     const ctx = gsap.context(() => {
-      // The huge type slides up, both lines on the same curve.
       gsap.fromTo(
         ".outro__word",
         { yPercent: 112 },
@@ -26,7 +24,6 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
           scrollTrigger: { trigger: root.current, start: "top 62%", once: true },
         },
       );
-      // The plate wipes in from the right while its frame stamps on.
       const plateTl = gsap.timeline({
         scrollTrigger: { trigger: root.current, start: "top 62%", once: true },
       });
@@ -44,7 +41,6 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
           { opacity: 1, x: 0, duration: 0.6, ease: "snap" },
           0.9,
         );
-      // Plate drifts against the type on scroll — the close has depth.
       gsap.to(".outro__plate", {
         yPercent: -10,
         ease: "none",
@@ -56,9 +52,7 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
         },
       });
     }, root);
-    const release = ctaRef.current ? magnetic(ctaRef.current, 0.22, 160) : undefined;
     return () => {
-      release?.();
       ctx.revert();
       ScrollTrigger.refresh();
     };
@@ -68,12 +62,8 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
     <section className="outro section" ref={root}>
       <div className="shell outro__grid">
         <figure className="outro__plate" aria-hidden="true">
-          <img
-            src="/img/ink-wash.jpg"
-            alt=""
-            loading="lazy"
-          />
-          <figcaption className="outro__plate-tag label">the last page</figcaption>
+          <img src="/img/ink-wash.jpg" alt="" loading="lazy" />
+          <figcaption className="outro__plate-tag label">the last page — Eurostile</figcaption>
         </figure>
 
         <h2 className="outro__type">
@@ -86,12 +76,7 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
         </h2>
 
         <div className="outro__actions" data-rv="rise">
-          <button
-            className="btn btn--primary"
-            type="button"
-            onClick={onEnter}
-            ref={ctaRef}
-          >
+          <button className="btn btn--primary" type="button" onClick={onEnter} ref={ctaRef}>
             <span className="btn__slash" />
             Take the field
           </button>
@@ -104,7 +89,7 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
       <footer className="outro__foot shell">
         <p className="label">Shadow Quest — Season of the Ford</p>
         <p className="label">built for the duel, not the feed</p>
-        <p className="label num">MMXXVI · season of the ford</p>
+        <p className="label num">MMXXVI · Eurostile · ink bloom</p>
       </footer>
     </section>
   );

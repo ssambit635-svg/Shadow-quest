@@ -1,13 +1,11 @@
 /**
- * Home.tsx — the page, as an ordered argument:
- * hook (hero) → tone (ticker) → reason (way) → cast (roster) →
- * system (form) → proof (ladder) → ask (outro).
- *
- * Sections are siblings with no shared state on purpose; anything they do need
- * (the chosen shadow) goes through prefs, so no section can block another.
+ * Home.tsx — reordered with QuestLog as main objective.
+ * hook (hero) → CORE (questlog to-do) → tone (ticker) → reason (way) → cast (roster) → system (form) → proof (ladder) → ask (outro).
+ * Eurostile headings, no horizontal cursor trails, ink-bloom progress.
  */
 import { useEffect, useRef } from "react";
 import { Hero } from "../sections/Hero";
+import { QuestLog } from "../sections/QuestLog";
 import { Ticker } from "../sections/Ticker";
 import { Way } from "../sections/Way";
 import { Roster } from "../sections/Roster";
@@ -20,9 +18,6 @@ import { prefs } from "../lib/prefs";
 export function Home({ onEnter }: { onEnter: () => void }) {
   const root = useRef<HTMLDivElement>(null);
 
-  // Webfont metrics land after first paint; triggers measured before that are
-  // pinned to the wrong offsets. One refresh on `document.fonts` fixes all of
-  // them at once instead of each section re-measuring itself.
   useEffect(() => {
     let alive = true;
     document.fonts?.ready
@@ -39,6 +34,7 @@ export function Home({ onEnter }: { onEnter: () => void }) {
   return (
     <div ref={root} className="home">
       <Hero onEnter={onEnter} />
+      <QuestLog />
       <Ticker />
       <Way />
       <Roster

@@ -34,13 +34,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
-  cursor: none;
-}
-
-@media (hover: none) {
-  body {
-    cursor: auto;
-  }
+  cursor: auto;
 }
 
 img,
@@ -60,7 +54,7 @@ select {
 }
 
 button {
-  cursor: none;
+  cursor: pointer;
 }
 
 a {
@@ -81,10 +75,11 @@ a {
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
+  font-family: var(--font-heading, var(--font-display));
   font-weight: 800;
-  line-height: 1.06;
-  letter-spacing: 0.015em;
+  line-height: 1.02;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 /* ---------- micro-label ---------- */
@@ -189,7 +184,7 @@ body[data-booted="true"] .frame::after {
   );
 }
 
-/* ---------- custom cursor: blade tip ---------- */
+/* ---------- custom cursor: minimal dot, no horizontal lag ---------- */
 .cursor {
   position: fixed;
   top: 0;
@@ -197,40 +192,28 @@ body[data-booted="true"] .frame::after {
   z-index: 90;
   pointer-events: none;
   will-change: transform;
+  mix-blend-mode: difference;
 }
 
 .cursor__dot {
   position: absolute;
-  width: 5px;
-  height: 5px;
-  margin: -2.5px 0 0 -2.5px;
-  background: var(--vermilion);
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--bone-100);
   border-radius: 50%;
+  opacity: 0.9;
 }
 
 .cursor__ring {
-  position: absolute;
-  width: 34px;
-  height: 34px;
-  margin: -17px 0 0 -17px;
-  border: 1px solid color-mix(in srgb, var(--bone-200) 55%, transparent);
-  border-radius: 50%;
-  transition: width var(--t-2) var(--e-snap), height var(--t-2) var(--e-snap),
-    border-color var(--t-2) var(--e-snap), transform var(--t-2) var(--e-snap);
+  display: none !important;
 }
 
-body[data-cursor="press"] .cursor__ring {
-  width: 20px;
-  height: 20px;
-  margin: -10px 0 0 -10px;
-  border-color: var(--vermilion);
+body[data-cursor="hide"] .cursor {
+  opacity: 0;
 }
 
-body[data-cursor="hide"] {
-  opacity: 0.001;
-}
-
-@media (hover: none) {
+@media (hover: none), (max-width: 900px) {
   .cursor {
     display: none;
   }
@@ -352,8 +335,6 @@ body[data-cursor="hide"] {
 }
 
 .entry input {
-  /* Keep a real caret: hiding the text cursor for the sake of a custom one is
-     a bad trade the moment someone has to type a room code. */
   cursor: text;
   width: 100%;
   background: none;
@@ -361,7 +342,6 @@ body[data-cursor="hide"] {
   font-size: 1.15rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  cursor: none;
 }
 
 .field input::placeholder {
@@ -397,16 +377,9 @@ body[data-cursor="hide"] {
   }
 }
 
-/* hot = hovering anything actionable: ring opens, blade flattens */
-body[data-cursor="hot"] .cursor__ring {
-  width: 58px;
-  height: 58px;
-  margin: -29px 0 0 -29px;
-  border-color: var(--vermilion);
-  border-radius: 0;
-  transform: rotate(45deg);
-}
-
+/* hot state removed — no horizontal morph, no diamond */
 body[data-cursor="hot"] .cursor__dot {
-  opacity: 0;
+  transform: scale(1.6);
+  background: var(--vermilion);
+  opacity: 1;
 }

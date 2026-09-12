@@ -1,15 +1,16 @@
 /**
- * Nav.tsx — thin HUD bar. Hides on scroll-down, returns on scroll-up, and
- * carries a hairline of scroll progress along its bottom edge so the bar is
- * also an instrument.
+ * Nav.tsx — thin HUD bar. Now uses InkProgress (image blooming from ink) instead of basic red line.
+ * Hide/reveal on scroll still works, but progress is handled by InkProgress component.
  */
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "../lib/motion";
 import { useSession } from "../hooks/useApi";
 import { IS_MOCK } from "../api";
 import { Sigil } from "./Sigil";
+import { InkProgress } from "./InkProgress";
 
 const LINKS = [
+  { label: "Quest Log", href: "#questlog", id: "questlog" },
   { label: "The Way", href: "#way", id: "way" },
   { label: "Shadows", href: "#roster", id: "roster" },
   { label: "Form", href: "#form", id: "form" },
@@ -24,10 +25,9 @@ export function Nav({
   onNavigate: (r: "home" | "field") => void;
 }) {
   const rootRef = useRef<HTMLElement>(null);
-  const barRef = useRef<HTMLSpanElement>(null);
   const session = useSession();
 
-  // Hide/reveal + progress, in one ScrollTrigger — no scroll listeners.
+  // Hide/reveal only — progress is now InkProgress
   useEffect(() => {
     if (route === "field") {
       gsap.set(rootRef.current, { yPercent: 0 });
@@ -41,17 +41,11 @@ export function Nav({
       start: 0,
       end: () => ScrollTrigger.maxScroll(window),
       onUpdate(self) {
-        gsap.to(barRef.current, {
-          scaleX: self.progress,
-          duration: 0.25,
-          ease: "none",
-          overwrite: "auto",
-        });
-        const down = self.scroll() - last > 6;
-        const up = last - self.scroll() > 6;
-        if (down) gsap.to(el, { yPercent: -102, duration: 0.4, ease: "snap", overwrite: "auto" });
+        const down = self.scroll() - last > 8;
+        const up = last - self.scroll() > 8;
+        if (down && self.scroll() > 120) gsap.to(el, { yPercent: -102, duration: 0.4, ease: "snap", overwrite: "auto" });
         if (up) gsap.to(el, { yPercent: 0, duration: 0.5, ease: "brush", overwrite: "auto" });
-        if (Math.abs(self.scroll() - last) > 6) last = self.scroll();
+        if (Math.abs(self.scroll() - last) > 8) last = self.scroll();
       },
     });
     return () => st.kill();
@@ -88,14 +82,6 @@ export function Nav({
                 key={l.id}
                 className="nav__link"
                 href={l.href}
-                onMouseEnter={(e) => {
-                  gsap.fromTo(
-                    e.currentTarget,
-                    { y: 3, opacity: 0.55 },
-                    { y: 0, opacity: 1, duration: 0.3, ease: "snap" },
-                  );
-                  void l;
-                }}
                 onClick={(e) => {
                   e.preventDefault();
                   jump(l.id);
@@ -119,7 +105,7 @@ export function Nav({
         </button>
       </div>
 
-      <span className="nav__progress" ref={barRef} />
+      {route === "home" && <InkProgress />}
     </header>
   );
 }

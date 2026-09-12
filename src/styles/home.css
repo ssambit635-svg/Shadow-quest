@@ -222,6 +222,7 @@
   font-size: 0.68rem;
 }
 
+/* legacy red line kept for fallback */
 .nav__progress {
   position: absolute;
   left: 0;
@@ -231,6 +232,92 @@
   background: var(--vermilion);
   transform: scaleX(0);
   transform-origin: left center;
+}
+
+/* ---------------------------------------------------------- ink progress — image blooming from ink */
+.ink-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 4px;
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.ink-progress__track {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--bone-200) 12%, transparent);
+  height: 1px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ink-progress__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  transform-origin: left center;
+  overflow: visible;
+}
+
+.ink-progress__wash {
+  position: absolute;
+  inset: -6px 0 -6px 0;
+  background:
+    radial-gradient(120% 100% at 0% 50%, var(--vermilion) 0%, var(--vermilion-lit) 18%, transparent 55%),
+    url("/img/ink-wash.jpg");
+  background-size: cover, cover;
+  background-position: left center, left center;
+  background-blend-mode: multiply;
+  mix-blend-mode: normal;
+  opacity: 0.95;
+  border-radius: 0 2px 2px 0;
+}
+
+.ink-progress__head {
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+}
+
+.ink-progress__bloom {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, var(--vermilion-lit) 0%, var(--vermilion) 40%, transparent 75%);
+  filter: blur(0.5px);
+  opacity: 0.9;
+  will-change: transform, opacity;
+}
+
+.ink-progress__bloom--2 {
+  width: 42px;
+  height: 42px;
+  background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--vermilion) 30%, transparent) 0%, transparent 70%);
+  filter: blur(4px);
+  opacity: 0.5;
+}
+
+.ink-progress__dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bone-100);
+  box-shadow: 0 0 10px var(--vermilion-lit), 0 0 20px color-mix(in srgb, var(--vermilion) 50%, transparent);
+  z-index: 1;
+  will-change: transform;
 }
 
 @media (max-width: 900px) {
@@ -1649,6 +1736,488 @@
   }
 }
 
+/* ---------------------------------------------------------- questlog — main to-do */
+.questlog {
+  background: var(--ink-900);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.questlog__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  gap: clamp(2rem, 6vw, 5.5rem);
+  align-items: start;
+}
+
+.questlog__aside {
+  position: sticky;
+  top: 6.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.questlog__tag {
+  color: var(--vermilion-lit);
+}
+
+.questlog__title {
+  font-family: var(--font-heading, var(--font-display));
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  font-weight: 800;
+  line-height: 0.95;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--bone-100);
+}
+
+.questlog__title-em {
+  color: var(--bone-300);
+  display: block;
+  margin-top: 0.1em;
+}
+
+.questlog__lede {
+  max-width: 48ch;
+  color: color-mix(in srgb, var(--bone-200) 72%, transparent);
+  line-height: 1.75;
+  font-weight: 300;
+}
+
+.questlog__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink-800) 80%, transparent);
+}
+
+.questlog__stat {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.questlog__stat-v {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--bone-100);
+}
+
+.questlog__stat--pct {
+  grid-column: span 1;
+}
+
+.questlog__pct-bar {
+  display: block;
+  height: 2px;
+  background: var(--line);
+  margin-top: 0.3rem;
+  overflow: hidden;
+}
+
+.questlog__pct-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--vermilion-deep), var(--vermilion-lit));
+  transition: width 0.6s var(--e-brush);
+}
+
+.questlog__plate {
+  position: relative;
+  border: 1px solid var(--line-strong);
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--bone-100);
+  margin: 0;
+}
+
+.questlog__ink-wash {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.questlog__ink-wash img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: contrast(1.15) saturate(0.85);
+  will-change: transform;
+}
+
+.questlog__plate-bloom {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 60% at 22% 50%, color-mix(in srgb, var(--vermilion) 35%, transparent) 0%, transparent 70%);
+  mix-blend-mode: multiply;
+  opacity: 0.7;
+}
+
+.questlog__plate figcaption {
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.5rem;
+  font-size: 0.55rem;
+  color: var(--bone-200);
+  text-shadow: 0 1px 10px var(--ink-900);
+}
+
+.questlog__meta {
+  border-top: 1px solid var(--line);
+  padding-top: 0.8rem;
+}
+
+.questlog__meta-small {
+  font-size: 0.82rem;
+  color: var(--bone-500);
+  line-height: 1.6;
+  margin-top: 0.3rem;
+}
+
+/* main */
+.questlog__main {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.questlog__input-wrap {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--ink-800) 85%, transparent);
+}
+
+.questlog__input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.questlog__input {
+  width: 100%;
+  background: var(--ink-900);
+  border: 1px solid var(--line);
+  padding: 0.95rem 1rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--bone-100);
+  outline: none;
+  transition: border-color var(--t-2) var(--e-snap);
+}
+
+.questlog__input:focus {
+  border-color: var(--vermilion);
+}
+
+.questlog__input::placeholder {
+  color: var(--bone-500);
+  font-size: 0.92rem;
+}
+
+.questlog__add {
+  padding: 0.95rem 1.4rem;
+}
+
+.questlog__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: space-between;
+}
+
+.questlog__pills, .questlog__shadows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.questlog__pill {
+  font-family: var(--font-label);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--line);
+  color: var(--bone-400);
+  transition: all var(--t-2) var(--e-snap);
+}
+
+.questlog__pill[data-active="true"] {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+  color: var(--bone-100);
+}
+
+.questlog__pill[data-priority="high"][data-active="true"] { background: var(--vermilion); }
+.questlog__pill[data-priority="med"][data-active="true"] { background: var(--brass); border-color: var(--brass); }
+.questlog__pill[data-priority="low"][data-active="true"] { background: var(--ink-600); border-color: var(--ink-600); }
+
+.questlog__shadow-chip {
+  font-family: var(--font-label);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--line);
+  color: var(--bone-500);
+  transition: all var(--t-2) var(--e-snap);
+}
+
+.questlog__shadow-chip[data-active="true"] {
+  color: var(--bone-100);
+  border-color: var(--vermilion);
+  background: color-mix(in srgb, var(--vermilion) 14%, transparent);
+}
+
+.questlog__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  border-block: 1px solid var(--line);
+}
+
+.questlog__filter-tabs {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.questlog__filter {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid transparent;
+  color: var(--bone-500);
+}
+
+.questlog__filter[data-active="true"] {
+  border-color: var(--line-strong);
+  color: var(--bone-100);
+  background: var(--ink-800);
+}
+
+.questlog__search {
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--bone-200);
+  min-width: 12rem;
+}
+
+.questlog__clear {
+  font-family: var(--font-label);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--vermilion-lit);
+  border: 1px solid var(--vermilion-deep);
+  padding: 0.35rem 0.6rem;
+}
+
+.questlog__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.questlog__empty {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1.5rem;
+  background: var(--ink-800);
+  color: var(--bone-500);
+}
+
+.questlog__task {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.9rem;
+  align-items: start;
+  padding: 0.95rem 1rem;
+  background: var(--ink-800);
+  overflow: hidden;
+  isolation: isolate;
+  transition: background var(--t-2) var(--e-snap);
+}
+
+.questlog__task:hover {
+  background: var(--ink-700);
+}
+
+.questlog__task[data-done="true"] {
+  background: color-mix(in srgb, var(--ink-800) 92%, var(--vermilion) 8%);
+}
+
+.questlog__task-ink {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--line-strong);
+  transform-origin: left center;
+  z-index: 0;
+}
+
+.questlog__task[data-priority="high"] .questlog__task-ink { background: var(--vermilion); }
+.questlog__task[data-priority="med"] .questlog__task-ink { background: var(--brass); }
+.questlog__task[data-priority="low"] .questlog__task-ink { background: var(--bone-500); }
+.questlog__task[data-done="true"] .questlog__task-ink { background: var(--vermilion); width: 100%; opacity: 0.12; }
+
+.questlog__task-wash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  clip-path: circle(0% at 12% 50%);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.questlog__task-wash img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: invert(1) contrast(1.2) saturate(0) brightness(1.1);
+  opacity: 0.6;
+  mix-blend-mode: multiply;
+}
+
+.questlog__task-bloom {
+  position: absolute;
+  left: 2.2rem;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, var(--vermilion-lit) 0%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.questlog__check {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  background: var(--ink-900);
+  flex: none;
+  margin-top: 1px;
+  transition: all var(--t-2) var(--e-snap);
+}
+
+.questlog__task[data-done="true"] .questlog__check {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+  color: var(--bone-100);
+}
+
+.questlog__check-box {
+  display: grid;
+  place-items: center;
+}
+
+.questlog__task-body {
+  display: grid;
+  gap: 0.35rem;
+  position: relative;
+  z-index: 1;
+}
+
+.questlog__task-text {
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--bone-100);
+  font-weight: 400;
+  transition: all var(--t-2) var(--e-snap);
+}
+
+.questlog__task-text[data-done="true"] {
+  color: var(--bone-400);
+  text-decoration: line-through;
+  text-decoration-color: var(--vermilion);
+  text-decoration-thickness: 1px;
+}
+
+.questlog__task-meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.questlog__task-priority {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--line);
+  font-size: 0.58rem;
+}
+
+.questlog__task-priority[data-p="high"] { color: var(--vermilion-lit); border-color: var(--vermilion-deep); }
+.questlog__task-priority[data-p="med"] { color: var(--brass); border-color: color-mix(in srgb, var(--brass) 40%, transparent); }
+.questlog__task-priority[data-p="low"] { color: var(--bone-500); }
+
+.questlog__delete {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  color: var(--bone-500);
+  font-size: 1.1rem;
+  line-height: 1;
+  border: 1px solid transparent;
+  transition: all var(--t-2) var(--e-snap);
+}
+
+.questlog__delete:hover {
+  color: var(--vermilion-lit);
+  border-color: var(--line);
+  background: var(--ink-900);
+}
+
+.questlog__foot {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  color: var(--bone-500);
+  font-size: 0.6rem;
+  padding-top: 0.2rem;
+}
+
+@media (max-width: 980px) {
+  .questlog__grid {
+    grid-template-columns: 1fr;
+  }
+  .questlog__aside {
+    position: static;
+  }
+  .questlog__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* SplitText scaffolding — kept here so the reveal verbs have a floor to work on */
 .st-line {
   display: inline-block;
@@ -1662,3 +2231,4 @@
 .scram {
   color: var(--vermilion-lit);
 }
+

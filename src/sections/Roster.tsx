@@ -1,25 +1,17 @@
 /**
- * Roster.tsx — character select, drawn from the API (`GET /v1/shadows`).
- *
- * Cards are paper plates on the ink page, each carrying a painted portrait.
- * Hover does five things at once and nothing else: the card tilts in 3D, a
- * spotlight follows the pointer, the portrait pushes in, the ink wash bleeds
- * up, and the blade line draws. Selecting a shadow stamps the card and fires
- * a pulse ring — that's what the field screen boots with.
+ * Roster.tsx — no tilt, no horizontal cursor tracking. Eurostile headings.
+ * Cards still have ink wash bleed on hover but no 3D tilt.
  */
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { Shadow } from "../api/types";
-import { gsap, REDUCED, ScrollTrigger, tiltCard } from "../lib/motion";
+import { gsap, REDUCED, ScrollTrigger } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
 import { useResource } from "../hooks/useApi";
 import { prefs } from "../lib/prefs";
 
 const loadShadows = () => api.listShadows();
-
-/** 0–10 authored scale → 0–100% bar width, one place. */
 const pct = (v: number) => `${Math.max(4, Math.min(100, v * 10))}%`;
-
 const portrait = (s: Shadow) => s.portraitUrl ?? `/img/shadows/${s.id}.jpg`;
 
 export function Roster({ onPick }: { onPick: (id: string) => void }) {
@@ -30,15 +22,11 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
 
   useReveals(root, [shadows.length]);
 
-  // Bars fill once, when the card first enters — a readout, not a loop.
-  // Cards also get their 3D tilt + spotlight here, in the same pass.
   useEffect(() => {
     if (!shadows.length) return;
-    const detaches: Array<() => void> = [];
     const ctx = gsap.context(() => {
       gsap.utils.toArray<HTMLElement>(".roster__card").forEach((card) => {
         if (REDUCED) return;
-        detaches.push(tiltCard(card, 6));
         const bars = card.querySelectorAll<HTMLElement>(".roster__bar-fill");
         gsap.set(bars, { scaleX: 0, transformOrigin: "left center" });
         ScrollTrigger.create({
@@ -54,30 +42,24 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
               onComplete: () => gsap.set(bars, { clearProps: "transform" }),
             }),
         });
-        // Portrait drifts against the card on scroll — depth without motion.
         gsap.fromTo(
           card.querySelector(".roster__pic img"),
-          { yPercent: -6 },
+          { yPercent: -4 },
           {
-            yPercent: 6,
+            yPercent: 4,
             ease: "none",
             scrollTrigger: { trigger: card, start: "top bottom", end: "bottom top", scrub: 0.8 },
           },
         );
       });
     }, root);
-    return () => {
-      detaches.forEach((d) => d());
-      ctx.revert();
-    };
+    return () => ctx.revert();
   }, [shadows.length]);
 
   const pick = (id: string) => {
     setSelected(id);
     prefs.setShadow(id);
     const card = root.current?.querySelector<HTMLElement>(`[data-shadow="${id}"]`);
-    // A stamp, not a bounce: the card compresses, the frame flashes, and a
-    // pulse ring fires out of the portrait.
     if (card && !REDUCED) {
       gsap
         .timeline()
@@ -87,12 +69,6 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
           card.querySelector(".roster__ring"),
           { scale: 0.4, opacity: 0.9 },
           { scale: 1.6, opacity: 0, duration: 0.7, ease: "brush" },
-          0,
-        )
-        .fromTo(
-          card.querySelector(".roster__frame"),
-          { opacity: 1 },
-          { opacity: 0.25, duration: 0.5, ease: "brush" },
           0,
         );
     }
@@ -110,9 +86,8 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
           </h2>
         </div>
         <p className="roster__lede" data-rv="rise">
-          Stats are authored on the same zero-to-ten axis, so a nine in speed and
-          a four in guard mean exactly what they look like. No hidden tiers, no
-          unlock trees. Pick the shape of duel you want to lose in.
+          Eurostile headings, ink paper, no cursor tricks. Stats are 0–10, so a nine means nine.
+          Pick the shape of duel you want to lose in.
         </p>
       </header>
 
@@ -163,41 +138,35 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
                     onPointerEnter={() => {
                       if (REDUCED) return;
                       gsap.to(`[data-shadow="${s.id}"] .roster__wash`, {
-                        opacity: 0.5,
+                        opacity: 0.45,
                         yPercent: 0,
-                        duration: 0.7,
+                        duration: 0.6,
                         ease: "brush",
                       });
-                      gsap.to(`[data-shadow="${s.id}"] .roster__pic img`, {
-                        scale: 1.07,
-                        duration: 0.8,
+                      gsap.to(`[data-shadow="${s.id}\"] .roster__pic img`, {
+                        scale: 1.05,
+                        duration: 0.6,
                         ease: "brush",
-                      });
-                      gsap.fromTo(
-                        `[data-shadow="${s.id}"] .roster__blade`,
-                        { drawSVG: "0% 0%" },
-                        { drawSVG: "100% 0%", duration: 0.55, ease: "steel" },
-                      );
+                      } as any);
                     }}
                     onPointerLeave={() => {
                       if (REDUCED) return;
                       gsap.to(`[data-shadow="${s.id}"] .roster__wash`, {
                         opacity: 0.14,
                         yPercent: 18,
+                        duration: 0.7,
+                        ease: "brush",
+                      });
+                      gsap.to(`[data-shadow="${s.id}\"] .roster__pic img`, {
+                        scale: 1,
                         duration: 0.8,
                         ease: "brush",
-                      });
-                      gsap.to(`[data-shadow="${s.id}"] .roster__pic img`, {
-                        scale: 1,
-                        duration: 0.9,
-                        ease: "brush",
-                      });
+                      } as any);
                     }}
                     aria-pressed={isSel}
                   >
                     <span className="roster__wash" aria-hidden="true" />
-                    <span className="roster__spot" aria-hidden="true" />
-                    <span className="roster__pic" data-tilt-inner aria-hidden="true">
+                    <span className="roster__pic" aria-hidden="true">
                       <img src={portrait(s)} alt="" loading="lazy" />
                       <span className="roster__frame" />
                       <span className="roster__ring" />
@@ -206,10 +175,8 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
                       <span className="roster__name">{s.name}</span>
                       <span className="roster__id num">{String(i + 1).padStart(2, "0")}</span>
                     </span>
-
                     <span className="roster__school label">{s.school}</span>
                     <span className="roster__vow">{s.vow}</span>
-
                     <span className="roster__stats">
                       {(
                         [
@@ -228,7 +195,6 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
                         </span>
                       ))}
                     </span>
-
                     <svg className="roster__blade" viewBox="0 0 100 4" aria-hidden="true">
                       <path d="M0 2 H100" stroke="var(--vermilion)" strokeWidth="2" fill="none" />
                     </svg>
@@ -242,23 +208,12 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
             <p className="label">chosen</p>
             {chosen && (
               <p className="roster__chosen">
-                <img
-                  className="roster__chosen-pic"
-                  src={portrait(chosen)}
-                  alt=""
-                  width={44}
-                  height={44}
-                />
+                <img className="roster__chosen-pic" src={portrait(chosen)} alt="" width={44} height={44} />
                 {chosen.name}
                 <span className="roster__chosen-school label">{chosen.school}</span>
               </p>
             )}
-            <button
-              className="btn btn--primary"
-              type="button"
-              onClick={() => onPick(selected)}
-              disabled={!selected}
-            >
+            <button className="btn btn--primary" type="button" onClick={() => onPick(selected)} disabled={!selected}>
               <span className="btn__slash" />
               Take the field
             </button>
