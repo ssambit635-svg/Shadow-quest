@@ -158,10 +158,10 @@
 }
 
 .nav__word {
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-weight: 800;
   font-size: 0.95rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -222,15 +222,54 @@
   font-size: 0.68rem;
 }
 
+.nav__progress-bloom {
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 5px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--vermilion-lit) 40%, var(--vermilion) 80%, transparent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+}
+
 .nav__progress {
   position: absolute;
   left: 0;
   bottom: -1px;
-  height: 1px;
+  height: 2px;
   width: 100%;
-  background: var(--vermilion);
+  background: linear-gradient(
+    90deg,
+    var(--vermilion-deep) 0%,
+    var(--vermilion) 50%,
+    var(--vermilion-lit) 95%,
+    transparent 100%
+  );
   transform: scaleX(0);
   transform-origin: left center;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--vermilion-lit) 70%, transparent),
+              0 0 2px var(--vermilion-lit);
+}
+
+.nav__progress-head {
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 10px;
+  height: 6px;
+  margin-left: -5px;
+  background: radial-gradient(ellipse at center, var(--vermilion-lit) 0%, var(--vermilion) 45%, transparent 75%);
+  border-radius: 50%;
+  box-shadow: 0 0 16px var(--vermilion-lit),
+              0 0 32px color-mix(in srgb, var(--vermilion) 60%, transparent),
+              0 0 4px var(--bone-100);
+  pointer-events: none;
+  opacity: 0.95;
+  transform-origin: center center;
 }
 
 @media (max-width: 900px) {

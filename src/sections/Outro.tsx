@@ -1,6 +1,5 @@
 /**
- * Outro.tsx — the closing stroke: a painted plate wipes in beside a line of
- * huge type, then the site ends. No newsletter, no "stay in the loop".
+ * Outro.tsx — the closing stroke.
  */
 import { useEffect, useRef } from "react";
 import { gsap, magnetic, REDUCED, ScrollTrigger, wipeIn } from "../lib/motion";
@@ -8,13 +7,12 @@ import { useReveals } from "../lib/reveal";
 
 export function Outro({ onEnter }: { onEnter: () => void }) {
   const root = useRef<HTMLElement>(null);
-  const ctaRef = useRef<HTMLButtonElement>(null);
+  const ctaRef = useRef<HTMLAnchorElement>(null);
   useReveals(root);
 
   useEffect(() => {
     if (REDUCED) return;
     const ctx = gsap.context(() => {
-      // The huge type slides up, both lines on the same curve.
       gsap.fromTo(
         ".outro__word",
         { yPercent: 112 },
@@ -26,7 +24,6 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
           scrollTrigger: { trigger: root.current, start: "top 62%", once: true },
         },
       );
-      // The plate wipes in from the right while its frame stamps on.
       const plateTl = gsap.timeline({
         scrollTrigger: { trigger: root.current, start: "top 62%", once: true },
       });
@@ -44,7 +41,6 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
           { opacity: 1, x: 0, duration: 0.6, ease: "snap" },
           0.9,
         );
-      // Plate drifts against the type on scroll — the close has depth.
       gsap.to(".outro__plate", {
         yPercent: -10,
         ease: "none",
@@ -72,39 +68,39 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
             src="/img/ink-wash.jpg"
             alt=""
             loading="lazy"
+            style={{ filter: "contrast(1.05) saturate(0.65)" }}
           />
-          <figcaption className="outro__plate-tag label">the last page</figcaption>
+          <figcaption className="outro__plate-tag label">the system starts today</figcaption>
         </figure>
 
         <h2 className="outro__type">
           <span className="rv-line">
-            <span className="outro__word">The ford</span>
+            <span className="outro__word">A better you</span>
           </span>
           <span className="rv-line">
-            <span className="outro__word outro__word--em">is open.</span>
+            <span className="outro__word outro__word--em">starts now.</span>
           </span>
         </h2>
 
         <div className="outro__actions" data-rv="rise">
+          <a href="#dashboard" className="btn btn--primary" ref={ctaRef}>
+            <span className="btn__slash" />
+            Open Your Dashboard
+          </a>
           <button
-            className="btn btn--primary"
+            className="btn"
             type="button"
             onClick={onEnter}
-            ref={ctaRef}
           >
-            <span className="btn__slash" />
-            Take the field
+            Start Deep Work Session
           </button>
-          <a className="btn" href="#roster">
-            Choose another shadow
-          </a>
         </div>
       </div>
 
       <footer className="outro__foot shell">
-        <p className="label">Shadow Quest — Season of the Ford</p>
-        <p className="label">built for the duel, not the feed</p>
-        <p className="label num">MMXXVI · season of the ford</p>
+        <p className="label">ShadowQuest Personal OS</p>
+        <p className="label">built for real life, not the feed</p>
+        <p className="label num">MMXXVI · v1.0</p>
       </footer>
     </section>
   );

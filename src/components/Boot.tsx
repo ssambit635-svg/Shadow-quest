@@ -137,18 +137,18 @@ export function Boot({ onDone }: { onDone: () => void }) {
         </svg>
 
         <div className="boot__kanji" data-boot-kanji>
-          影
+          ◆
         </div>
 
         <div className="boot__meta">
-          <span className="label">Shadow Quest</span>
+          <span className="label">ShadowQuest OS</span>
           <span className="boot__num num" ref={numRef}>
             000
           </span>
         </div>
         <div className="boot__line" data-boot-line />
         <p className="boot__copy" data-boot-copy>
-          Ink, steel, and one decisive breath.
+          Real action. Real progress. Real growth.
         </p>
       </div>
     </div>

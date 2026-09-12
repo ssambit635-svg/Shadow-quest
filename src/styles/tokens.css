@@ -1,71 +1,80 @@
 /* ============================================================
    SHADOW QUEST — tokens
-   Palette deliberately avoids the "AI game" default (purple/blue
-   neon, glass, aurora gradients). Base is warm sumi black on bone
-   paper; the only saturated hue is vermilion (torii red).
+   Futuristic Personal OS palette. Base is deep ink-black on bone;
+   the primary accent is vermilion/crimson progress. Secondary cyan
+   for system accents.
    ============================================================ */
 
 :root {
   /* --- ground --- */
-  --ink-900: #0c0b0a;
-  --ink-800: #131110;
-  --ink-700: #1c1a18;
-  --ink-600: #262322;
-  --ink-500: #35312f;
+  --ink-900: #08090c;
+  --ink-800: #0f1116;
+  --ink-700: #161a21;
+  --ink-600: #21262f;
+  --ink-500: #2f3542;
 
   /* --- bone / paper --- */
-  --bone-100: #f4efe6;
-  --bone-200: #e6ded0;
-  --bone-300: #cfc4b1;
-  --bone-400: #a99e8c;
-  --bone-500: #7e766a;
+  --bone-100: #eef1f6;
+  --bone-200: #c7ccd6;
+  --bone-300: #9aa2b0;
+  --bone-400: #6d7482;
+  --bone-500: #4a515e;
 
-  /* --- accents (vermilion only, brass as support) --- */
-  --vermilion: #c1362b;
-  --vermilion-lit: #de4a34;
+  /* --- accents (vermilion progress, cyan system) --- */
+  --vermilion: #d43d31;
+  --vermilion-lit: #ff5a4a;
   --vermilion-deep: #8a241d;
-  --brass: #a98a55;
-  --steel: #6c7679;
-  --ki: #b9a44c;
+  --cyan: #4ac8e0;
+  --cyan-lit: #7ae4f5;
+  --cyan-deep: #2a7a8a;
+  --brass: #c7a46a;
+  --steel: #7a8591;
+  --ki: #c4b168;
 
-  --danger: #c1362b;
-  --ok: #6f8f6a;
+  --danger: #d43d31;
+  --warn: #d4a33d;
+  --ok: #5cc28a;
 
   /* --- semantic --- */
   --bg: var(--ink-900);
   --fg: var(--bone-100);
   --fg-dim: var(--bone-400);
-  --line: color-mix(in srgb, var(--bone-200) 14%, transparent);
-  --line-strong: color-mix(in srgb, var(--bone-200) 26%, transparent);
-  --panel: color-mix(in srgb, var(--ink-800) 92%, var(--bone-100));
+  --line: color-mix(in srgb, var(--bone-200) 12%, transparent);
+  --line-strong: color-mix(in srgb, var(--bone-200) 22%, transparent);
+  --panel: color-mix(in srgb, var(--ink-800) 94%, var(--bone-100) 6%);
+  --glow-vermilion: 0 0 20px color-mix(in srgb, var(--vermilion-lit) 55%, transparent);
+  --glow-cyan: 0 0 14px color-mix(in srgb, var(--cyan) 45%, transparent);
 
-  /* --- type: epic game stack. Cinzel carries titles (engraved, heavy),
-     Manrope carries UI copy, Oswald carries HUD labels. Shippori Mincho
-     survives ONLY for the header Japanese accents (.kanji). --- */
-  --font-display: "Cinzel", "Trajan Pro", "Times New Roman", Georgia, serif;
+  /* --- type: Eurostile-flavored futuristic stack. Orbitron + Rajdhani 
+     are used as faithful web equivalents of Eurostile Extended / Bold.
+     Manrope carries UI body; JetBrains Mono carries numeric data. --- */
+  --font-display: "Eurostile", "Eurostile Extended", "Eurostile Bold Extended",
+    "Orbitron", "Rajdhani", "Microgramma", "Bank Gothic", "Helvetica Neue", sans-serif;
+  --font-heading: "Eurostile", "Orbitron", "Rajdhani", "Microgramma", sans-serif;
   --font-body: "Manrope", "Helvetica Neue", Arial, sans-serif;
-  --font-label: "Oswald", "Arial Narrow", Arial, sans-serif;
+  --font-label: "Rajdhani", "Oswald", "Arial Narrow", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   --font-jp: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", serif;
 
-  --fs-hero: clamp(2.7rem, 8.2vw, 7.75rem);
-  --fs-display: clamp(1.9rem, 4.6vw, 3.7rem);
-  --fs-h2: clamp(1.5rem, 3vw, 2.5rem);
-  --fs-h3: clamp(1.05rem, 1.5vw, 1.3rem);
-  --fs-body: clamp(0.95rem, 1.05vw, 1.0625rem);
-  --fs-small: 0.8125rem;
-  --fs-micro: 0.6875rem;
+  --fs-hero: clamp(2.6rem, 7.8vw, 7.25rem);
+  --fs-display: clamp(1.8rem, 4.2vw, 3.4rem);
+  --fs-h2: clamp(1.4rem, 2.8vw, 2.3rem);
+  --fs-h3: clamp(1.05rem, 1.4vw, 1.25rem);
+  --fs-body: clamp(0.94rem, 1.02vw, 1.04rem);
+  --fs-small: 0.82rem;
+  --fs-micro: 0.7rem;
 
-  --ls-label: 0.24em;
-  --ls-wide: 0.06em;
+  --ls-label: 0.22em;
+  --ls-wide: 0.05em;
 
   /* --- space / rhythm --- */
   --gutter: clamp(1.25rem, 4vw, 4.5rem);
-  --section-y: clamp(5rem, 12vh, 11rem);
-  --maxw: 1380px;
+  --section-y: clamp(4.5rem, 11vh, 10rem);
+  --maxw: 1420px;
   --rail: 3.25rem;
 
-  --radius: 2px; /* near-square. no soft SaaS corners */
-  --radius-hud: 1px;
+  --radius: 3px;
+  --radius-hud: 2px;
 
   /* --- motion --- */
   --e-brush: cubic-bezier(0.16, 0.84, 0.24, 1);
@@ -84,9 +93,9 @@
 [data-tone="paper"] {
   --bg: var(--bone-100);
   --fg: var(--ink-900);
-  --fg-dim: color-mix(in srgb, var(--ink-900) 58%, var(--bone-100));
-  --line: color-mix(in srgb, var(--ink-900) 16%, transparent);
-  --line-strong: color-mix(in srgb, var(--ink-900) 30%, transparent);
+  --fg-dim: color-mix(in srgb, var(--ink-900) 55%, var(--bone-100));
+  --line: color-mix(in srgb, var(--ink-900) 14%, transparent);
+  --line-strong: color-mix(in srgb, var(--ink-900) 26%, transparent);
   --panel: var(--bone-200);
   background: var(--bg);
   color: var(--fg);

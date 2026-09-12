@@ -19,7 +19,7 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
   const line2 = useRef<HTMLSpanElement>(null);
   const plate = useRef<HTMLDivElement>(null);
   const strokeRef = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLButtonElement>(null);
+  const ctaRef = useRef<HTMLAnchorElement>(null);
   const ready = useReady();
 
   useEffect(() => {
@@ -211,7 +211,7 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
   return (
     <section className="hero" ref={root} id="top">
       <div className="hero__ghost kanji" data-hero-ghost aria-hidden="true">
-        影
+        ◈
       </div>
       <div className="hero__dust" data-hero-dust aria-hidden="true">
         {Array.from({ length: DUST }).map((_, i) => (
@@ -223,44 +223,43 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
         <div className="hero__text">
           <p className="hero__eyebrow" data-hero-meta>
             <span className="label">
-              <span className="kanji hero__eyebrow-k">影</span> · Season of the Ford
+              <span className="hero__eyebrow-k">◆</span> · ShadowQuest Personal OS
             </span>
             <span className="hero__rule" />
-            <span className="label">Turn-based duel</span>
+            <span className="label">Productivity · Growth · Progress</span>
           </p>
 
           <h1 className="hero__title" data-hero-title>
             <span className="rv-line">
-              <span ref={line1}>Ink dries.</span>
+              <span ref={line1}>Real tasks.</span>
             </span>
             <span className="rv-line hero__title-em">
-              <span ref={line2}>Steel doesn’t.</span>
+              <span ref={line2}>Real growth.</span>
             </span>
             <span className="hero__slash" data-hero-slash aria-hidden="true" />
           </h1>
 
           <p className="hero__lede" data-hero-meta>
-            Six shadows, one exchange per breath. Read the stance, commit the
-            stroke, live with the consequence — no sparkles, no gacha, no
-            victory you didn’t earn with patience.
+            A futuristic personal operating system that turns real-world action
+            into measurable progress. Complete your goals, grow real Life
+            Factors, earn Reward Points — no filler, no fake characters.
           </p>
 
           <div className="hero__actions" data-hero-meta>
-            <button
-              className="btn btn--primary"
-              type="button"
-              onClick={onEnter}
-              ref={ctaRef}
-            >
+            <a href="#dashboard" className="btn btn--primary" ref={ctaRef}>
               <span className="btn__slash" />
-              Enter the field
-            </button>
-            <a className="hero__quiet" href="#way">
-              <span>See the form</span>
+              Open Dashboard
+            </a>
+            <button
+              type="button"
+              className="hero__quiet"
+              onClick={onEnter}
+            >
+              <span>Deep Work Session</span>
               <svg viewBox="0 0 24 24" width="14" aria-hidden="true">
                 <path d="M12 3v16M5 13l7 7 7-7" stroke="currentColor" strokeWidth="1.4" fill="none" />
               </svg>
-            </a>
+            </button>
           </div>
         </div>
 
@@ -270,28 +269,29 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
               className="hero__painting"
               data-hero-painting
               src="/img/samurai-hero.jpg"
-              alt="Sumi-e painting of a ronin with drawn katana before a vermilion sun"
+              alt="Focused figure at work, cinematic ink-wash aesthetic"
+              style={{ filter: "contrast(1.05) saturate(0.7) hue-rotate(-10deg)" }}
             />
             <span className="hero__shine" data-hero-shine aria-hidden="true" />
-            <span className="hero__plate-tag label">study no. 01</span>
+            <span className="hero__plate-tag label">system build v1.0</span>
             <i className="hero__corner hero__corner--tl" data-hero-corner />
             <i className="hero__corner hero__corner--tr" data-hero-corner />
             <i className="hero__corner hero__corner--bl" data-hero-corner />
             <i className="hero__corner hero__corner--br" data-hero-corner />
           </div>
           <p className="hero__caption label">
-            Kage Maru, at the ford. <br />
-            <span>ink on paper, before the first cut</span>
+            ShadowQuest Personal OS <br />
+            <span>real action → progress → growth</span>
           </p>
         </div>
       </div>
 
       <div className="hero__foot shell" data-hero-foot>
         {[
-          ["Rounds", "best of one"],
-          ["Turn clock", "20s"],
-          ["Shadows", "six"],
-          ["Price", "patience"],
+          ["Goals / day", "∞"],
+          ["Life Factors", "7"],
+          ["Growth Ranks", "10"],
+          ["Reward", "earned"],
         ].map(([k, v]) => (
           <p key={k} className="hero__stat">
             <span className="label">{k}</span>

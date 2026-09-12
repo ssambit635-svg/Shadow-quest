@@ -60,10 +60,10 @@ export interface ActionSpec {
 }
 
 export const ACTIONS: ActionSpec[] = [
-  { kind: "strike", label: "Strike", detail: "reliable · costs nothing", kiCost: 0, key: "1" },
-  { kind: "guard", label: "Guard", detail: "+26 ki · stacks posture", kiCost: 0, key: "2" },
-  { kind: "riposte", label: "Riposte", detail: "punishes a strike", kiCost: 0, key: "3" },
-  { kind: "technique", label: "Technique", detail: "heavy · -42 ki", kiCost: 42, key: "4" },
+  { kind: "strike", label: "Execute", detail: "steady progress · no cost", kiCost: 0, key: "1" },
+  { kind: "guard", label: "Refocus", detail: "+26 focus · restores energy", kiCost: 0, key: "2" },
+  { kind: "riposte", label: "Push Back", detail: "counter interruptions", kiCost: 0, key: "3" },
+  { kind: "technique", label: "Deep Flow", detail: "major burst · -42 focus", kiCost: 42, key: "4" },
 ];
 
 export function ActionDock({

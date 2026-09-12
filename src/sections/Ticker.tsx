@@ -9,12 +9,12 @@ import { useEffect, useRef } from "react";
 import { gsap, REDUCED } from "../lib/motion";
 
 const PHRASES = [
-  "one time, one meeting",
-  "no respawns",
-  "hold the posture after the cut",
-  "best of one",
-  "read the breath",
-  "kage · hannya · suzume · bokushi · tetsu · yami",
+  "real action · real growth",
+  "show up every day",
+  "discipline compounds",
+  "energy is a budget",
+  "focus is a skill",
+  "knowledge · focus · discipline · strength · energy · wellness · skills",
 ];
 
 export function Ticker({ tone = "ink" }: { tone?: "ink" | "bone" }) {

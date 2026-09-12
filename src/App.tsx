@@ -131,7 +131,7 @@ export default function App() {
       </div>
 
       <div className="rail rail--l">
-        <span className="rail__vertical">影の道</span>
+        <span className="rail__vertical">◆SQ◆OS◆</span>
         <span className="rail__dot" />
       </div>
       <div className="rail rail--r">

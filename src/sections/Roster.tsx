@@ -100,19 +100,28 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
 
   const chosen = shadows.find((s) => s.id === selected);
 
+  // Productivity reinterpretation of shadow stats → capability attributes
+  const STAT_LABELS: Record<string, string> = {
+    cut: "Drive",
+    guard: "Resilience",
+    speed: "Velocity",
+    ki: "Depth",
+  };
+
   return (
-    <section className="roster section" id="roster" ref={root}>
+    <section className="roster section" id="growth" ref={root}>
       <header className="roster__head">
         <div>
-          <p className="label roster__tag">02 — the shadows</p>
+          <p className="label roster__tag">03 — focus areas</p>
           <h2 className="roster__title" data-rv="brush">
-            Six of them. You get one.
+            Choose your Focus Area.
           </h2>
         </div>
         <p className="roster__lede" data-rv="rise">
-          Stats are authored on the same zero-to-ten axis, so a nine in speed and
-          a four in guard mean exactly what they look like. No hidden tiers, no
-          unlock trees. Pick the shape of duel you want to lose in.
+          Every Focus Area is a real personal-development profile scored on the
+          same 0–10 axis. Drive, Resilience, Velocity, and Depth describe how you
+          show up for deep work. Pick the mindset you want to enter your next
+          Deep Work Session with.
         </p>
       </header>
 
@@ -220,7 +229,7 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
                         ] as const
                       ).map(([k, v]) => (
                         <span className="roster__stat" key={k}>
-                          <span className="roster__stat-k label">{k}</span>
+                          <span className="roster__stat-k label">{STAT_LABELS[k] ?? k}</span>
                           <span className="roster__bar">
                             <span className="roster__bar-fill" style={{ width: pct(v) }} />
                           </span>
@@ -239,7 +248,7 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
           </ul>
 
           <div className="roster__cta">
-            <p className="label">chosen</p>
+            <p className="label">focus area</p>
             {chosen && (
               <p className="roster__chosen">
                 <img
@@ -260,7 +269,7 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
               disabled={!selected}
             >
               <span className="btn__slash" />
-              Take the field
+              Begin Deep Work
             </button>
           </div>
         </>

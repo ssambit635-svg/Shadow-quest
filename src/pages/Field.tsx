@@ -242,12 +242,12 @@ export function Field({ onExit }: { onExit: () => void }) {
   );
 
   const phaseLabel: Record<QuestState["phase"], string> = {
-    lobby: "not seated",
-    awaiting: "opponent approaching",
-    stance: "your commitment",
+    lobby: "session setup",
+    awaiting: "preparing challenge",
+    stance: "your turn",
     resolving: "resolving",
-    victory: "field held",
-    defeat: "field lost",
+    victory: "challenge complete",
+    defeat: "session ended",
   };
 
   /* ---------------------------------------------------------------- */
@@ -256,17 +256,17 @@ export function Field({ onExit }: { onExit: () => void }) {
     return (
       <section className="field field--lobby" ref={root}>
         <header className="lobby__head shell" data-fx-lobby>
-          <p className="label">open a field</p>
+          <p className="label">Deep Work Session</p>
           <h1 className="lobby__title">
-            Choose the shadow you will
+            Choose your Focus Area
             <br />
-            be judged by.
+            for this challenge.
           </h1>
         </header>
 
         <div className="lobby__grid shell">
           <div className="lobby__pick" data-fx-lobby>
-            <p className="label lobby__label">your shadow</p>
+            <p className="label lobby__label">Focus Area</p>
             <div className="lobby__chips">
               {roster.loading &&
                 Array.from({ length: 6 }).map((_, i) => <span className="lobby__chip sk" key={i} />)}
@@ -305,22 +305,22 @@ export function Field({ onExit }: { onExit: () => void }) {
           <div className="lobby__go" data-fx-lobby>
             <button className="btn btn--primary btn--wide" type="button" onClick={open} disabled={roster.loading}>
               <span className="btn__slash" />
-              Open the field
+              Begin Challenge
             </button>
 
             <div className="lobby__or">
               <span className="lobby__or-line" />
-              <span className="label">answer a call</span>
+              <span className="label">Join Session</span>
               <span className="lobby__or-line" />
             </div>
 
             <label className="entry lobby__code" htmlFor="code">
-              <span className="label">code</span>
+              <span className="label">Session Code</span>
               <input
                 id="code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="KAGE-0000"
+                placeholder="SHDW-0000"
                 maxLength={12}
                 spellCheck={false}
               />
@@ -333,7 +333,7 @@ export function Field({ onExit }: { onExit: () => void }) {
         </div>
 
         <div className="lobby__mark" aria-hidden="true" data-fx-mark>
-          <img src="/img/duel-wide.jpg" alt="" loading="lazy" />
+          <img src="/img/duel-wide.jpg" alt="" loading="lazy" style={{ filter: "contrast(1.05) saturate(0.6) hue-rotate(-10deg)" }} />
         </div>
       </section>
     );
@@ -347,7 +347,7 @@ export function Field({ onExit }: { onExit: () => void }) {
 
       <header className="field__bar" data-fx-bar>
         <button className="field__leave label" type="button" onClick={onExit}>
-          ← leave field
+          ← exit challenge
         </button>
 
         <div className="field__id">
@@ -368,7 +368,7 @@ export function Field({ onExit }: { onExit: () => void }) {
 
         <TurnRing ms={state.turnClockMs} limit={state.turnLimitMs} urgent={urgent} />
 
-        {IS_MOCK && <span className="field__mock label">in-page engine</span>}
+        {IS_MOCK && <span className="field__mock label">local session</span>}
       </header>
 
       <div className="field__slash" ref={slashRef} aria-hidden="true" />
@@ -382,8 +382,8 @@ export function Field({ onExit }: { onExit: () => void }) {
           )}
 
           <div className="field__mid" aria-hidden="true">
-            <span className="field__mid-k">{pending ? "···" : "VS"}</span>
-            <span className="field__mid-label label">{pending ? "resolving" : "versus"}</span>
+            <span className="field__mid-k">{pending ? "···" : "◇"}</span>
+            <span className="field__mid-label label">{pending ? "resolving" : "challenge"}</span>
           </div>
 
           {me && (
@@ -414,13 +414,13 @@ export function Field({ onExit }: { onExit: () => void }) {
         <div className="field__actions" data-fx-dock>
           {over ? (
             <div className="result" data-win={state.phase === "victory" || undefined}>
-              <p className="result__k">{state.phase === "victory" ? "W" : "L"}</p>
+              <p className="result__k">{state.phase === "victory" ? "✓" : "×"}</p>
               <div className="result__body">
                 <h2 className="result__title">
-                  {state.phase === "victory" ? "The field is yours." : "You were read."}
+                  {state.phase === "victory" ? "Major Challenge Completed." : "Session ended."}
                 </h2>
                 <p className="result__sub">
-                  {state.round} exchanges · {me?.hp ?? 0} hp left · ki {me?.ki ?? 0}
+                  {state.round} rounds · {me?.hp ?? 0} energy left · focus {me?.ki ?? 0}
                 </p>
               </div>
               <div className="result__actions">
@@ -434,10 +434,10 @@ export function Field({ onExit }: { onExit: () => void }) {
                   }}
                 >
                   <span className="btn__slash" />
-                  Again
+                  New Session
                 </button>
                 <button className="btn" type="button" onClick={onExit}>
-                  Leave
+                  Back to Dashboard
                 </button>
               </div>
             </div>
@@ -454,7 +454,7 @@ export function Field({ onExit }: { onExit: () => void }) {
           <DuelLog log={state.log} note={state.note} />
           <div className="field__log-foot">
             <button className="field__forfeit label" type="button" onClick={() => void forfeit()} disabled={over}>
-              sheathe (concede)
+              end session
             </button>
             {error && <p className="field__err">{error}</p>}
           </div>

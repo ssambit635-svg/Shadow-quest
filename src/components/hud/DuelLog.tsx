@@ -50,7 +50,7 @@ export function DuelLog({ log, note }: { log: LogEntry[]; note?: string }) {
   return (
     <div className="log">
       <div className="log__head">
-        <span className="label">exchange log</span>
+        <span className="label">Progress Log</span>
         <span className="log__count num">{String(log.length).padStart(3, "0")}</span>
       </div>
 
@@ -63,7 +63,7 @@ export function DuelLog({ log, note }: { log: LogEntry[]; note?: string }) {
         ))}
         {log.length === 0 && (
           <li className="log__row log__row--empty">
-            <span className="log__text">nothing spent yet</span>
+            <span className="log__text">Begin your session to start earning progress</span>
           </li>
         )}
       </ul>

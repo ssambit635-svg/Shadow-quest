@@ -80,11 +80,13 @@ a {
 
 h1,
 h2,
-h3 {
-  font-family: var(--font-display);
-  font-weight: 800;
-  line-height: 1.06;
-  letter-spacing: 0.015em;
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 /* ---------- micro-label ---------- */
@@ -220,10 +222,12 @@ body[data-booted="true"] .frame::after {
 }
 
 body[data-cursor="press"] .cursor__ring {
-  width: 20px;
-  height: 20px;
-  margin: -10px 0 0 -10px;
-  border-color: var(--vermilion);
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-color: var(--vermilion-lit);
+  background: color-mix(in srgb, var(--vermilion) 28%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--vermilion-lit) 55%, transparent);
 }
 
 body[data-cursor="hide"] {
@@ -271,8 +275,9 @@ body[data-cursor="hide"] {
 }
 
 .rail--l .rail__vertical {
-  font-family: var(--font-jp);
-  font-weight: 800;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.35em;
 }
 
 .rail__dot {
@@ -397,16 +402,18 @@ body[data-cursor="hide"] {
   }
 }
 
-/* hot = hovering anything actionable: ring opens, blade flattens */
+/* hot = hovering anything actionable: ring grows smoothly, no horizontal/rotational distortion */
 body[data-cursor="hot"] .cursor__ring {
-  width: 58px;
-  height: 58px;
-  margin: -29px 0 0 -29px;
-  border-color: var(--vermilion);
-  border-radius: 0;
-  transform: rotate(45deg);
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-color: var(--vermilion-lit);
+  background: color-mix(in srgb, var(--vermilion) 12%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--vermilion-lit) 45%, transparent),
+              inset 0 0 10px color-mix(in srgb, var(--vermilion-lit) 25%, transparent);
 }
 
 body[data-cursor="hot"] .cursor__dot {
-  opacity: 0;
+  background: var(--vermilion-lit);
+  transform: scale(1.2);
 }

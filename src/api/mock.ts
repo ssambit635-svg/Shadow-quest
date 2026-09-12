@@ -1,10 +1,8 @@
 /**
- * mock.ts — a real (if small) duel engine living in the browser.
+ * mock.ts — a real (if small) Deep Work Challenge engine living in the browser.
  *
- * This is not decorative: it resolves turns, spends ki, runs an opponent, and
- * emits the same `fx` payload the server contract promises, so every animation
- * in the HUD is driven by genuine state change. When Api.md lands, this file
- * stops being imported and everything above it stays identical.
+ * Re-themed from samurai duel to productivity challenge while keeping the exact
+ * same state machine so animations, HUD and game flow remain fully functional.
  */
 import type { ShadowTransport, Unsubscribe } from "./transport";
 import type {
@@ -24,67 +22,67 @@ const TURN_LIMIT = 20000;
 export const ROSTER: Shadow[] = [
   {
     id: "kage",
-    name: "Kage Maru",
-    kanji: "影",
-    school: "Shadows of the Ford",
-    vow: "Strikes once. The river does the rest.",
+    name: "Focused Mind",
+    kanji: "◆",
+    school: "Deep Work Protocol",
+    vow: "Acts once. Momentum does the rest.",
     stats: { cut: 8, guard: 3, speed: 9, ki: 5 },
     portraitUrl: "/img/shadows/kage.jpg",
   },
   {
     id: "hannya",
-    name: "Hannya",
-    kanji: "鬼",
-    school: "Oni Gate",
-    vow: "Wears her grief as armour, and never removes it.",
+    name: "Iron Will",
+    kanji: "⬢",
+    school: "Resilience Gate",
+    vow: "Carries resolve as armour, and never removes it.",
     stats: { cut: 9, guard: 8, speed: 3, ki: 4 },
     portraitUrl: "/img/shadows/hannya.jpg",
   },
   {
     id: "suzume",
-    name: "Suzume",
-    kanji: "雀",
-    school: "Nine Sparks",
-    vow: "Faster than the sound of his own footwork.",
+    name: "Rapid Flow",
+    kanji: "◈",
+    school: "Velocity Sparks",
+    vow: "Faster than the distraction that tried to interrupt.",
     stats: { cut: 5, guard: 4, speed: 10, ki: 7 },
     portraitUrl: "/img/shadows/suzume.jpg",
   },
   {
     id: "bokushi",
-    name: "Bokushi",
-    kanji: "墨",
-    school: "Ink Widow",
-    vow: "Writes the ending, then performs it.",
+    name: "Strategist",
+    kanji: "✧",
+    school: "Planning Division",
+    vow: "Maps the path, then walks it.",
     stats: { cut: 6, guard: 5, speed: 6, ki: 10 },
     portraitUrl: "/img/shadows/bokushi.jpg",
   },
   {
     id: "tetsu",
-    name: "Tetsu Onna",
-    kanji: "鉄",
-    school: "Iron Veil",
-    vow: "Has never drawn. Has never needed to.",
+    name: "Steady",
+    kanji: "■",
+    school: "Consistency System",
+    vow: "Never rushed. Never broken.",
     stats: { cut: 4, guard: 10, speed: 4, ki: 6 },
     portraitUrl: "/img/shadows/tetsu.jpg",
   },
   {
     id: "yami",
-    name: "Yami Kendo",
-    kanji: "暗",
-    school: "Blind Path",
-    vow: "Reads the breath two beats before the cut.",
+    name: "Deep Flow",
+    kanji: "⬣",
+    school: "Flow State Path",
+    vow: "Reads the rhythm two beats before the next task.",
     stats: { cut: 7, guard: 6, speed: 7, ki: 8 },
     portraitUrl: "/img/shadows/yami.jpg",
   },
 ];
 
 export const LEADER: LeaderRow[] = [
-  { rank: 1, handle: "Nokoribi", wins: 214, losses: 12, streak: 41, school: "Nine Sparks" },
-  { rank: 2, handle: "Ashen Ford", wins: 188, losses: 30, streak: 9, school: "Shadows of the Ford" },
-  { rank: 3, handle: "Hannya Prime", wins: 171, losses: 44, streak: 17, school: "Oni Gate" },
-  { rank: 4, handle: "Ink Widow", wins: 149, losses: 51, streak: 4, school: "Ink Widow" },
-  { rank: 5, handle: "Tetsu", wins: 140, losses: 60, streak: 6, school: "Iron Veil" },
-  { rank: 6, handle: "Blind Path", wins: 121, losses: 66, streak: 2, school: "Blind Path" },
+  { rank: 1, handle: "noko_achiever", wins: 214, losses: 12, streak: 41, school: "Velocity Sparks" },
+  { rank: 2, handle: "ashen_works", wins: 188, losses: 30, streak: 9, school: "Deep Work Protocol" },
+  { rank: 3, handle: "iron_will", wins: 171, losses: 44, streak: 17, school: "Resilience Gate" },
+  { rank: 4, handle: "strategist01", wins: 149, losses: 51, streak: 4, school: "Planning Division" },
+  { rank: 5, handle: "steady_pace", wins: 140, losses: 60, streak: 6, school: "Consistency System" },
+  { rank: 6, handle: "flow_state", wins: 121, losses: 66, streak: 2, school: "Flow State Path" },
 ];
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPRSTVWXZ23456789";
@@ -94,10 +92,9 @@ function makeCode() {
   for (let i = 0; i < 4; i++) {
     out += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
   }
-  return `KAGE-${out}`;
+  return `SHDW-${out}`;
 }
 
-/** 3–10 ms of "network" so loading states are real, not theoretical. */
 const latency = <T,>(value: T): Promise<T> =>
   new Promise((resolve) =>
     setTimeout(() => resolve(structuredClone(value)), 40 + Math.random() * 90),
@@ -106,7 +103,6 @@ const latency = <T,>(value: T): Promise<T> =>
 const foeOf = (s: Seat): Seat => (s === "challenger" ? "defender" : "challenger");
 
 interface MockQuest extends QuestState {
-  /** Seat the local player occupies; the mock plays the other side. */
   localSeat: Seat;
   shadowPick: string;
 }
@@ -118,10 +114,6 @@ function entry(turn: number, text: string, kind: LogEntry["kind"] = "system", fx
   return { id: `${turn}-${Math.random().toString(36).slice(2, 7)}`, turn, kind, text, fx };
 }
 
-/**
- * Resolve one exchange. Deterministic per seed-ish roll, but written so the
- * numbers are legible: cut drives damage, guard absorbs, ki pays for style.
- */
 function resolve(
   q: MockQuest,
   localMove: MoveIntent,
@@ -165,8 +157,10 @@ function resolve(
       : Math.max(1, raw - soak * 0.42);
     const dmg = Math.round(mitigated + (Math.random() * 2 - 1));
     damage[victim] += Math.max(0, dmg);
+    const atkName = nameOf(q, attacker);
+    const moveName = prodLabel(move);
     log.push(
-      entry(turn, `${nameOf(q, attacker)} lands ${label(move)} — ${Math.max(0, dmg)} cuts.`, "damage", {
+      entry(turn, `${atkName} executes ${moveName} — ${Math.max(0, dmg)} energy drained.`, "damage", {
         target: victim,
         amount: dmg,
         type: "cut",
@@ -174,31 +168,30 @@ function resolve(
     );
   };
 
-  // Both sides commit; the exchange is simultaneous, the log is ordered.
   kiGain[q.localSeat] += localMove.kind === "guard" ? 26 : localMove.kind === "technique" ? -42 : 12;
   kiGain[foe] += foeMove.kind === "guard" ? 26 : foeMove.kind === "technique" ? -42 : 12;
 
-  log.push(entry(turn, `You commit ${label(localMove)}.`, "move"));
-  log.push(entry(turn, `${nameOf(q, foe)} commits ${label(foeMove)}.`, "move"));
+  log.push(entry(turn, `You choose ${prodLabel(localMove)}.`, "move"));
+  log.push(entry(turn, `Challenge responds with ${prodLabel(foeMove)}.`, "move"));
 
   lands(q.localSeat, localMove);
   lands(foe, foeMove);
 
   if (localMove.kind === "guard" && foeMove.kind === "technique") {
-    log.push(entry(turn, "Posture holds. The technique breaks on the guard.", "system"));
+    log.push(entry(turn, "Focus holds. The burst of effort is absorbed.", "system"));
   }
   if (foeMove.kind === "guard" && localMove.kind === "technique") {
-    log.push(entry(turn, "Read. Your technique is swallowed by iron patience.", "system"));
+    log.push(entry(turn, "Blocked. Your deep flow is met with steady resistance.", "system"));
   }
   if (Math.random() < 0.12) {
-    log.push(entry(turn, `${nameOf(q, foe)} shifts weight — a half beat early.`, "system"));
+    log.push(entry(turn, `Distraction flickers — refocus.`, "system"));
   }
 
   return { log, damage, kiGain };
 }
 
-const label = (m: MoveIntent) =>
-  ({ strike: "a strike", guard: "a guard", riposte: "a riposte", technique: "a technique" })[m.kind];
+const prodLabel = (m: MoveIntent) =>
+  ({ strike: "execution", guard: "refocus", riposte: "a push-back", technique: "deep flow" })[m.kind];
 
 const nameOf = (q: QuestState, seat: Seat) =>
   q.combatants.find((c) => c.seat === seat)?.displayName ?? seat;
@@ -216,8 +209,6 @@ function pickOpponentMove(q: MockQuest): MoveIntent {
   return { kind: "strike" };
 }
 
-/** Apply the resolution to state; returns a fresh quest object (referentially
- *  new so React re-renders without deep comparison). */
 function settle(q: MockQuest, localMove: MoveIntent): MockQuest {
   const { log, damage, kiGain } = resolve(q, localMove);
   const combatants: Combatant[] = q.combatants.map((c) => {
@@ -244,8 +235,8 @@ function settle(q: MockQuest, localMove: MoveIntent): MockQuest {
       entry(
         q.round,
         phase === "victory"
-          ? `${nameOf(q, winner)} takes the field. Breathe.`
-          : `${nameOf(q, winner)} stands alone. The ford is theirs.`,
+          ? `Major Challenge Completed. Progress earned. Breathe.`
+          : `Session ended. Energy depleted. Rest is also progress.`,
         "system",
       ),
     );
@@ -261,17 +252,13 @@ function settle(q: MockQuest, localMove: MoveIntent): MockQuest {
     log: [...q.log, ...log],
     note:
       phase === "victory"
-        ? "Rank pending server confirmation."
+        ? "Growth Milestone pending sync."
         : phase === "defeat"
-          ? "The duel is lost. Nothing else is."
+          ? "The session ended. Nothing else is lost."
           : undefined,
   };
 }
 
-/**
- * The store. One Map, keyed by quest id, plus subscribers — deliberately
- * shaped like a server so swapping transports changes nothing upstream.
- */
 const store = new Map<string, MockQuest>();
 const subs = new Map<string, Set<(s: QuestState) => void>>();
 
@@ -318,16 +305,13 @@ function newQuest(shadowId: string, localSeat: Seat = "challenger"): MockQuest {
         active: localSeat === "defender",
       },
     ],
-    // The code in this line is the code the join screen will echo back.
-    log: [entry(0, `Field drawn. Code ${code} — bow, then begin.`, "system")],
+    log: [entry(0, `Session opened. Code ${code} — prepare to begin.`, "system")],
   };
   store.set(id, q);
   return q;
 }
 
 export function mockTransport(): ShadowTransport {
-  // Single heartbeat drives the turn clock for every open quest, exactly like
-  // a server tick — the HUD never owns its own countdown.
   let timer: number | undefined;
   const ensureTick = () => {
     if (timer !== undefined) return;
@@ -354,7 +338,7 @@ export function mockTransport(): ShadowTransport {
 
     async createSession() {
       return latency<Session>({
-        handle: `ronin_${Math.random().toString(36).slice(2, 6)}`,
+        handle: `achiever_${Math.random().toString(36).slice(2, 6)}`,
         token: "mock",
         ranked: false,
       });
@@ -366,14 +350,13 @@ export function mockTransport(): ShadowTransport {
 
     async createQuest(shadowId) {
       const q = newQuest(shadowId);
-      // "Opponent found" beat, so the awaiting→stance transition is observable.
       setTimeout(() => {
         const cur = store.get(q.id);
         if (!cur) return;
         store.set(q.id, {
           ...cur,
           phase: "stance",
-          log: [...cur.log, entry(1, "An opponent bows. The round begins.", "system")],
+          log: [...cur.log, entry(1, "Challenge initialized. The timer starts now.", "system")],
         });
         publish(q.id);
       }, 900);
@@ -396,8 +379,6 @@ export function mockTransport(): ShadowTransport {
       const q = store.get(questId);
       if (!q) throw new Error("unknown quest");
       if (q.phase !== "stance") return latency<QuestState>({ ...q });
-      // Resolve on a beat, so the client's own lunge animation plays first and
-      // the impact lands with the state change instead of before it.
       setTimeout(() => {
         store.set(questId, settle(q, move));
         publish(questId);
@@ -413,7 +394,7 @@ export function mockTransport(): ShadowTransport {
         phase: q.localSeat === "challenger" ? "defeat" : "victory",
         winner: foeOf(q.localSeat),
         turnClockMs: 0,
-        log: [...q.log, entry(q.round, "You sheathe. The duel is conceded.", "system")],
+        log: [...q.log, entry(q.round, "Session ended early. Progress is saved.", "system")],
       };
       store.set(questId, ended);
       publish(questId);
