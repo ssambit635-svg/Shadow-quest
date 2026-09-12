@@ -1,10 +1,12 @@
 /**
- * Home.tsx — the page, as an ordered argument:
- * hook (hero) → tone (ticker) → reason (way) → cast (roster) →
- * system (form) → proof (ladder) → ask (outro).
+ * Home.tsx — the ShadowQuest Personal OS.
  *
- * Sections are siblings with no shared state on purpose; anything they do need
- * (the chosen shadow) goes through prefs, so no section can block another.
+ * Ordered flow:
+ * Hero → Dashboard (core to-do) → Way (principles) → Roster (focus areas) →
+ * ticker → Form (growth system) → Ladder (milestones) → Outro (CTA).
+ *
+ * Sections are siblings with no shared state; localStorage-backed dashboard
+ * is the primary interface and anchors the productivity promise.
  */
 import { useEffect, useRef } from "react";
 import { Hero } from "../sections/Hero";
@@ -14,15 +16,13 @@ import { Roster } from "../sections/Roster";
 import { Form } from "../sections/Form";
 import { Ladder } from "../sections/Ladder";
 import { Outro } from "../sections/Outro";
+import { Dashboard } from "../sections/Dashboard";
 import { ScrollTrigger } from "../lib/motion";
 import { prefs } from "../lib/prefs";
 
 export function Home({ onEnter }: { onEnter: () => void }) {
   const root = useRef<HTMLDivElement>(null);
 
-  // Webfont metrics land after first paint; triggers measured before that are
-  // pinned to the wrong offsets. One refresh on `document.fonts` fixes all of
-  // them at once instead of each section re-measuring itself.
   useEffect(() => {
     let alive = true;
     document.fonts?.ready
@@ -39,6 +39,7 @@ export function Home({ onEnter }: { onEnter: () => void }) {
   return (
     <div ref={root} className="home">
       <Hero onEnter={onEnter} />
+      <Dashboard />
       <Ticker />
       <Way />
       <Roster

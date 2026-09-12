@@ -20,6 +20,7 @@ export function CombatantPanel({
   const hpPct = Math.max(0, Math.min(100, (c.hp / c.hpMax) * 100));
   const hpTick = Math.round(hpPct);
 
+  const isYou = c.seat === "challenger"; // local player is challenger per mock
   return (
     <div
       className="cp"
@@ -28,23 +29,22 @@ export function CombatantPanel({
       data-low={c.hp / c.hpMax < 0.3 || undefined}
     >
       <div className="cp__head">
-        <span className="cp__seat label">{c.seat === "challenger" ? "challenger" : "defender"}</span>
-        {c.guard > 0 && <span className="cp__guard num">×{c.guard} guard</span>}
+        <span className="cp__seat label">{mirror ? "CHALLENGE" : "YOU"}</span>
+        {c.guard > 0 && <span className="cp__guard num">×{c.guard} focus</span>}
       </div>
 
       <div className="cp__idrow">
         {portraitUrl && (
-          <img className="cp__portrait" src={portraitUrl} alt="" width={64} height={64} />
+          <img className="cp__portrait" src={portraitUrl} alt="" width={64} height={64} style={{ filter: mirror ? "contrast(1.05) saturate(0.7)" : undefined }} />
         )}
         <div className="cp__ids">
           <h3 className="cp__name">{c.displayName}</h3>
-          <span className="cp__shadow label">{c.shadowId}</span>
+          <span className="cp__shadow label">{isYou ? "profile" : "challenge"}</span>
         </div>
       </div>
 
       <div className="cp__hp">
         <div className="cp__hp-track" aria-hidden="true">
-          {/* Two layers: the ghost of what was lost stays as wet ink. */}
           <span className="cp__hp-ghost" style={{ width: `${hpPct}%` }} />
           <span className="cp__hp-fill" style={{ width: `${hpPct}%` }} />
         </div>
@@ -53,16 +53,16 @@ export function CombatantPanel({
             {c.hp}
             <i>/{c.hpMax}</i>
           </span>
-          <span className="cp__hp-tick label">{hpTick}%</span>
+          <span className="cp__hp-tick label">energy {hpTick}%</span>
         </div>
       </div>
 
-      <div className="cp__ki" role="group" aria-label={`ki ${c.ki} of 100`}>
+      <div className="cp__ki" role="group" aria-label={`focus ${c.ki} of 100`}>
         {Array.from({ length: 10 }).map((_, i) => {
           const lit = c.ki >= (i + 1) * 10;
           return <span className="cp__pip" data-lit={lit || undefined} key={i} />;
         })}
-        <span className="cp__ki-num num">{c.ki}</span>
+        <span className="cp__ki-num num">{c.ki} focus</span>
       </div>
     </div>
   );

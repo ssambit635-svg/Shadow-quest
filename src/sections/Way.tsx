@@ -12,23 +12,23 @@ import { useReveals } from "../lib/reveal";
 const PRINCIPLES = [
   {
     n: "01",
-    title: "One exchange",
-    body: "Commit before the clock empties, or the field commits for you. A missed turn is spent guarding — it is not free, and it is not rare enough to matter twice.",
+    title: "Show up daily",
+    body: "Small, consistent actions compound into real growth. A goal you avoid is Progress you never earn — the system does not judge; it simply reflects what you did today.",
   },
   {
     n: "02",
-    title: "Read, then cut",
-    body: "Every shadow telegraphs two beats early: weight shifts to the back foot before a riposte, the hand drifts to the obi before a technique. The information is always on screen. Nobody is rolling dice at you.",
+    title: "Focus, then execute",
+    body: "Every task is a choice about where your Energy goes. Priorities are visible, deadlines are honest, and difficulty is real — plan your Focus Areas before you spend the day.",
   },
   {
     n: "03",
-    title: "Ki is a budget",
-    body: "Techniques cost forty-two. Guarding returns twenty-six. That is the entire economy of a duel — you are choosing, every turn, between the cut you want and the one you can pay for.",
+    title: "Energy is a budget",
+    body: "Hard tasks cost Energy; deep work restores Discipline; rest refills Wellness. You are choosing, every day, between the goal you want and the energy you have to give it.",
   },
   {
     n: "04",
-    title: "Zanshin",
-    body: "The posture held after the cut. The duel ends when the blade is sheathed, not when the numbers hit zero — so the last turn of a won round is still a turn you must take seriously.",
+    title: "Follow through",
+    body: "Growth does not stop when the checkbox fills. The posture after completion — reflection, reward, rest — is what turns a finished task into a lasting upgrade to yourself.",
   },
 ];
 
@@ -96,21 +96,22 @@ export function Way() {
     <section className="way section" id="way" ref={root}>
       <div className="shell way__grid">
         <div className="way__aside">
-          <p className="label way__tag">01 — the way</p>
+          <p className="label way__tag">02 — the system</p>
           <h2 className="way__title" data-rv="brush">
-            Four rules, because four is enough.
+            Four principles of real growth.
           </h2>
           <figure className="way__plate" data-way-plate data-rv="bleed">
             <img
               src="/img/duel-wide.jpg"
-              alt="Two duelists facing one another across empty ground, ink painting"
+              alt="Focused workspace with warm cinematic light"
               loading="lazy"
+              style={{ filter: "contrast(1.05) saturate(0.6) hue-rotate(-10deg)" }}
             />
-            <figcaption className="label">the ford, before either moves</figcaption>
+            <figcaption className="label">the workspace, before the first task</figcaption>
           </figure>
           <p className="way__note">
-            The system is small on purpose. Depth in Shadow Quest comes from the
-            opponent, not from a menu you have to memorise.
+            The system is small on purpose. Depth in ShadowQuest comes from your
+            real life, not from a menu tree you have to memorise.
           </p>
         </div>
 

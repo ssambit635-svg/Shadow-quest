@@ -1,8 +1,8 @@
 /**
- * Form.tsx — the turn structure, pinned and scroll-scrubbed.
+ * Form.tsx — the growth loop, pinned and scroll-scrubbed.
  *
- * One ensō, four stations. The ring is drawn once, then rotates against scroll
- * while each station's copy is cross-faded by direct writes — no React state
+ * One ensō-style ring, four stations. The ring rotates against scroll while
+ * each station's copy is cross-faded by direct GSAP writes — no React state
  * per frame, which is what would make a scrubbed section stutter.
  */
 import { useEffect, useRef } from "react";
@@ -12,23 +12,23 @@ import { useReveals } from "../lib/reveal";
 const STATIONS = [
   {
     k: "01",
-    title: "Stance",
-    body: "The clock opens at twenty seconds. Both sides can see the other's ki, guard count, and how many turns they have spent cutting. Nothing is hidden except intent.",
+    title: "Intention",
+    body: "Every day starts with clarity. Your Today view shows the goals you chose, their Life Factor gains, the Progress they pay out, and the Reward Points waiting. Nothing is hidden except whether you will follow through.",
   },
   {
     k: "02",
-    title: "Commit",
-    body: "One verb per turn: strike, guard, riposte, technique. It is sent to the server on its own — there is no queue, no cancel, no taking it back because the animation looked wrong.",
+    title: "Action",
+    body: "One task at a time. Pick the next priority, execute with Focus, mark it complete. There is no queueing and no undo — real commitment is made in the moment you start, not when you move cards on a board.",
   },
   {
     k: "03",
-    title: "Resolve",
-    body: "Both commitments land in the same beat. Damage is cut minus the other side's guard soak, so a read is worth more than a statistic, and the log says exactly what happened.",
+    title: "Progress",
+    body: "Every completion pays Progress that raises your Life Level, Reward Points you can spend on yourself, and Life Factor gains that reflect the real skill, strength or knowledge you just built. The log tells you exactly what you earned.",
   },
   {
     k: "04",
-    title: "Zanshin",
-    body: "Hold the posture. The round is not yours until the sheath clicks, and the field keeps the score whether or not you are still looking at it.",
+    title: "Follow-through",
+    body: "Hold the posture. A growth day does not end when the last checkbox fills — reflect, rest, rebuild Energy. The system keeps your Consistency streak and Life Factor history whether or not you are still looking at it.",
   },
 ];
 
@@ -45,7 +45,6 @@ export function Form() {
     const kanjis = gsap.utils.toArray<HTMLElement>(".form__kanji");
 
     const ctx = gsap.context(() => {
-      // Draw the circle once on entry — the section's opening gesture.
       gsap.fromTo(
         ring.current?.querySelectorAll("path") ?? [],
         { drawSVG: "0% 0%" },
@@ -65,7 +64,7 @@ export function Form() {
         if (progress) gsap.set(progress, { scaleX: p });
         panels.forEach((el, i) => {
           const center = seg * i + seg / 2;
-          const d = Math.abs(p - center) / seg; // 0 at its own centre, 1 one segment away
+          const d = Math.abs(p - center) / seg;
           const t = gsap.utils.clamp(0, 1, 1 - d * 1.35);
           gsap.set(el, {
             autoAlpha: t,
@@ -75,7 +74,6 @@ export function Form() {
           });
         });
         const now = Math.min(STATIONS.length - 1, Math.floor(p * STATIONS.length + 1e-4));
-        // The ring inhales each time a new station takes over.
         if (now !== prevActive.i && ring.current) {
           prevActive.i = now;
           gsap.fromTo(
@@ -135,7 +133,7 @@ export function Form() {
     <section className="form section" id="form" ref={root}>
       <div className="form__stage shell">
         <p className="label form__tag" data-rv="rise">
-          03 — the turn
+          04 — the loop
         </p>
 
         <div className="form__grid">
@@ -165,7 +163,7 @@ export function Form() {
 
           <div className="form__copy">
             <h2 className="form__title" data-rv="brush">
-              Four stations, one breath each.
+              The Real-Life Growth Loop.
             </h2>
             <div className="form__stations">
               {STATIONS.map((s, i) => (
@@ -187,9 +185,9 @@ export function Form() {
       </div>
 
       <figure className="form__plate">
-        <img src="/img/duel-wide.jpg" alt="Two samurai facing one another across empty paper, sumi-e" />
+        <img src="/img/duel-wide.jpg" alt="Cinematic workspace" style={{ filter: "contrast(1.05) saturate(0.6) hue-rotate(-10deg) invert(1) grayscale(1) contrast(1.25)" }} />
         <figcaption className="label">
-          the field, before either of them moves — and this is the only part of the game that is decoration
+          real action → progress → growth — the loop runs every day
         </figcaption>
       </figure>
     </section>

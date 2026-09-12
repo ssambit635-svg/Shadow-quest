@@ -1,7 +1,7 @@
 /**
  * Nav.tsx — thin HUD bar. Hides on scroll-down, returns on scroll-up, and
- * carries a hairline of scroll progress along its bottom edge so the bar is
- * also an instrument.
+ * carries a blooming ink progress line along its bottom edge. The ink blooms
+ * as you progress — an expanding glow + ink-blur head that travels the spine.
  */
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "../lib/motion";
@@ -10,10 +10,10 @@ import { IS_MOCK } from "../api";
 import { Sigil } from "./Sigil";
 
 const LINKS = [
-  { label: "The Way", href: "#way", id: "way" },
-  { label: "Shadows", href: "#roster", id: "roster" },
-  { label: "Form", href: "#form", id: "form" },
-  { label: "Ladder", href: "#ladder", id: "ladder" },
+  { label: "Dashboard", href: "#dashboard", id: "dashboard" },
+  { label: "Growth", href: "#growth", id: "growth" },
+  { label: "Rewards", href: "#dashboard", id: "dashboard" },
+  { label: "Milestones", href: "#ladder", id: "ladder" },
 ];
 
 export function Nav({
@@ -25,9 +25,12 @@ export function Nav({
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
+  const bloomRef = useRef<HTMLSpanElement>(null);
+  const headRef = useRef<HTMLSpanElement>(null);
+  const lastProgressRef = useRef(0);
   const session = useSession();
 
-  // Hide/reveal + progress, in one ScrollTrigger — no scroll listeners.
+  // Hide/reveal + blooming ink progress — no scroll listeners.
   useEffect(() => {
     if (route === "field") {
       gsap.set(rootRef.current, { yPercent: 0 });
@@ -41,12 +44,46 @@ export function Nav({
       start: 0,
       end: () => ScrollTrigger.maxScroll(window),
       onUpdate(self) {
-        gsap.to(barRef.current, {
-          scaleX: self.progress,
-          duration: 0.25,
-          ease: "none",
-          overwrite: "auto",
-        });
+        const p = self.progress;
+        // Core ink fill — no easing on the main bar so it tracks position
+        gsap.set(barRef.current, { scaleX: p });
+        // The bloom head travels with the fill edge and blooms forward.
+        if (headRef.current) {
+          gsap.set(headRef.current, { left: `${p * 100}%` });
+        }
+        // Ink bloom: when progress moves forward, the glow pulses and bleeds
+        const delta = p - lastProgressRef.current;
+        if (delta > 0.001 && bloomRef.current) {
+          // Bleed pulse — the ink bloom spreads slightly ahead
+          gsap.fromTo(
+            bloomRef.current,
+            { scaleX: 1, opacity: 0.9, filter: "blur(6px)" },
+            {
+              scaleX: 1.06,
+              opacity: 0.4,
+              filter: "blur(12px)",
+              duration: 0.6,
+              ease: "power2.out",
+              overwrite: "auto",
+            },
+          );
+          // The head pulses like ink hitting paper
+          if (headRef.current) {
+            gsap.fromTo(
+              headRef.current,
+              { scale: 1.8, opacity: 1 },
+              {
+                scale: 1,
+                opacity: 0.95,
+                duration: 0.55,
+                ease: "power2.out",
+                overwrite: "auto",
+              },
+            );
+          }
+        }
+        lastProgressRef.current = p;
+
         const down = self.scroll() - last > 6;
         const up = last - self.scroll() > 6;
         if (down) gsap.to(el, { yPercent: -102, duration: 0.4, ease: "snap", overwrite: "auto" });
@@ -111,15 +148,18 @@ export function Nav({
       <div className="nav__end">
         <span className="nav__handle label">
           {session ? session.handle : "—"}
-          {IS_MOCK && <i className="nav__mock" title="running the in-page duel engine">mock</i>}
+          {IS_MOCK && <i className="nav__mock" title="local productivity engine">local</i>}
         </span>
         <button className="nav__cta btn" onClick={() => onNavigate("field")} type="button">
           <span className="btn__slash" />
-          {route === "field" ? "Leave field" : "Enter the field"}
+          {route === "field" ? "Exit Challenge" : "Deep Work Session"}
         </button>
       </div>
 
+      {/* Blooming ink progress: core line + bleed halo + travelling ink head */}
+      <span className="nav__progress-bloom" ref={bloomRef} aria-hidden="true" />
       <span className="nav__progress" ref={barRef} />
+      <span className="nav__progress-head" ref={headRef} aria-hidden="true" />
     </header>
   );
 }
