@@ -1,0 +1,90 @@
+/* ============================================================
+   SHADOW QUEST — tokens
+   Palette deliberately avoids the "AI game" default (purple/blue
+   neon, glass, aurora gradients). Base is warm sumi black on bone
+   paper; the only saturated hue is vermilion (torii red).
+   ============================================================ */
+
+:root {
+  /* --- ground --- */
+  --ink-900: #0c0b0a;
+  --ink-800: #131110;
+  --ink-700: #1c1a18;
+  --ink-600: #262322;
+  --ink-500: #35312f;
+
+  /* --- bone / paper --- */
+  --bone-100: #f4efe6;
+  --bone-200: #e6ded0;
+  --bone-300: #cfc4b1;
+  --bone-400: #a99e8c;
+  --bone-500: #7e766a;
+
+  /* --- accents (vermilion only, brass as support) --- */
+  --vermilion: #c1362b;
+  --vermilion-lit: #de4a34;
+  --vermilion-deep: #8a241d;
+  --brass: #a98a55;
+  --steel: #6c7679;
+  --ki: #b9a44c;
+
+  --danger: #c1362b;
+  --ok: #6f8f6a;
+
+  /* --- semantic --- */
+  --bg: var(--ink-900);
+  --fg: var(--bone-100);
+  --fg-dim: var(--bone-400);
+  --line: color-mix(in srgb, var(--bone-200) 14%, transparent);
+  --line-strong: color-mix(in srgb, var(--bone-200) 26%, transparent);
+  --panel: color-mix(in srgb, var(--ink-800) 92%, var(--bone-100));
+
+  /* --- type --- */
+  --font-display: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", Georgia, serif;
+  --font-body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --font-label: "Barlow Condensed", "Barlow", Arial, sans-serif;
+
+  --fs-hero: clamp(3.4rem, 12.5vw, 12.5rem);
+  --fs-display: clamp(2.1rem, 5.4vw, 4.6rem);
+  --fs-h2: clamp(1.5rem, 3vw, 2.5rem);
+  --fs-h3: clamp(1.05rem, 1.5vw, 1.3rem);
+  --fs-body: clamp(0.95rem, 1.05vw, 1.0625rem);
+  --fs-small: 0.8125rem;
+  --fs-micro: 0.6875rem;
+
+  --ls-label: 0.24em;
+  --ls-wide: 0.06em;
+
+  /* --- space / rhythm --- */
+  --gutter: clamp(1.25rem, 4vw, 4.5rem);
+  --section-y: clamp(5rem, 12vh, 11rem);
+  --maxw: 1380px;
+  --rail: 3.25rem;
+
+  --radius: 2px; /* near-square. no soft SaaS corners */
+  --radius-hud: 1px;
+
+  /* --- motion --- */
+  --e-brush: cubic-bezier(0.16, 0.84, 0.24, 1);
+  --e-snap: cubic-bezier(0.2, 0.9, 0.05, 1);
+  --e-draw: cubic-bezier(0.65, 0, 0.35, 1);
+  --e-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-1: 0.18s;
+  --t-2: 0.34s;
+  --t-3: 0.7s;
+  --t-4: 1.15s;
+
+  color-scheme: dark;
+}
+
+/* Light "paper" sections invert the relationship: ink on bone. */
+[data-tone="paper"] {
+  --bg: var(--bone-100);
+  --fg: var(--ink-900);
+  --fg-dim: color-mix(in srgb, var(--ink-900) 58%, var(--bone-100));
+  --line: color-mix(in srgb, var(--ink-900) 16%, transparent);
+  --line-strong: color-mix(in srgb, var(--ink-900) 30%, transparent);
+  --panel: var(--bone-200);
+  background: var(--bg);
+  color: var(--fg);
+}
