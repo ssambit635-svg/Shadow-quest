@@ -27,6 +27,7 @@ import { Ladder } from "./sections/Ladder";
 import { StatsBoard } from "./sections/StatsBoard";
 import { logout, scopeOf, useUser } from "./lib/auth";
 import { gsap, REDUCED } from "./lib/motion";
+import { isNativeApp } from "./lib/native";
 import { ReadyContext } from "./lib/ready";
 /* The phone face. A separate shell with its own chrome, screens and
    stylesheet — mounted below only on a phone viewport or inside the APK,
@@ -139,7 +140,7 @@ export default function App() {
   const signingOutRef = useRef(false);
 
   const go = useCallback(
-    (next: Route) => {
+    (next: Route, opts?: { replace?: boolean }) => {
       // Already there (state-wise): never re-play the wipe for a no-op.
       if (wantRef.current === next) return;
       const target =
@@ -154,6 +155,25 @@ export default function App() {
                 : next === "ladder"
                   ? "#/app/ladder"
                   : "#/";
+      // `replace` swaps the current history entry instead of pushing one.
+      // Redirects (the gate, the native boot, sign-out) use it so BACK never
+      // walks back *into* a screen the app itself refused to show — without
+      // it the APK traps the back button in a login↔app loop, because the
+      // WebView maps BACK to history-back while history remains.
+      if (opts?.replace) {
+        wantRef.current = next;
+        try {
+          window.history.replaceState(null, "", target);
+        } catch {
+          window.location.hash = target;
+          return; // the hashchange listener completes the swap
+        }
+        wipe(() => {
+          setRoute(next);
+          window.scrollTo({ top: 0, behavior: "auto" });
+        });
+        return;
+      }
       if (window.location.hash === target) {
         wantRef.current = next;
         wipe(() => setRoute(next));
@@ -165,18 +185,34 @@ export default function App() {
   );
 
   // The gate: app routes without a user are carried back to the login,
-  // and a signed-in user never sits on the login screen.
+  // and a signed-in user never sits on the login screen. Both redirects
+  // replace, so BACK skips over the refused screen instead of re-entering
+  // it and bouncing straight back (the APK's back-button trap).
   const inApp = APP_ROUTES.includes(route);
   useEffect(() => {
-    if (inApp && !user && !signingOutRef.current) go("login");
-    if (route === "login" && user) go("app");
+    if (inApp && !user && !signingOutRef.current) go("login", { replace: true });
+    if (route === "login" && user) go("app", { replace: true });
     if (!inApp) signingOutRef.current = false;
   }, [inApp, route, user, go]);
+
+  // Inside the APK there is no landing page: a cold boot lands straight in
+  // the ledger for a signed-in operator, or at the gate for a stranger.
+  // A deep link (any hash the shell recognises) is respected as-is.
+  const nativeBootRef = useRef(false);
+  useEffect(() => {
+    if (nativeBootRef.current || !isNativeApp()) return;
+    nativeBootRef.current = true;
+    if (readHash() === "home") go(user ? "app" : "login", { replace: true });
+    // Launch-time identity only; later sign-ins are carried by the gate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signOut = useCallback(() => {
     signingOutRef.current = true;
     logout();
-    go("home");
+    // The APK has no landing page to return to — the gate is home.
+    if (isNativeApp()) go("login", { replace: true });
+    else go("home");
   }, [go]);
 
   // Body flag drives the frame corners + chrome fade-in after boot.
