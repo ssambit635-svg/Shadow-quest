@@ -34,6 +34,12 @@ export function Boot({ onDone }: { onDone: () => void }) {
     doneRef.current = true;
     sessionStorage.setItem(SEEN_KEY, "1");
     setVisible(false);
+    // The curtain locks the document for the length of its own run. Every way
+    // out of it — the last frame, a skip, an unmount — has to hand the scroll
+    // back: an inline `overflow: hidden` left on <html> is invisible to the eye
+    // (the curtain is gone and every tap still lands) and freezes the page
+    // under a thumb. Belt and braces with the timeline's own unlock.
+    document.documentElement.style.overflow = "";
     onDone();
   };
 

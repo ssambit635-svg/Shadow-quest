@@ -32,14 +32,23 @@ export function Home({
 
   useEffect(() => {
     let alive = true;
+    // Webfonts land after first paint and move every measured height, so the
+    // triggers are re-cut once they are in.
     document.fonts?.ready
       .then(() => alive && ScrollTrigger.refresh())
       .catch(() => undefined);
-    const onResize = () => ScrollTrigger.refresh();
-    window.addEventListener("resize", onResize);
+
+    // There is deliberately no `resize` → `ScrollTrigger.refresh()` listener
+    // here. ScrollTrigger already refreshes on resize — debounced by 200ms and,
+    // on a touch device, blind to the URL-bar resizes a phone fires *while you
+    // are scrolling*. A forced synchronous refresh per resize event defeated
+    // both of those guards: on a phone the bar collapses mid-drag, the pinned
+    // loop re-measures under the thumb and the scroll position is recomputed
+    // out from under the gesture, so the page reads as stuck even though every
+    // tap still lands. A laptop resizes only when the user drags a window
+    // edge, which is why the same listener was invisible there.
     return () => {
       alive = false;
-      window.removeEventListener("resize", onResize);
     };
   }, []);
 

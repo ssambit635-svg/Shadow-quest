@@ -11,6 +11,7 @@ import { useEffect, useRef } from "react";
 import {
   attachWash,
   brushReveal,
+  CAN_HOVER,
   gsap,
   isNarrow,
   magnetic,
@@ -174,7 +175,12 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
       );
 
       // — pointer parallax, lerped on one tween so nothing jitters —
-      if (!REDUCED) {
+      // Gated on a pointer that can genuinely hover, like every other
+      // pointer-chasing effect here (magnetic, wash, tilt): on glass this is a
+      // rAF loop that runs for the whole session and, worse, `pointermove`
+      // fires *during the scroll drag*, so the hero slides sideways under the
+      // thumb while the phone is already paying for the scroll.
+      if (!REDUCED && CAN_HOVER) {
         const layers = gsap.utils.toArray<HTMLElement>("[data-depth]");
         const pos = { x: 0, y: 0 };
         const goal = { x: 0, y: 0 };

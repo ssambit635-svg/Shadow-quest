@@ -34,20 +34,46 @@
    1 — ground rules: touch, scroll, tap feedback
    ============================================================ */
 @media (max-width: 860px) {
+  /* The page must not rubber-band sideways — one stray 100vw element (the
+     marquee, the pinned loop) would otherwise drag the whole document.
+
+     It is cut with `clip`, and never with `hidden` on <html>. That one
+     declaration was what froze the phone: overflow propagates from <body> to
+     the viewport *only while <html> is `overflow: visible` in both axes*, so
+     setting `overflow-x: hidden` on <html> stopped base.css's
+     `body { overflow-x: hidden }` from propagating and left <body> as a
+     scroll container of its own (a computed `overflow-y: auto` beside a
+     `hidden` x). That box has nothing to scroll — its height is its content's
+     height — so a thumb drag landed in a scroller with no room to move, and
+     the `overscroll-behavior-y: contain` that sat on the same <body> refused
+     to chain the gesture out to the document. Every tap still landed (taps
+     are not drags), the page simply never moved. A laptop never sees this
+     block, which is why the same CSS scrolled perfectly there.
+
+     `clip` cuts exactly the same paint without creating a scroll container at
+     all — and, unlike `hidden`, it leaves `position: sticky` working. Where a
+     browser does not understand `clip`, the declaration is dropped, <html>
+     stays `visible` and the body clip propagates to the viewport: the phone
+     scrolls on either path. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  /* Contain the overscroll on the *viewport*, never on an inner box. On the
+     root it suppresses pull-to-refresh over an app shell while owning not one
+     pixel of the drag; on a non-scrolling <body> it swallowed the drag whole. */
   html {
-    /* The page must not rubber-band sideways; a single stray 100vw element
-       (the marquee, the pinned loop) would otherwise drag the whole document. */
-    overflow-x: hidden;
+    overscroll-behavior-y: contain;
   }
 
   body {
     /* Kill the grey tap flash and the 300ms double-tap zoom delay without
-       locking pinch-zoom out of the user's hands. */
+       locking pinch-zoom out of the user's hands.
+       (`-webkit-overflow-scrolling` is deliberately gone: it has been dead
+       since iOS 13, and on a <body> that has become a scroll container it
+       promotes a second momentum layer that fights the document's own.) */
     -webkit-tap-highlight-color: transparent;
-    /* Momentum scrolling feels native; contain means an overscroll at the
-       bottom of a panel does not drag the whole app with it. */
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
   }
 
   button,
