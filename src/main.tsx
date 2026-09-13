@@ -13,6 +13,10 @@ import "./styles/arena.css";
 /* Last, and therefore decisive: the phone face of the app. Every rule
    inside is breakpoint-scoped, so the laptop never sees it. */
 import "./styles/mobile.css";
+/* The mobile-native shell's own design system. Every selector in it is
+   scoped under `.m-app` or `.m-login`, so it cannot reach the desktop —
+   and it is loaded last so the phone face wins outright on a phone. */
+import "./styles/mobile-ui.css";
 
 if (isNativeApp()) document.documentElement.classList.add("sq-native");
 
