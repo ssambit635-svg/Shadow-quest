@@ -9,6 +9,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { drawIn, gsap, REDUCED, scrambleTo, wipeIn } from "../lib/motion";
+import { isNativeApp } from "../lib/native";
 
 const SEEN_KEY = "sq.boot.seen";
 
@@ -62,7 +63,11 @@ export function Boot({ onDone }: { onDone: () => void }) {
 
     tl
       .add(() => {
-        document.documentElement.style.overflow = "hidden";
+        // Never lock <html> inside the APK WebView. An inline overflow:hidden
+        // that fails to clear (skip, unmount, sessionStorage hiccup) freezes
+        // the whole document under a thumb. The curtain is position:fixed and
+        // already eats the screen; it does not need the lock.
+        if (!isNativeApp()) document.documentElement.style.overflow = "hidden";
       })
       // 1 — the circle is pulled in one breath.
       .add(

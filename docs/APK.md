@@ -158,4 +158,5 @@ there by hand — edit the web app and re-sync.
 | APK installs but shows a white page | `dist` was empty — run `npm run build` before `cap sync` |
 | App talks to mock data in CI | `VITE_API_BASE_URL` variable not set on the repo |
 | `env(safe-area-inset-*)` reads 0 | the edge-to-edge call in `MainActivity` was removed |
+| APK installs, taps work, page will not scroll | WebView nested-scroll / GSAP pin. Rebuild after the native-scroll fix (`MainActivity` enables nested scrolling; `html.sq-native` keeps the viewport as the scroller; the growth-loop pin is off inside the shell). Chrome on the same phone is unaffected. |
 | Release APK won’t install over debug one | different signature — uninstall the debug build first |

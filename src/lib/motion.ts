@@ -12,6 +12,7 @@
  */
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { isNativeApp } from "./native";
 import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
 import { SplitText } from "gsap/SplitText";
 import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
@@ -67,6 +68,18 @@ export function initMotion() {
 
   gsap.defaults({ ease: "brush", duration: 1 });
   if (REDUCED) gsap.globalTimeline.timeScale(100);
+
+  // Android WebView (Capacitor) does not always deliver native document
+  // scrolling the way Chrome on the same phone does. GSAP's normalizer
+  // owns the touch stream and writes window.scroll so pins, scrub and
+  // a plain flick all share one scroller. The hosted site does not need
+  // this — Chrome already scrolls — so it stays native-only.
+  if (isNativeApp() && !REDUCED) {
+    ScrollTrigger.normalizeScroll({
+      allowNestedScroll: true,
+      lockAxis: false,
+    });
+  }
 
   // The scroll-velocity lean listens from the first frame.
   initVelocity();

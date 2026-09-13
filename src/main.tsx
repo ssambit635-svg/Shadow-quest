@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { initMotion } from "./lib/motion";
+import { isNativeApp } from "./lib/native";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/home.css";
@@ -12,6 +13,8 @@ import "./styles/arena.css";
 /* Last, and therefore decisive: the phone face of the app. Every rule
    inside is breakpoint-scoped, so the laptop never sees it. */
 import "./styles/mobile.css";
+
+if (isNativeApp()) document.documentElement.classList.add("sq-native");
 
 initMotion();
 
