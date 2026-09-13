@@ -37,25 +37,24 @@
   /* The page must not rubber-band sideways — one stray 100vw element (the
      marquee, the pinned loop) would otherwise drag the whole document.
 
-     It is cut with `clip`, and never with `hidden` on <html>. That one
-     declaration was what froze the phone: overflow propagates from <body> to
-     the viewport *only while <html> is `overflow: visible` in both axes*, so
-     setting `overflow-x: hidden` on <html> stopped base.css's
-     `body { overflow-x: hidden }` from propagating and left <body> as a
-     scroll container of its own (a computed `overflow-y: auto` beside a
-     `hidden` x). That box has nothing to scroll — its height is its content's
-     height — so a thumb drag landed in a scroller with no room to move, and
-     the `overscroll-behavior-y: contain` that sat on the same <body> refused
-     to chain the gesture out to the document. Every tap still landed (taps
-     are not drags), the page simply never moved. A laptop never sees this
-     block, which is why the same CSS scrolled perfectly there.
+     Only <body> gets `overflow-x: clip`, never <html>. Setting any
+     non-visible overflow on <html> prevents body's overflow from propagating
+     to the viewport (per CSS spec, propagation requires html to be
+     `overflow: visible` in *both* axes). When propagation is broken the
+     Capacitor Android WebView stops native touch-scrolling entirely: the page
+     renders, buttons still fire (taps are not drags), but a thumb drag lands
+     in a context with no room to move. A laptop never sees this block, which
+     is why the same markup scrolled perfectly there.
 
-     `clip` cuts exactly the same paint without creating a scroll container at
-     all — and, unlike `hidden`, it leaves `position: sticky` working. Where a
-     browser does not understand `clip`, the declaration is dropped, <html>
-     stays `visible` and the body clip propagates to the viewport: the phone
-     scrolls on either path. */
-  html,
+     With <html> left at `visible visible`, body's `overflow-x: clip`
+     propagates to the viewport (which treats `clip` as `hidden`), so
+     horizontal rubber-banding is still killed — and vertical scrolling flows
+     through the viewport as the UA intended. `clip`, unlike `hidden`, never
+     creates a scroll container, so <body> stays transparent to scroll
+     gestures and `position: sticky` keeps working inside it. Where the UA
+     does not understand `clip`, the declaration is dropped, body falls back to
+     base.css's `overflow-x: hidden`, and that value propagates to the
+     viewport in exactly the same way. */
   body {
     overflow-x: clip;
   }
