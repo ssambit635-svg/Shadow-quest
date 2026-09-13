@@ -142,13 +142,16 @@ export function Panel({
   children,
   className = "",
   glow = false,
+  ...rest
 }: {
   children: ReactNode;
   className?: string;
   glow?: boolean;
-}) {
+} & React.HTMLAttributes<HTMLElement>) {
   return (
-    <section className={`m-panel ${glow ? "is-glow" : ""} ${className}`}>{children}</section>
+    <section {...rest} className={`m-panel ${glow ? "is-glow" : ""} ${className}`}>
+      {children}
+    </section>
   );
 }
 

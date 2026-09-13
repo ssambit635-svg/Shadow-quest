@@ -33,43 +33,42 @@ const key = (scope: string) => `sq.habits.${scope}`;
 const remindKey = (scope: string) => `sq.habits.remind.${scope}`;
 const notifiedKey = (scope: string, date: string) => `sq.habits.notified.${scope}.${date}`;
 
+/**
+ * Repair an arbitrary habit array — the same list can arrive from storage
+ * or from the backend, so both pass through one validator.
+ */
+export function sanitizeHabits(raw: unknown): Habit[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((h): h is Record<string, unknown> => Boolean(h) && typeof h === "object")
+    .map((h) => ({
+      id: String(h.id ?? "").slice(0, 64),
+      title: String(h.title ?? "").slice(0, 120),
+      mark: String(h.mark ?? "節").slice(0, 4) || "節",
+      time: normalizeTime(String(h.time ?? "20:00")),
+      remind: h.remind === true,
+      createdAt: typeof h.createdAt === "number" ? h.createdAt : Date.now(),
+      history: Array.isArray(h.history)
+        ? h.history
+            .filter((d): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d))
+            .slice(-800)
+        : [],
+    }))
+    .filter((h) => h.id && h.title);
+}
+
 export function loadHabits(scope: string): Habit[] {
   try {
     const raw = localStorage.getItem(key(scope));
-    if (!raw) return seedHabits();
-    const list = JSON.parse(raw) as Habit[];
-    return Array.isArray(list) ? list : seedHabits();
+    if (!raw) return [];
+    return sanitizeHabits(JSON.parse(raw));
   } catch {
-    return seedHabits();
+    return [];
   }
 }
 
 export function saveHabits(scope: string, habits: Habit[]): void {
   localStorage.setItem(key(scope), JSON.stringify(habits));
-}
-
-/** Two seeds so the panel never opens onto an empty ritual. */
-function seedHabits(): Habit[] {
-  return [
-    {
-      id: makeHabitId(),
-      title: "Morning stretch & water",
-      mark: MARKS[0],
-      time: "07:30",
-      remind: true,
-      createdAt: Date.now(),
-      history: [],
-    },
-    {
-      id: makeHabitId(),
-      title: "Read 10 pages",
-      mark: MARKS[3],
-      time: "21:00",
-      remind: true,
-      createdAt: Date.now(),
-      history: [],
-    },
-  ];
 }
 
 export function makeHabitId(): string {

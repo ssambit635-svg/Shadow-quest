@@ -100,14 +100,12 @@ export const ROSTER: Shadow[] = [
   },
 ];
 
-export const LEADER: LeaderRow[] = [
-  { rank: 1, handle: "noko_achiever", wins: 214, losses: 12, streak: 41, school: "Velocity Sparks" },
-  { rank: 2, handle: "ashen_works", wins: 188, losses: 30, streak: 9, school: "Deep Work Protocol" },
-  { rank: 3, handle: "iron_will", wins: 171, losses: 44, streak: 17, school: "Resilience Gate" },
-  { rank: 4, handle: "strategist01", wins: 149, losses: 51, streak: 4, school: "Planning Division" },
-  { rank: 5, handle: "steady_pace", wins: 140, losses: 60, streak: 6, school: "Consistency System" },
-  { rank: 6, handle: "flow_state", wins: 121, losses: 66, streak: 2, school: "Flow State Path" },
-];
+/**
+ * No hardcoded ladder. The leaderboard is real operators read from the
+ * backend (see src/api/ledger.ts); a mock-mode build simply shows an empty
+ * table rather than invented people.
+ */
+export const LEADER: LeaderRow[] = [];
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPRSTVWXZ23456789";
 

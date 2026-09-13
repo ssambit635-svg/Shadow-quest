@@ -86,6 +86,14 @@ const fail = (msg) => {
 };
 const ok = (m) => console.log("ok", m);
 
+const gotoEarly = async (href, sel, name = href) => {
+  win.location.hash = href;
+  win.dispatchEvent(new win.HashChangeEvent("hashchange"));
+  await sleep(500);
+  if (!q(sel)) fail(`${name}: ${sel} missing at ${href}`);
+  return q(sel);
+};
+
 await import(pathToFileURL(resolve("dist/assets", entry)).href);
 await sleep(1600); // boot curtain + first paint
 
@@ -144,12 +152,47 @@ ok(
     " factors",
 );
 
-/* --- 4. completing a task moves the ledger and shows the reward beat --- */
+/* --- 4. the ledger starts EMPTY — no seeded tasks. Add one, complete it,
+        and watch the reward beat + the ledger move. --- */
 const scope = user.email.replace(/[^a-z0-9]/g, "");
+const seededTasks = JSON.parse(win.localStorage.getItem(`sq.tasks.${scope}`) ?? "[]");
+if (seededTasks.length !== 0) fail("tasks must not be seeded — a fresh ledger starts empty");
+
+await gotoEarly("#/app/tasks", ".m-tasks");
+if (qa(".m-chip").length !== 5) fail("task filters missing");
+if (!q(".m-fab")) fail("add-goal FAB missing");
+if (qa(".m-task").length !== 0) fail("fresh ledger should render zero task rows");
+
+q(".m-fab").click();
+await sleep(300);
+if (!q(".m-sheet__panel")) fail("new-goal sheet did not open");
+const input = q(".m-sheet__panel input");
+const setVal = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, "value").set;
+setVal.call(input, "Mobile smoke goal");
+input.dispatchEvent(new win.Event("input", { bubbles: true }));
+await sleep(120);
+const factorBtns = qa(".m-pick__b");
+if (factorBtns.length !== 7) fail(`factor picker should offer 7, got ${factorBtns.length}`);
+factorBtns[0].click(); // knowledge +2
+await sleep(120);
+if (!q(".m-payout").textContent.includes("+70"))
+  fail(`derived payout wrong: ${q(".m-payout").textContent}`);
+qa(".m-sheet__panel .m-btn--go")[0].click();
+await sleep(400);
+const storedAfterAdd = JSON.parse(win.localStorage.getItem(`sq.tasks.${scope}`) ?? "[]");
+if (!storedAfterAdd.some((t) => t.title === "Mobile smoke goal"))
+  fail("new goal not persisted");
+ok("fresh ledger: added a goal through the sheet (progress +70 / rp +18 derived)");
+
+// back Home — the goal we just added is today's work
+win.location.hash = "#/app";
+win.dispatchEvent(new win.HashChangeEvent("hashchange"));
+await sleep(500);
+
 const before = JSON.parse(win.localStorage.getItem(`sq.profile.${scope}`) ?? "{}");
 
 const cards = qa(".m-task");
-if (!cards.length) fail("no task cards on Home");
+if (!cards.length) fail("added goal not on Home");
 cards[0].querySelector(".m-task__check").click();
 await sleep(400);
 
@@ -184,40 +227,10 @@ if (heroLevel !== after.lifeLevel) fail("hero level not in sync with the ledger"
 ok(`hero reflects the ledger (Lv.${heroLevel})`);
 
 /* --- 5. tabs --- */
-const goto = async (href, sel, name) => {
-  win.location.hash = href;
-  win.dispatchEvent(new win.HashChangeEvent("hashchange"));
-  await sleep(500);
-  if (!q(sel)) fail(`${name}: ${sel} missing at ${href}`);
-  return q(sel);
-};
+const goto = gotoEarly;
 
 await goto("#/app/tasks", ".m-tasks", "tasks");
-if (qa(".m-chip").length !== 5) fail("task filters missing");
-if (!q(".m-fab")) fail("add-goal FAB missing");
-ok(`tasks: ${qa(".m-task").length} rows, 5 filters, FAB present`);
-
-// add a goal through the sheet
-q(".m-fab").click();
-await sleep(300);
-if (!q(".m-sheet__panel")) fail("new-goal sheet did not open");
-const input = q('.m-sheet__panel input');
-const setVal = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, "value").set;
-setVal.call(input, "Mobile smoke goal");
-input.dispatchEvent(new win.Event("input", { bubbles: true }));
-await sleep(120);
-const factorBtns = qa(".m-pick__b");
-if (factorBtns.length !== 7) fail(`factor picker should offer 7, got ${factorBtns.length}`);
-factorBtns[0].click(); // knowledge +2
-await sleep(120);
-if (!q(".m-payout").textContent.includes("+70"))
-  fail(`derived payout wrong: ${q(".m-payout").textContent}`);
-qa(".m-sheet__panel .m-btn--go")[0].click();
-await sleep(400);
-const stored = JSON.parse(win.localStorage.getItem(`sq.tasks.${scope}`) ?? "[]");
-if (!stored.some((t) => t.title === "Mobile smoke goal"))
-  fail("new goal not persisted");
-ok("added a goal through the sheet (progress +70 / rp +18 derived)");
+ok(`tasks: ${qa(".m-task").length} rows (the sealed one), 5 filters, FAB present`);
 
 await goto("#/app/progress", ".m-prog", "character sheet");
 if (!q(".m-radar")) fail("radar chart missing");
@@ -238,13 +251,22 @@ if (rpShown !== after.rewardPoints) fail(`rewards total ${rpShown} != ledger ${a
 if (qa(".m-mark").length !== 9) fail(`expected 9 marks, got ${qa(".m-mark").length}`);
 ok(`rewards: ${rpShown} RP, ${qa(".m-mark.is-on").length} marks earned`);
 
+await goto("#/app/stats", ".m-stats", "stats");
+if (!q(".ms-counts")) fail("stats counters missing");
+if (!q(".ms-heat")) fail("activity field missing");
+if (!q(".ms-week")) fail("weekly momentum missing");
+if (!q(".ms-gains")) fail("factor growth missing");
+ok(`stats screen: ${qa(".ms-heat__c:not(.ms-heat__c--off)").length} active days rendered`);
+
 await goto("#/app/squad", ".m-squad", "squad");
 if (qa(".m-slot").length !== 4) fail("formation should have 4 slots");
 if (!q(".m-mem.is-self")) fail("operator missing from their own squad");
 const roster = qa(".m-mem");
-if (roster.length < 2) fail("squad should be seeded with members");
+// No seeded people: a fresh squad is exactly the operator. Real operators
+// join through the live roster fetched from the backend.
+if (roster.length !== 1) fail(`fresh squad should hold only the operator, got ${roster.length}`);
 ok(
-  `squad "${q(".m-head__t").textContent.trim()}": ${roster.length} members, ` +
+  `squad "${q(".m-head__t").textContent.trim()}": ${roster.length} member (unseeded), ` +
     `${qa(".m-slot.is-filled").length}/4 slots filled`,
 );
 

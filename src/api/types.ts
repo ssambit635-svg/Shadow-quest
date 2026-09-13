@@ -104,11 +104,14 @@ export interface Session {
 export interface LeaderRow {
   rank: number;
   handle: string;
+  /** Goals sealed — the live ladder's ranking currency. */
   wins: number;
   losses: number;
   /** Longest single-life streak, in duels. */
   streak: number;
   school: string;
+  /** Life Level, when the backend supplies it (the live ladder does). */
+  level?: number;
 }
 
 export interface MoveIntent {

@@ -30,6 +30,7 @@ import { ProgressScreen } from "./screens/ProgressScreen";
 import { RewardsScreen } from "./screens/RewardsScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { SquadScreen } from "./screens/SquadScreen";
+import { StatsScreen } from "./screens/StatsScreen";
 import { Avatar, initialsOf } from "./parts";
 
 const TITLES: Record<MobileTab, string> = {
@@ -39,6 +40,7 @@ const TITLES: Record<MobileTab, string> = {
   rewards: "Rewards",
   profile: "Profile",
   squad: "Squad",
+  stats: "Stats",
 };
 
 export function MobileApp({ user }: { user: User }) {
@@ -153,6 +155,7 @@ export function MobileApp({ user }: { user: User }) {
             <ProfileScreen user={user} ledger={ledger} onSignOut={onSignOut} />
           )}
           {tab === "squad" && <SquadScreen user={user} profile={ledger.profile} />}
+          {tab === "stats" && <StatsScreen user={user} ledger={ledger} />}
         </main>
       </div>
 

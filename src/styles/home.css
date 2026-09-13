@@ -1871,3 +1871,60 @@
 .scram {
   color: var(--vermilion-lit);
 }
+
+/* — theme toggle — site face only; the phone face never renders it — */
+.nav__theme {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+  color: var(--fg-dim);
+  transition: border-color var(--t-2), color var(--t-2);
+}
+
+.nav__theme:hover {
+  border-color: var(--line-strong);
+  color: var(--fg);
+}
+
+.nav__theme-orb {
+  position: relative;
+  width: 26px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background var(--t-3);
+}
+
+.nav__theme-orb i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bone-200);
+  transition: transform var(--t-3) var(--e-snap), background var(--t-3);
+}
+
+/* paper mode: the knob travels and turns vermilion — one dot of accent */
+html[data-theme="light"] .nav__theme-orb i {
+  transform: translateX(12px);
+  background: var(--vermilion);
+}
+
+.nav__theme-word {
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  font-size: 0.6rem;
+}
+
+@media (max-width: 560px) {
+  .nav__theme-word {
+    display: none;
+  }
+}

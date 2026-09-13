@@ -18,7 +18,8 @@ export type MobileTab =
   | "progress"
   | "rewards"
   | "profile"
-  | "squad";
+  | "squad"
+  | "stats";
 
 export const MOBILE_TABS: {
   id: MobileTab;
@@ -31,18 +32,22 @@ export const MOBILE_TABS: {
   { id: "progress", label: "Progress", ja: "成", href: "#/app/progress" },
   { id: "rewards", label: "Rewards", ja: "褒", href: "#/app/rewards" },
   { id: "profile", label: "Profile", ja: "我", href: "#/app/profile" },
+  { id: "stats", label: "Stats", ja: "統", href: "#/app/stats" },
 ];
 
 /**
  * The five docked destinations, spelled out rather than derived from
- * MOBILE_TABS: Squad is a destination but not a dock tab (it is reached from
- * Home and Profile), and the dock's icon set is keyed on exactly this list.
+ * MOBILE_TABS: Squad and Stats are destinations but not dock tabs (they are
+ * reached from Home and Profile), and the dock's icon set is keyed on
+ * exactly this list.
  */
 export type DockTab = "home" | "tasks" | "progress" | "rewards" | "profile";
 
+const DOCK_IDS: DockTab[] = ["home", "tasks", "progress", "rewards", "profile"];
+
 export const DOCK_TABS: { id: DockTab; label: string; ja: string; href: string }[] =
   MOBILE_TABS.filter((t): t is (typeof MOBILE_TABS)[number] & { id: DockTab } =>
-    t.id !== "squad",
+    DOCK_IDS.includes(t.id as DockTab),
   ) as { id: DockTab; label: string; ja: string; href: string }[];
 
 const ROUTE_OF: Record<string, MobileTab> = {
@@ -54,6 +59,7 @@ const ROUTE_OF: Record<string, MobileTab> = {
   "app/rewards": "rewards",
   "app/profile": "profile",
   "app/squad": "squad",
+  "app/stats": "stats",
 };
 
 /** Anything unrecognised under #/app reads as Home — never a blank screen. */

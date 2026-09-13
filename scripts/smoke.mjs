@@ -166,12 +166,20 @@ const rec = JSON.parse(win.localStorage.getItem("sq.session.v2"));
 if (!rec || rec.phase !== "done") fail("persisted session record wrong");
 console.log("ok persisted record phase:", rec.phase, "focusMs:", rec.focusMs);
 
-// 10 — habits: back to the dashboard, seal one, arm the reminder
+// 10 — habits: back to the dashboard. The ritual is NOT seeded any more —
+// add a habit through the panel, seal it, arm the reminder.
 qa(".summ__actions .btn").find((b) => b.textContent.includes("Back to Dashboard")).click();
 await sleep(1600); // the ink wipe bridges the route swap
 if (!q(".habits")) fail("habits panel missing on dashboard");
+const preSeeded = JSON.parse(win.localStorage.getItem("sq.habits.smoketestio") ?? "[]");
+if (preSeeded.length !== 0) fail("habits must not be seeded — the ritual starts empty");
+setVal.call(q("#habit-title"), "Smoke ritual");
+q("#habit-title").dispatchEvent(new win.Event("input", { bubbles: true }));
+await sleep(50);
+q(".habits__add-go").click();
+await sleep(150);
 const habitRows = qa(".habit");
-if (habitRows.length < 2) fail("seed habits missing");
+if (habitRows.length !== 1) fail(`added habit missing, rows=${habitRows.length}`);
 const check = habitRows[0].querySelector(".habit__check");
 check.click();
 await sleep(120);

@@ -166,6 +166,14 @@ export function ProfileScreen({
       {/* — the rest of the app — */}
       <Caption>Sections</Caption>
       <div className="m-rows">
+        <button type="button" className="m-rowbtn" onClick={() => goToTab("stats")}>
+          <span className="m-rowbtn__ja" aria-hidden="true">統</span>
+          <span className="m-rowbtn__b">
+            <span className="m-rowbtn__t">Stats dashboard</span>
+            <span className="m-rowbtn__s">Activity, momentum, growth</span>
+          </span>
+          <span className="m-rowbtn__a" aria-hidden="true">›</span>
+        </button>
         <button type="button" className="m-rowbtn" onClick={() => goToTab("progress")}>
           <span className="m-rowbtn__ja" aria-hidden="true">成</span>
           <span className="m-rowbtn__b">

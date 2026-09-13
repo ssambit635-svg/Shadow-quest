@@ -208,7 +208,7 @@ export function Login({ onDone }: { onDone: () => void }) {
             </div>
             <div className="login__spec-row">
               <span className="label">sync</span>
-              <span>none — nothing leaves</span>
+              <span>your ledger, when the backend is reachable</span>
             </div>
             <div className="login__spec-row">
               <span className="label">cost</span>
@@ -302,7 +302,8 @@ export function Login({ onDone }: { onDone: () => void }) {
           </form>
 
           <p className="login__foot label" data-login-line>
-            local sign-in · no password, no cloud, no accounts database
+            no-password sign-in · sealed to your signal · synced when a
+            backend answers
           </p>
         </div>
       </div>

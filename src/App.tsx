@@ -24,6 +24,7 @@ import { Login } from "./pages/Login";
 import { Field } from "./pages/Field";
 import { Dashboard } from "./sections/Dashboard";
 import { Ladder } from "./sections/Ladder";
+import { StatsBoard } from "./sections/StatsBoard";
 import { logout, scopeOf, useUser } from "./lib/auth";
 import { gsap, REDUCED } from "./lib/motion";
 import { ReadyContext } from "./lib/ready";
@@ -34,9 +35,9 @@ import { MobileApp } from "./mobile/MobileApp";
 import { MobileLogin } from "./mobile/screens/MobileLogin";
 import { usePhoneViewport } from "./mobile/device";
 
-export type Route = "home" | "login" | "app" | "field" | "ladder";
+export type Route = "home" | "login" | "app" | "field" | "ladder" | "stats";
 
-const APP_ROUTES: Route[] = ["app", "field", "ladder"];
+const APP_ROUTES: Route[] = ["app", "field", "ladder", "stats"];
 
 const readHash = (): Route => {
   const h = window.location.hash.replace(/^#\/?/, "").replace(/\/+$/, "");
@@ -44,6 +45,9 @@ const readHash = (): Route => {
   if (h === "app" || h === "app/today") return "app";
   if (h === "app/field" || h === "field") return "field";
   if (h === "app/ladder" || h === "ladder") return "ladder";
+  // On a laptop this is the animated stats dashboard; on a phone the shell
+  // treats it as an `app` route and the phone face shows its own Stats tab.
+  if (h === "app/stats" || h === "stats") return "stats";
   // Anything else under #/app/ belongs to the phone face's own sub-navigation
   // (#/app/tasks, /progress, /rewards, /profile, /squad). The shell treats all
   // of them as the `app` route and stays out of the way; the phone face reads
@@ -69,7 +73,10 @@ export default function App() {
    * gate — is untouched and still renders whenever this is false.
    */
   const phone = usePhoneViewport();
-  const mobileApp = phone && route === "app";
+  // `stats` is the one extra destination both faces own: a laptop gets the
+  // animated dashboard, a phone gets the mobile Stats screen — the phone
+  // face reads the hash itself, the shell only has to mount it.
+  const mobileApp = phone && (route === "app" || route === "stats");
   const mobileLogin = phone && route === "login";
   const mobileFace = mobileApp || mobileLogin;
 
@@ -142,9 +149,11 @@ export default function App() {
             ? "#/app"
             : next === "field"
               ? "#/app/field"
-              : next === "ladder"
-                ? "#/app/ladder"
-                : "#/";
+              : next === "stats"
+                ? "#/app/stats"
+                : next === "ladder"
+                  ? "#/app/ladder"
+                  : "#/";
       if (window.location.hash === target) {
         wantRef.current = next;
         wipe(() => setRoute(next));
@@ -241,6 +250,11 @@ export default function App() {
           </div>
         )}
         {route === "field" && user && <Field onExit={() => go("app")} />}
+        {route === "stats" && !mobileApp && user && (
+          <div className="app-page">
+            <StatsBoard scope={scopeOf(user)} user={user} />
+          </div>
+        )}
         {route === "ladder" && user && (
           <div className="app-page">
             <Ladder />

@@ -1,20 +1,30 @@
 /**
  * Ladder.tsx — the only section whose copy is not authored: it is whatever
- * `GET /v1/leaderboard` returned, including its failures. Loading is an ink
- * rule drawing itself, and an error is shown instead of being swallowed.
+ * the leaderboard endpoint returned, including its failures. Loading is an
+ * ink rule drawing itself, and an error is shown instead of being swallowed.
+ *
+ * The rows are real operators read from the backend — no demonstration
+ * profiles. When the backend cannot be reached the ladder says so instead
+ * of inventing anyone.
  */
 import { useEffect, useRef } from "react";
-import { api, IS_MOCK } from "../api";
+import { fetchLeaderboard } from "../api/ledger";
 import { gsap, REDUCED, ScrollTrigger } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
 import { useResource } from "../hooks/useApi";
+import type { LeaderRow } from "../api/types";
 
-const loadLadder = () => api.leaderboard();
+async function loadLadder(): Promise<{ rows: LeaderRow[]; live: boolean }> {
+  const { rows, live } = await fetchLeaderboard();
+  if (!live) throw new Error("the ladder is offline — the backend did not answer");
+  return { rows, live };
+}
 
 export function Ladder() {
   const root = useRef<HTMLElement>(null);
   const { data, loading, error, reload } = useResource(loadLadder);
-  const rows = data ?? [];
+  const rows = data?.rows ?? [];
+  const live = data?.live ?? false;
   useReveals(root, [rows.length]);
 
   // Rows arrive as one sweep down the table, then the hairline settles.
@@ -73,10 +83,10 @@ export function Ladder() {
           <p className="ladder__lede">
             Goals completed, Consistency streaks held, and the focus each Achiever
             brings to their work. Nothing else is ranked, so nothing else is gamed.
-            {IS_MOCK && (
-              <em className="ladder__mock">
+            {live && (
+              <em className="ladder__mock ladder__mock--live">
                 {" "}
-                — example profiles shown for demonstration.
+                — live ladder · real operators, ranked by recorded progress.
               </em>
             )}
           </p>
@@ -128,7 +138,7 @@ export function Ladder() {
                     <td className="ladder__handle">{r.handle}</td>
                     <td className="ladder__school">{r.school}</td>
                     <td className="is-num num">{r.wins}</td>
-                    <td className="is-num num">{Math.floor(r.wins / 20) + 1}</td>
+                    <td className="is-num num">{r.level ?? Math.floor(r.wins / 20) + 1}</td>
                     <td className="is-num num ladder__streak">
                       {r.streak}
                       <span className="ladder__flame" aria-hidden="true" style={{ opacity: Math.min(1, r.streak / 25) }} />

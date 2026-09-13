@@ -11,6 +11,7 @@ import { useReveals } from "../lib/reveal";
 import { HabitsPanel } from "../components/habits/HabitsPanel";
 import { ApkLink } from "../components/ApkLink";
 import type { User } from "../lib/auth";
+import { adoptSnapshot, fetchSnapshot, schedulePush, shouldAdopt } from "../lib/sync";
 import {
   type Task,
   type Profile,
@@ -60,6 +61,22 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
   useEffect(() => saveTasks(scope, tasks), [scope, tasks]);
   useEffect(() => saveProfile(scope, profile), [scope, profile]);
 
+  // Backend sync: the stored ledger wins when it is newer than this
+  // device's copy. With no backend the pull resolves null and the local
+  // ledger stays in charge — the screen behaves exactly as before.
+  useEffect(() => {
+    let alive = true;
+    void fetchSnapshot(scope, user).then((snap) => {
+      if (!alive || !snap || !shouldAdopt(scope, snap)) return;
+      adoptSnapshot(scope, snap);
+      setTasks(snap.tasks);
+      if (snap.profile) setProfile(snap.profile);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [scope, user]);
+
   // The section header reveals once on entry; rows added later get the
   // scroll-lean registration as they mount.
   useReveals(rootRef);
@@ -103,6 +120,7 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
     setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
     const { profile: newP, events: evs } = completeTask(profile, task);
     setProfile(newP);
+    schedulePush(scope);
     const born = Date.now();
     const stamped = evs.map((e, i) => ({ ...e, eid: `ev_${born}_${i}`, born }));
     setEvents((prev) => [...prev.slice(-7), ...stamped]);
@@ -126,6 +144,7 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
 
   const remove = (id: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
+    schedulePush(scope);
   };
 
   const addTask = (t: Omit<Task, "id" | "createdAt" | "status">) => {
@@ -137,6 +156,7 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
     };
     setTasks((prev) => [...prev, newTask]);
     setShowAdd(false);
+    schedulePush(scope);
     if (!REDUCED) {
       setTimeout(() => {
         gsap.fromTo(

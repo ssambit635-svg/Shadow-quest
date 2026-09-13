@@ -150,30 +150,83 @@ docs/APK.md     the Android build / release / signing / install guide
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # site → http://localhost:5173 (proxies /api to :8788)
+
+cd server && npm install && npm start   # the data API (port 8788)
+# with MongoDB:  MONGODB_URI='mongodb+srv://…' npm start
+
 npm run build
-npm run smoke      # boots the built bundle in happy-dom, clicks the whole
-                   # session + habits flow, asserts the ledger persists
+npm run smoke         # desktop: session + habits flow, ledger persists
+npm run smoke:mobile  # phone face: gate → ledger → stats → squad → profile
 
 node scripts/pwa-icons.mjs      # regenerate the PWA / install icon set
 node scripts/android-assets.mjs # regenerate Android launcher + splash art
 npx cap sync android            # push dist into the native shell
 ```
 
+## Your Signal — the stats dashboard
+
+A dedicated read-out of the operator's own recorded work — on the site
+(`#/app/stats`, tab **Stats**) and on the phone face (`#/app/stats`, reached
+from Home and Profile). Same palette discipline as everything else; the
+motion is the point:
+
+- **Life-level ring** — one brushed arc drawn to the exact level progress.
+- **Counters** that roll to their values (progress, goals sealed, streak,
+  power index, open goals, marks).
+- **Life-factor radar** — seven axes on one shape, drawn in from the centre,
+  hoverable vertex by vertex.
+- **Activity field** — the last 84 days as a heatmap, one cell a day, inking
+  itself in column by column; hover/tap reads the day.
+- **Weekly momentum bars** — progress sealed per week, last eight Mondays.
+- **Factor growth + reward donut** — where the points came from, by category.
+- **Marks** — the achievement ledger, earned vs. in-progress.
+
+Data prefers the backend (`GET /v1/stats`) and falls back to the device
+ledger; the badge in the header says **live · backend** or **device copy**,
+so nobody mistakes one for the other.
+
+## Theme — ink and paper
+
+The site carries a **dark / light toggle** in the nav: *ink* (the sumi
+ground, default) and *paper* (the same palette inverted, as if the ledger
+were printed). The swap is one token move — the two raw scales exchange
+roles — so every surface follows. The choice persists per browser. The
+phone face and the APK keep their own tokens and stay in ink on purpose;
+the toggle exists on the site face only.
+
+## Real data, no seeds
+
+Since the backend landed, nothing on the data surfaces is invented:
+
+- **Tasks** — a fresh ledger is empty. Goals appear when a person adds them.
+- **Habits** — same: the ritual starts blank.
+- **Leaderboard** (`#/app/ladder`) — reads `GET /v1/leaderboard`: real
+  operators ranked by recorded progress. Unreachable backend → an honest
+  offline state, not fake rows.
+- **Squad** — no seeded pool. The "People on ShadowQuest" list is the live
+  roster of registered operators (`GET /v1/people`); when nobody else has
+  registered, it says so.
+- **Kept, on purpose**: the Google *demo accounts* on the sign-in screen
+  (local-first sign-in needs identities to choose from), and the Deep Work
+  duel/focus engine, which is a self-contained game rather than operator data.
+
 ## Backend
 
-`src/api/index.ts` chooses the transport: set `VITE_API_BASE_URL` (see
-`.env.example`) and the app talks HTTP; leave it unset and it runs
-`mockTransport`, a real in-page duel engine — ki economy, guard soak, an
-opponent that reads you, and the same `fx` payload the server contract promises,
-so every animation is driven by genuine state change rather than a demo timer.
+`server/` is a small Express API in front of **MongoDB** (`MONGODB_URI`) —
+see [`docs/BACKEND.md`](docs/BACKEND.md). Operators sign in, the frontend
+pushes their ledger (profile + tasks + habits) and reads it back on any
+device; the leaderboard, stats and people roster are aggregated from what
+was actually stored. When no MongoDB is configured the API persists to a
+local JSON file with the same shape — a dev fallback, still real data.
 
-**`Api.md` never arrived in the sandbox** (no `uploads/`, nothing in the repo),
-so endpoints and field names are *assumed*. They are all listed in
-[`src/api/contract.md`](src/api/contract.md), together with the naming variants
-the mappers already tolerate. Reconciling the real doc is a two-file edit:
-`types.ts` for field names, `client.ts` for paths — nothing else in the app
-knows HTTP exists.
+In dev, the browser calls same-origin `/api` and Vite proxies it to the API
+on `:8788`; APK / production builds point `VITE_API_BASE_URL` at the
+deployed URL instead. `src/lib/sync.ts` is the bridge: pull-on-load (server
+copy wins when newer), debounced write-through on every mutation, flush on
+tab close. The in-page duel engine in `src/api/mock.ts` remains the
+transport for the Deep Work game itself — the assumed-contract notes for it
+live in [`src/api/contract.md`](src/api/contract.md).
 
 ## Assets
 

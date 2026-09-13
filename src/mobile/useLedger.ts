@@ -9,9 +9,17 @@
  *
  * It is the same engine the desktop uses — `loadTasks` / `saveTasks` /
  * `loadProfile` / `saveProfile` / `completeTask` from lib/todo, same storage
- * keys, same scope. Nothing is re-implemented and nothing is added to it.
+ * keys, same scope — with one addition: lib/sync pulls the operator's stored
+ * ledger from the backend on load and writes every mutation back to it.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { currentUser } from "../lib/auth";
+import {
+  adoptSnapshot,
+  fetchSnapshot,
+  schedulePush,
+  shouldAdopt,
+} from "../lib/sync";
 import {
   completedTasks,
   completeTask,
@@ -59,6 +67,24 @@ export function useLedger(scope: string): Ledger {
   useEffect(() => saveTasks(scope, tasks), [scope, tasks]);
   useEffect(() => saveProfile(scope, profile), [scope, profile]);
 
+  // Backend sync: adopt the stored ledger when it is newer than this
+  // device's copy. Nothing throws when the backend is away — the pull
+  // resolves null and the device ledger stays in charge.
+  useEffect(() => {
+    let alive = true;
+    const user = currentUser();
+    if (!user) return;
+    void fetchSnapshot(scope, user).then((snap) => {
+      if (!alive || !snap || !shouldAdopt(scope, snap)) return;
+      adoptSnapshot(scope, snap);
+      setTasks(snap.tasks);
+      if (snap.profile) setProfile(snap.profile);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [scope]);
+
   const today = useMemo(() => tasksForToday(tasks), [tasks]);
   const upcoming = useMemo(() => upcomingTasks(tasks), [tasks]);
   const overdue = useMemo(() => overdueTasks(tasks), [tasks]);
@@ -68,11 +94,15 @@ export function useLedger(scope: string): Ledger {
     [today],
   );
 
-  const add = useCallback((t: Omit<Task, "id" | "createdAt" | "status">) => {
-    const task: Task = { ...t, id: makeId(), createdAt: Date.now(), status: "pending" };
-    setTasks((prev) => [...prev, task]);
-    return task;
-  }, []);
+  const add = useCallback(
+    (t: Omit<Task, "id" | "createdAt" | "status">) => {
+      const task: Task = { ...t, id: makeId(), createdAt: Date.now(), status: "pending" };
+      setTasks((prev) => [...prev, task]);
+      schedulePush(scope);
+      return task;
+    },
+    [scope],
+  );
 
   const complete = useCallback(
     (task: Task): CompleteEvent[] => {
@@ -84,9 +114,10 @@ export function useLedger(scope: string): Ledger {
       );
       const { profile: next, events } = completeTask(profile, task);
       setProfile(next);
+      schedulePush(scope);
       return events;
     },
-    [profile],
+    [profile, scope],
   );
 
   /**
@@ -94,17 +125,25 @@ export function useLedger(scope: string): Ledger {
    * back out of the profile — the ledger records work that happened. It is
    * offered for a mis-tap, not as a way to re-earn.
    */
-  const reopen = useCallback((task: Task) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === task.id ? { ...t, status: "pending", completedAt: undefined } : t,
-      ),
-    );
-  }, []);
+  const reopen = useCallback(
+    (task: Task) => {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id ? { ...t, status: "pending", completedAt: undefined } : t,
+        ),
+      );
+      schedulePush(scope);
+    },
+    [scope],
+  );
 
-  const remove = useCallback((id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  const remove = useCallback(
+    (id: string) => {
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+      schedulePush(scope);
+    },
+    [scope],
+  );
 
   const reload = useCallback(() => {
     setTasks(loadTasks(scope));
