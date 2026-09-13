@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap, REDUCED, registerVelTargets } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
+import { HabitsPanel } from "../components/habits/HabitsPanel";
 import type { User } from "../lib/auth";
 import {
   type Task,
@@ -238,6 +239,7 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
 
         {/* Life Factors */}
         <div className="dash__factors" data-dash-panel>
+
           <p className="label dash__factors-label">Life Factors</p>
           <div className="dash__factors-grid">
             {(Object.keys(LIFE_FACTOR_META) as LifeFactor[]).map((f) => {
@@ -260,6 +262,9 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
             })}
           </div>
         </div>
+
+        {/* Habits — the daily ritual, with its own reminders. */}
+        <HabitsPanel scope={scope} />
 
         {showAdd && <AddTaskForm onAdd={addTask} onCancel={() => setShowAdd(false)} />}
 
