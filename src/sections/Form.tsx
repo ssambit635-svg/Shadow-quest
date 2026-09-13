@@ -20,6 +20,7 @@
  */
 import { useEffect, useRef } from "react";
 import { gsap, isNarrow, REDUCED, ScrollTrigger } from "../lib/motion";
+import { isNativeApp } from "../lib/native";
 import { useReveals } from "../lib/reveal";
 
 const STATIONS = [
@@ -146,7 +147,10 @@ export function Form() {
           // A phone flicks through a pin fast; give it less runway so the
           // loop still reads station by station instead of blurring past.
           end: () => `+=${isNarrow() ? 1500 : 2600}`,
-          pin: true,
+          // Pinning in the Capacitor WebView swallows the thumb drag: the
+          // pin-spacer becomes a touch target with nowhere to go. Scrub
+          // still drives the ring as the section crosses the viewport.
+          pin: !isNativeApp(),
           scrub: 0.6,
           invalidateOnRefresh: true,
         },

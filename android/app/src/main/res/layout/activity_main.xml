@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<!-- FrameLayout, not CoordinatorLayout: the latter intercepts vertical
+     nested-scroll and is why a thumb drag that works in Chrome dies in the APK. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -8,5 +9,8 @@
 
     <WebView
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+        android:layout_height="match_parent"
+        android:nestedScrollingEnabled="true"
+        android:overScrollMode="ifContentScrolls"
+        android:scrollbars="vertical" />
+</FrameLayout>

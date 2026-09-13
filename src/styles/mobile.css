@@ -34,44 +34,9 @@
    1 — ground rules: touch, scroll, tap feedback
    ============================================================ */
 @media (max-width: 860px) {
-  /* The page must not rubber-band sideways — one stray 100vw element (the
-     marquee, the pinned loop) would otherwise drag the whole document.
-
-     Only <body> gets `overflow-x: clip`, never <html>. Setting any
-     non-visible overflow on <html> prevents body's overflow from propagating
-     to the viewport (per CSS spec, propagation requires html to be
-     `overflow: visible` in *both* axes). When propagation is broken the
-     Capacitor Android WebView stops native touch-scrolling entirely: the page
-     renders, buttons still fire (taps are not drags), but a thumb drag lands
-     in a context with no room to move. A laptop never sees this block, which
-     is why the same markup scrolled perfectly there.
-
-     With <html> left at `visible visible`, body's `overflow-x: clip`
-     propagates to the viewport (which treats `clip` as `hidden`), so
-     horizontal rubber-banding is still killed — and vertical scrolling flows
-     through the viewport as the UA intended. `clip`, unlike `hidden`, never
-     creates a scroll container, so <body> stays transparent to scroll
-     gestures and `position: sticky` keeps working inside it. Where the UA
-     does not understand `clip`, the declaration is dropped, body falls back to
-     base.css's `overflow-x: hidden`, and that value propagates to the
-     viewport in exactly the same way. */
+  /* Kill the grey tap flash and the 300ms double-tap zoom delay without
+     locking pinch-zoom out of the user's hands. */
   body {
-    overflow-x: clip;
-  }
-
-  /* Contain the overscroll on the *viewport*, never on an inner box. On the
-     root it suppresses pull-to-refresh over an app shell while owning not one
-     pixel of the drag; on a non-scrolling <body> it swallowed the drag whole. */
-  html {
-    overscroll-behavior-y: contain;
-  }
-
-  body {
-    /* Kill the grey tap flash and the 300ms double-tap zoom delay without
-       locking pinch-zoom out of the user's hands.
-       (`-webkit-overflow-scrolling` is deliberately gone: it has been dead
-       since iOS 13, and on a <body> that has become a scroll container it
-       promotes a second momentum layer that fights the document's own.) */
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -710,6 +675,27 @@
   .sring {
     width: min(84vw, 18rem);
   }
+}
+
+/* Capacitor Android WebView: the hosted site already scrolls; this class is
+   only stamped in main.tsx when window.Capacitor reports a native shell.
+   The WebView is happiest when the *viewport* is the scroller (html/body
+   stay overflow-visible so nothing becomes an inner scroll box) and the
+   thumb is explicitly allowed to pan on the document. Horizontal drift is
+   clipped with `overflow-x: clip` on body only — `hidden` on either axis
+   of <html> or a mixed `hidden`/`visible` pair on <body> creates a scroll
+   container that Chromium-in-WebView will not drive with a finger. */
+html.sq-native,
+html.sq-native body {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+  overscroll-behavior: auto;
+  touch-action: pan-y pinch-zoom;
+}
+html.sq-native body {
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 /* Landscape phones: the room goes side-by-side again, because there is
