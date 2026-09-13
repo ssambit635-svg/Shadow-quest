@@ -12,7 +12,9 @@
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -b --noEmit",
     "smoke": "node scripts/smoke.mjs",
-    "presmoke": "npm run build"
+    "presmoke": "npm run build",
+    "smoke:mobile": "node scripts/smoke-mobile.mjs",
+    "presmoke:mobile": "npm run build"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

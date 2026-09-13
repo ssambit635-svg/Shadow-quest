@@ -27,6 +27,12 @@ import { Ladder } from "./sections/Ladder";
 import { logout, scopeOf, useUser } from "./lib/auth";
 import { gsap, REDUCED } from "./lib/motion";
 import { ReadyContext } from "./lib/ready";
+/* The phone face. A separate shell with its own chrome, screens and
+   stylesheet — mounted below only on a phone viewport or inside the APK,
+   so the desktop tree underneath is untouched and still renders as before. */
+import { MobileApp } from "./mobile/MobileApp";
+import { MobileLogin } from "./mobile/screens/MobileLogin";
+import { usePhoneViewport } from "./mobile/device";
 
 export type Route = "home" | "login" | "app" | "field" | "ladder";
 
@@ -38,6 +44,12 @@ const readHash = (): Route => {
   if (h === "app" || h === "app/today") return "app";
   if (h === "app/field" || h === "field") return "field";
   if (h === "app/ladder" || h === "ladder") return "ladder";
+  // Anything else under #/app/ belongs to the phone face's own sub-navigation
+  // (#/app/tasks, /progress, /rewards, /profile, /squad). The shell treats all
+  // of them as the `app` route and stays out of the way; the phone face reads
+  // the full hash itself. On a laptop the same URL shows the dashboard rather
+  // than falling through to the landing page, which is the honest fallback.
+  if (h.startsWith("app/")) return "app";
   return "home";
 };
 
@@ -46,6 +58,20 @@ export default function App() {
   const [booted, setBooted] = useState(false);
   const user = useUser();
   const wantRef = useRef<Route>(route);
+
+  /**
+   * The phone face replaces exactly two destinations: the ledger and the
+   * gate. `field` and `ladder` keep the shell's own screens even on a phone —
+   * they are already written to the phone breakpoint and are reached *from*
+   * the mobile shell, so mounting them twice would only fight over the DOM.
+   *
+   * Everything else — the landing page, the desktop dashboard, the desktop
+   * gate — is untouched and still renders whenever this is false.
+   */
+  const phone = usePhoneViewport();
+  const mobileApp = phone && route === "app";
+  const mobileLogin = phone && route === "login";
+  const mobileFace = mobileApp || mobileLogin;
 
   const wipeRef = useRef<HTMLDivElement>(null);
   const barsRef = useRef<HTMLDivElement>(null);
@@ -190,7 +216,13 @@ export default function App() {
         <span className="rail__vertical">SHADOW&nbsp;QUEST</span>
       </div>
 
-      <Nav route={route} user={user} onNavigate={go} onSignOut={signOut} />
+      {/* The phone face brings its own bar and dock, so the shell's nav is
+          not rendered underneath it. On every other screen — the landing
+          page, the desktop gate and ledger, and the phone's own Deep Work
+          room and ladder — the nav renders exactly as it always did. */}
+      {!mobileFace && (
+        <Nav route={route} user={user} onNavigate={go} onSignOut={signOut} />
+      )}
 
       <main id="app-main">
         {route === "home" && (
@@ -200,8 +232,10 @@ export default function App() {
             onDeepWork={() => go(user ? "field" : "login")}
           />
         )}
-        {route === "login" && <Login onDone={() => go("app")} />}
-        {route === "app" && user && (
+        {route === "login" && !mobileLogin && <Login onDone={() => go("app")} />}
+        {mobileLogin && <MobileLogin onDone={() => go("app")} />}
+        {mobileApp && user && <MobileApp user={user} />}
+        {route === "app" && !mobileApp && user && (
           <div className="app-page">
             <Dashboard scope={scopeOf(user)} user={user} />
           </div>
@@ -214,7 +248,7 @@ export default function App() {
         )}
         {/* while the gate decides where an unauthenticated app-route goes,
             hold the last valid screen instead of flashing a blank */}
-        {inApp && !user && (
+        {inApp && !user && !mobileFace && (
           <div className="app-page" aria-hidden="true" />
         )}
       </main>
