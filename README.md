@@ -1,299 +1,544 @@
+<div align="center">
+
+<img src="./public/icons/icon.svg" width="110" height="110" alt="Shadow Quest Logo" />
+
 # Shadow Quest — 影の道
+### *The Path of Shadows — A Deep Work Samurai Productivity OS*
 
-Front-end for a turn-based duel game. Deliberately not a SaaS landing page with
-a game logo on it, and deliberately not the purple-blue-neon look every
-AI-generated "game site" ships with.
+**Ink, Paper & Steel. Not another purple-gradient SaaS. A real product for real focus.**
 
-## The look
+<br/>
 
-| | |
-| --- | --- |
-| **Ground** | warm sumi black `#0c0b0a` — never pure `#000` |
-| **Light** | bone paper `#f4efe6` → `#7e766a` |
-| **Accent** | vermilion `#c1362b`, used for exactly three things: the blade line, the active state, one dot per screen |
-| **Support** | aged brass `#a98a55` for ki/guard readouts only |
-| **Type** | Cinzel (display, epic game serif) · Manrope (body) · Oswald (labels, readouts) · Shippori Mincho kept for header Japanese accents only |
+[![Live Demo](https://img.shields.io/badge/🔴_LIVE_DEMO-shadow--quest.onrender.com-c1362b?style=for-the-badge&logo=render&logoColor=white)](https://shadow-quest.onrender.com)
+[![Version](https://img.shields.io/badge/version-0.1.0-0c0b0a?style=for-the-badge)](./package.json)
+[![License](https://img.shields.io/badge/license-All_Rights_Reserved-a98a55?style=for-the-badge)](#-copyright--license)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-5a8dee?style=for-the-badge&logo=pwa&logoColor=white)](#-pwa--android-apk)
 
-Every Focus Area carries its name in **both scripts** — the English name the
-product speaks in, the Japanese name in mincho beneath it, and the romaji
-reading as furigana (`Shadow.nameJa` / `readingJa` / `schoolJa`, all optional
-on the wire so a backend that never sent them still renders a card).
-| **Corners** | 2px. No soft card radii, no glass, no aurora gradients, no glow |
+<br/>
 
-Light sections are **paper plates mounted on the ink page** — the sumi-e painting
-is shown on the paper it was painted on instead of being cut out and given a
-drop shadow. Roster cards are paper too. That inversion is the whole art
-direction: the site is ink, the artwork is paper.
+[![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite_7-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![GSAP](https://img.shields.io/badge/GSAP-3.13-88CE02?style=flat-square&logo=greensock&logoColor=black)](https://gsap.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.x-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Capacitor](https://img.shields.io/badge/Capacitor-8-119EFF?style=flat-square&logo=capacitor&logoColor=white)](https://capacitorjs.com/)
+[![Android](https://img.shields.io/badge/Android-APK-3DDC84?style=flat-square&logo=android&logoColor=white)](#-pwa--android-apk)
 
-## The motion
+**[🌸 Live Website](https://shadow-quest.onrender.com) • [📖 Backend Docs](./docs/BACKEND.md) • [📱 APK Guide](./docs/APK.md) • [🔒 Security](./docs/SECURITY.md)**
 
-Everything routes through `src/lib/motion.ts`, which owns one idea: **the site
-moves like a loaded brush.**
+</div>
 
-- Three named eases registered once — `brush`, `snap`, `steel` — plus a `breath`
-  curve. No component invents its own easing.
-- Four reveal verbs only (`rise / wipe / draw / brush / bleed`), declared as
-  `data-rv` attributes and wired by `src/lib/reveal.ts`. Five competing reveal
-  styles on one page reads as indecision.
-- SVG is genuinely *inked*: `DrawSVG` pulls the ronin mark and the ensō stroke
-  by stroke, and the ink-bleed `feTurbulence` + `feDisplacementMap` filter keeps
-  those lines wet instead of vector-crisp.
-- `SplitText` breaks headlines into chars that ride inside line masks, so type
-  arrives as a stroke rather than a typewriter.
-- Combat feedback: `hitStop()` freezes the global timeline for ~3 frames and
-  `shake()` offsets the struck panel — impact that costs nothing to render.
-- Scroll velocity drives the marquee's `timeScale`, so motion responds to input
-  instead of looping at you.
-- **One** idle loop exists site-wide (`[data-fx-bleed]`, the ink under the
-  field), paused via IntersectionObserver when off-screen. Everything else is
-  tied to a trigger or a user action.
-- `prefers-reduced-motion` is handled at the registration layer (`REDUCED` +
-  a global `timeScale`), so no component can opt out of it, and reveals become
-  plain content.
-- The boot curtain (`src/components/Boot.tsx`) is the one place allowed to go
-  loud: ink aurora, drifting grid, kanji embers, rising ink, counter-rotating
-  rings, the 影 slam and a blade-line exit. Every loop in it is **CSS**, so it
-  dies with the curtain — the boot leaves no rAF chains behind (measured by
-  the `motion` probes in the audit).
+---
 
-## The session
+## 📸 Preview — Ink & Paper Aesthetic
 
-The Deep Work room (`#/app/field`) is not a duel. You pick a **technique** —
-a cycle shape, each with a kanji seal: Pomodoro 間 (25/5 ×4), Ultradian 波
-(90/20 ×2), 52/17 律, Flowmodoro 流 (count-up focus, earned rest), Zazen 座
-(20′ of stillness), Kaizen 改 (15/3 ×6) — and the room keeps the count:
+<div align="center">
 
-- The clock is an **ensō**: one open brushed circle (turbulence-displaced, so
-  the edge stays wet) that *fills* while focus is held and *drains* while rest
-  is taken. Cycle seals stamp themselves vermilion as rounds complete.
-- The clock is **wall-clock**: `phaseEndsAt` plus a persisted session record
-  mean a backgrounded tab, a closed lid or a full refresh never loses a
-  minute — the next tick settles whatever actually passed, and settling early
-  banks only elapsed minutes.
-- The rail keeps the **real ledger** in reach: today's open goals can be
-  linked as the current target, sealed from the seat (paying Progress and
-  Reward Points through the same `completeTask` path as the dashboard), or
-  quick-added without leaving the room.
-- Phase changes stamp ink on the ring and — opted in, permission granted —
-  raise one system notification each. The tab title carries the countdown.
+| Hero — Sumi Ink Ground | Deep Work — Ensō Clock | Mobile — App Face |
+|:---:|:---:|:---:|
+| <img src="./public/img/samurai-hero.jpg" width="280" alt="Samurai Hero" /> | <img src="./public/img/duel-wide.jpg" width="280" alt="Duel" /> | <img src="./public/icons/icon-512.png" width="180" alt="App Icon" /> |
+| Warm black `#0c0b0a` · Bone paper `#f4efe6` | One circle fills, one drains | Thumb-ready · 44px targets · PWA |
 
-## The loop, honestly
+*Every artwork is paper mounted on ink — the inversion is the whole art direction.*
 
-The growth loop (`04 — the loop`) and the ensō clock are driven by **one
-number each**, so nothing on screen can disagree about where you are:
+</div>
 
-- the ring turns exactly one full circle across the section; the brush gap
-  meets station *i*'s marker at `p = i / N`;
-- the active station is `floor(p * N)` and its copy is at full opacity for
-  the whole of its own band — the first and last stations read as clearly as
-  the middle ones;
-- every write is a `gsap.set`. A tween started from inside a scrub's
-  `onUpdate` restarts each frame and never arrives; that lag was what made
-  the numerals trail the ring.
-- a technique card states its true shape — `25′ focus · 5′ rest ×3 · 4 rounds
-  · 1h 55m` — because the engine runs `cycles − 1` rests (none after the
-  final round) and the card used to promise `cycles` of them.
-- the ensō's arc is a CSS transition exactly one clock tick long
-  (`TICK_MS`), so the stroke is a continuous ramp that lands on the numerals
-  instead of chasing them.
+---
 
-## The phone face
+## 🧭 Table of Contents
 
-Below `860px` this stops being a squeezed website and becomes an app: a
-**docked bottom tab bar** (thumb reach, safe from the scroll-hide transform,
-padded above the home-gesture inset), the side rails gone, gutters in, every
-tap target ≥ 44px, hover-only motion unattached on touch, and the two
-full-screen blend-mode overlays (grain, vignette) dropped because a phone
-compositor pays for them every frame. Above the breakpoint none of it applies
-— the laptop keeps the HUD exactly as authored. `src/styles/mobile.css` is
-loaded last and is entirely breakpoint-scoped; `isNarrow()` in `lib/motion.ts`
-uses the same test so the JS and the CSS never disagree.
+- [What is Shadow Quest?](#-what-is-shadow-quest)
+- [✨ Features](#-features)
+- [🧠 Approach in Simple Words](#-approach-in-simple-words)
+- [🛠️ Tech Stack — Real Links & Logos](#️-tech-stack--real-links--logos)
+- [🏗️ Architecture](#️-architecture)
+- [📁 Project Structure](#-project-structure)
+- [🚀 Quick Start](#-quick-start)
+- [🔧 Environment Variables](#-environment-variables)
+- [🔌 API Reference](#-api-reference)
+- [📱 PWA & Android APK](#-pwa--android-apk)
+- [🔒 Security & Password Gate](#-security--password-gate)
+- [🎨 Motion System](#-motion-system)
+- [🧪 Testing & Audits](#-testing--audits)
+- [🗺️ Roadmap](#️-roadmap)
+- [🤝 Contributing](#-contributing)
+- [©️ Copyright & License](#️-copyright--license)
 
-It is also installable: `public/manifest.webmanifest` + a generated icon set
-(`node scripts/pwa-icons.mjs`) make it a standalone PWA on iOS and Android.
+---
 
-## Android APK
+## 🌑 What is Shadow Quest?
 
-The same bundle ships as an APK through a Capacitor shell — see
-[`docs/APK.md`](docs/APK.md) for the build, the CI release pipeline, signing,
-and device install. The in-app **Download APK** button resolves the newest
-`.apk` from the GitHub Releases page; with no build published yet it takes
-you to the Releases page instead of dead-ending.
+**Shadow Quest is not a to-do app. It's a Samurai Operating System for Deep Work.**
 
-## The ritual
+Most productivity apps look like dashboards. Shadow Quest feels like a dojo.
 
-The dashboard grows a **Habits** panel: one row per daily habit, a kanji seal
-per date, the streak as the only currency (no XP — habits are showing up,
-not work), and a seven-day dot row. Each habit carries a time of day; with
-the reminder armed, a habit still open past its time raises exactly one
-system notification per day from any open tab, and glows brass in the panel
-whether or not the browser allows notifications.
+- You pick a **Focus Technique** — Pomodoro 間, Ultradian 波, 52/17 律, Flowmodoro 流, Zazen 座, Kaizen 改 — each with a kanji seal.
+- You enter the **Field** (`#/app/field`) — an ensō ring that fills while you focus and drains while you rest. Wall-clock accurate, survives tab close, refresh, lid close.
+- You seal goals, build **streaks** (7/30/60/100/180/365), track **life-factors** on a radar, see **84-day heatmap**, **weekly momentum**, and **marks**.
+- Everything syncs to a real backend (MongoDB) or falls back to device ledger — no fake data, ever.
 
-## Stack
+> **Live Now:** https://shadow-quest.onrender.com — Try the Deep Work room, create a ledger, install as PWA.
 
-Vite · React 19 · TypeScript (strict) · GSAP 3.15 with the now-free
-`SplitText`, `DrawSVGPlugin`, `ScrambleTextPlugin`, `CustomEase` · no UI kit, no
-CSS framework, no animation library besides GSAP.
+---
+
+## ✨ Features
+
+### 🎯 Core Productivity
+- **📝 Real Task Ledger** — Add, link, seal, reopen goals. No seeds. Empty on first login.
+- **⏳ Ensō Clock** — One brushed circle = your focus. Fills & drains with `phaseEndsAt` wall-clock logic.
+- **🔄 6 Techniques** — Pomodoro, Ultradian, 52/17, Flowmodoro (count-up), Zazen (stillness), Kaizen (sprints).
+- **🔥 Streak Engine** — `src/lib/streaks.ts` computes live chain from sealed tasks + habit marks + last active.
+- **📊 Your Signal Dashboard** — Level ring, rolling counters, radar (7 life-factors), 84-day heatmap, momentum bars, reward donut.
+
+### 🧘 Rituals & Growth
+- **☯️ Habits Panel** — Daily ritual with kanji seal per date, time-of-day reminders, 7-day dot row.
+- **🏔️ Milestones / Ladder** — Real leaderboard `GET /v1/leaderboard` — top 25 by progress, with `you` marker. Offline = honest device copy.
+- **👥 Squad Roster** — `GET /v1/people` — live registered operators, not mocked.
+- **🎌 Bilingual Focus Areas** — English + Japanese + romaji furigana (`nameJa / readingJa / schoolJa`).
+
+### 📱 Experience
+- **📱 True Phone Face** — Below `860px` it becomes an app: bottom tab bar, safe-area insets, 44px targets, no grain/vignette compositor cost. `src/styles/mobile.css` is breakpoint-scoped.
+- **🌗 Ink / Paper Theme** — Toggle in nav: dark sumi ground vs inverted paper ledger. Persists per browser.
+- **💾 Offline First** — `src/lib/sync.ts` — pull on load (server wins if newer), debounced push, flush on `pagehide`.
+- **🔔 Notifications** — One per phase change, one per habit due — permission-gated, tab-coalesced.
+
+### 👑 Owner Control
+- **🛡️ Admin Panel** `#/app/admin` — Owner only (`ADMIN_EMAILS` + `ADMIN_PIN`), re-verified by backend every call. Overview, user directory (only place with emails), revoke all sessions.
+
+---
+
+## 🧠 Approach in Simple Words
+
+We asked: **What if a productivity app felt like ink, not plastic?**
+
+1. **The World is Ink** — Ground is warm sumi black `#0c0b0a`, never pure `#000`. Light is bone paper `#f4efe6`. Vermilion `#c1362b` is used for exactly 3 things: blade line, active state, one dot per screen. Brass `#a98a55` only for ki/guard readouts.
+
+2. **Paper Plates, Not Cards** — Artwork is shown on the paper it was painted on. Roster cards are paper too. The site is ink, artwork is paper — that inversion is the art direction.
+
+3. **Brush Motion, Not Bounce** — Site moves like a loaded brush. 3 eases only: `brush`, `snap`, `steel` + `breath`. 5 reveal verbs (`rise / wipe / draw / brush / bleed`) via `data-rv`. SVG is genuinely inked with `feTurbulence` + `feDisplacementMap`.
+
+4. **One Number Drives One Thing** — Growth loop ring = one full circle, marker at `p = i/N`, active = `floor(p*N)`. Ensō arc = CSS transition exactly `TICK_MS` long. No two numbers fight.
+
+5. **Real Data or No Data** — Fresh ledger is empty. Leaderboard is real operators or honest fallback. Squad is real registrations. No fake rows to look busy.
+
+6. **Phone is an App, Not Squeezed Site** — Below 860px: docked bottom nav, thumb reach, safe insets, no hover-only motion, no blend-mode overlays. Above: laptop keeps HUD exactly as authored.
+
+**In short:** Ink ground, paper art, brush motion, real data, wall-clock truth, phone as app.
+
+---
+
+## 🛠️ Tech Stack — Real Links & Logos
+
+<div align="center">
+
+[![Tech Stack](https://skillicons.dev/icons?i=react,ts,vite,nodejs,express,mongodb,androidstudio,java,js,html,css,git,github&perline=7)](https://skillicons.dev)
+
+</div>
+
+### Frontend — The Dojo UI
+
+| Tech | Version | Purpose | Link |
+|------|---------|---------|------|
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" width="20"/> **React** | `19.1.0` | UI, Hash routing, Error boundary | [react.dev](https://react.dev/) |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vitejs/vitejs-original.svg" width="20"/> **Vite** | `7.0.0` | Build, Dev server, Proxy | [vitejs.dev](https://vitejs.dev/) |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" width="20"/> **TypeScript** | `5.8.3` Strict | Type safety | [typescriptlang.org](https://www.typescriptlang.org/) |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg" width="20"/> **Vanilla CSS** | Tokens + Layers | No UI kit, no framework | [tokens.css](./src/styles/tokens.css) |
+| **GSAP** | `3.13.0` + Free Plugins | Motion: `SplitText`, `DrawSVG`, `ScrambleText`, `CustomEase` | [gsap.com](https://gsap.com/) |
+| **PWA** | `manifest.webmanifest` | Installable, standalone | [web.dev/pwa](https://web.dev/progressive-web-apps/) |
+
+**Fonts:** Cinzel (display, epic serif) · Manrope (body) · Oswald (labels) · Shippori Mincho (Japanese accents) via Google Fonts.
+
+### Backend — The Ledger Keeper
+
+| Tech | Version | Purpose | Link |
+|------|---------|---------|------|
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" width="20"/> **Node.js** | `>=18` | Runtime | [nodejs.org](https://nodejs.org/) |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg" width="20"/> **Express** | `4.21.2` | API server `:8788` | [expressjs.com](https://expressjs.com/) |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg" width="20"/> **MongoDB** | `6.9.0` driver | Production store (Atlas) | [mongodb.com](https://www.mongodb.com/) |
+| **File Store** | JSON fallback | Dev fallback `server/.data/db.json` | [docs/BACKEND.md](./docs/BACKEND.md) |
+| **CORS + Security** | Custom | Rate limits, scrypt, bearer tokens | [docs/SECURITY.md](./docs/SECURITY.md) |
+
+### Mobile — Same Bundle, Native Shell
+
+| Tech | Version | Purpose | Link |
+|------|---------|---------|------|
+| <img src="https://capacitorjs.com/static/capacitor-mark-4a03f5f9d2d0fb38ac6775db1a625ab6.svg" width="20"/> **Capacitor** | `8.5.2` | WebView shell → APK | [capacitorjs.com](https://capacitorjs.com/) |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/android/android-original.svg" width="20"/> **Android** | AGP 8.13 / SDK 36 | APK build, edge-to-edge | [developer.android.com](https://developer.android.com/) |
+| **Sharp** | `0.35.4` | Asset gen: JPEG + alpha masks | [sharp.pixelplumbing.com](https://sharp.pixelplumbing.com/) |
+
+### Tools & Infra
+
+- **Happy DOM** `20.14.5` — Smoke tests without browser
+- **Render** — Live hosting https://shadow-quest.onrender.com
+- **GitHub Actions** — `.github/workflows/android.yml` builds & releases APK
+- **CSP Meta** — Injected at build, works inside APK WebView (no headers there)
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TD
+    User -->|Visits| Live[https://shadow-quest.onrender.com]
+    Live -->|Vite Build| Bundle[dist/]
+    
+    Bundle --> Web[Web App - PWA]
+    Bundle -->|npx cap sync| Android[Android APK - WebView]
+    
+    Web -->|/api proxy dev| API[Express :8788]
+    Android -->|VITE_API_BASE_URL| API
+    
+    API -->|MONGODB_URI set| Mongo[(MongoDB Atlas - users collection)]
+    API -->|No URI| File[(server/.data/db.json)]
+    
+    subgraph Frontend
+        App[App.tsx - Hash Router #/app/field etc]
+        Motion[lib/motion.ts - brush/snap/steel eases]
+        Sync[lib/sync.ts - pull newer wins, debounced push]
+        Streaks[lib/streaks.ts - chain + 84d heatmap]
+        Session[useFocusSession - wall-clock phaseEndsAt]
+    end
+    
+    subgraph Backend
+        Auth[POST /v1/auth/signin - scrypt + rate limit]
+        Ledger[GET/PUT /v1/ledger - real operator data]
+        Stats[GET /v1/stats - aggregates]
+        Ladder[GET /v1/leaderboard - top 25 real]
+        People[GET /v1/people - squad roster]
+        Admin[Admin - elevate + overview + users]
+    end
+    
+    Web --> App
+    App --> Sync
+    Sync --> API
+```
+
+**Key Design Decisions:**
+
+- **Hash Routing** `#/` — One document, GSAP timelines survive navigation, ink wipe bridges swaps.
+- **Same Bundle Everywhere** — `dist` is what web ships and what APK bundles. No second codebase.
+- **Real Data Only** — No seeds. Empty ledger on first login. Leaderboard = real operators or honest fallback badge.
+- **Wall-Clock Session** — `phaseEndsAt` + persisted record = survives background tab, closed lid, refresh. Settle banks only elapsed minutes.
+
+---
+
+## 📁 Project Structure
 
 ```
-src/
-  api/          transport, mappers, mock duel engine, assumed-contract notes
-  components/   Boot, Nav, Cursor, SamuraiMark, hud/*, ApkLink
-  hooks/        useResource, useQuest, useSession, useReducedMotion
-  lib/          motion.ts (eases/reveals/cursor/fx), reveal.ts, prefs.ts, ready.ts
-  pages/        Home (landing), Field (the Deep Work room)
-  sections/     Hero, Ticker, Way, Roster, Form, Ladder, Outro
-  components/   session/ (ensō ring), habits/ (daily ritual panel)
-  hooks/        useFocusSession (wall-clock session engine), useApi
-  styles/       tokens, base, home, arena, dashboard, login, app, mobile
-android/        Capacitor native shell (web bundle under assets/public is
-                gitignored; `npx cap sync` regenerates it)
-docs/APK.md     the Android build / release / signing / install guide
+shadow-quest/
+├── src/
+│   ├── api/              # transport, mappers, mock duel engine, contract notes
+│   │   ├── client.ts     # API client with bearer token
+│   │   ├── mock.ts       # Deep Work duel engine (self-contained game)
+│   │   └── contract.md   # Assumed contract for duel
+│   ├── components/
+│   │   ├── Boot.tsx      # Ink aurora boot curtain (CSS loops, dies with curtain)
+│   │   ├── Nav.tsx       # Top nav with theme toggle
+│   │   ├── FaultLine.tsx # Error boundary - sealed recovery screen
+│   │   ├── session/      # Ensō ring - brushed, turbulence-displaced
+│   │   ├── habits/       # Daily ritual panel - kanji seals
+│   │   └── hud/          # HUD elements
+│   ├── hooks/
+│   │   ├── useFocusSession.ts  # Wall-clock session engine
+│   │   └── useApi.ts     # API hooks with fallback
+│   ├── lib/
+│   │   ├── motion.ts     # Eases (brush/snap/steel/breath) + reveals + cursor
+│   │   ├── reveal.ts     # data-rv wiring (rise/wipe/draw/brush/bleed)
+│   │   ├── sync.ts       # Bridge: pull newer wins, debounced push, flush on close
+│   │   ├── streaks.ts    # Chain + 84d grid + milestones (7/30/60/100/180/365)
+│   │   ├── statsCalc.ts  # Client-side stats aggregation (fallback)
+│   │   ├── auth.ts       # Scoped auth + PBKDF2 offline gate
+│   │   ├── password.ts   # 12+ chars, upper+lower+digit+symbol policy
+│   │   └── techniques.ts # 6 focus shapes with kanji seals
+│   ├── mobile/           # Phone face - separate shell, own chrome
+│   │   ├── MobileApp.tsx # Bottom nav + tab routing
+│   │   └── screens/      # Home, Tasks, Progress, Rewards, Squad, Profile, Stats
+│   ├── pages/
+│   │   ├── Home.tsx      # Landing - Hero, Ticker, Way, Roster, Ladder, Outro
+│   │   ├── Field.tsx     # Deep Work room - ensō + technique picker
+│   │   ├── Login.tsx     # Gate with strength meter
+│   │   └── Admin.tsx     # Owner console
+│   ├── sections/         # Desktop sections
+│   │   ├── Dashboard.tsx # Today's ledger
+│   │   ├── StatsBoard.tsx# Animated stats dashboard
+│   │   └── Ladder.tsx    # Milestones with live/device badge
+│   └── styles/
+│       ├── tokens.css    # Sumi black, bone paper, vermilion, brass
+│       ├── home.css      # Landing
+│       ├── app.css       # App shell
+│       ├── mobile.css    # Breakpoint-scoped, loaded last
+│       └── theme-light.css # Paper theme - token swap
+├── server/
+│   └── src/
+│       ├── index.mjs     # Express API :8788
+│       ├── store.mjs     # MongoDB ↔ file store abstraction
+│       ├── security.mjs  # scrypt, rate limits, caps, sanitizers
+│       ├── engine.mjs    # Stats aggregation
+│       └── admin.mjs     # Admin vault + overview
+├── android/              # Capacitor native shell (gitignored public is built)
+├── public/
+│   ├── img-src/          # Painted masters
+│   ├── img/              # Derived JPEG + alpha masks
+│   ├── icons/            # PWA icons from icon.svg
+│   └── audio/            # Mizu guide audio
+├── scripts/
+│   ├── dev.mjs           # Runs BOTH API + web
+│   ├── audit.mjs         # 23 security/crash probes
+│   ├── pwa-icons.mjs     # Generate PWA icons
+│   ├── android-assets.mjs# Generate Android launcher + splash
+│   └── smoke*.mjs        # Desktop + mobile smoke tests
+├── docs/
+│   ├── BACKEND.md        # API + env + sync details
+│   ├── APK.md            # Android build / release / signing
+│   ├── SECURITY.md       # Full security audit
+│   └── MOBILE.md         # Phone face details
+├── capacitor.config.ts   # AppId app.arena.shadowquest, ink bg #0c0b0a
+├── vite.config.ts        # CSP meta, proxy /api → :8788, preview-safe
+└── package.json          # React 19, Vite 7, GSAP 3.13, TS strict
 ```
 
-## Run
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** `>=18` — [nodejs.org](https://nodejs.org/)
+- **MongoDB** (optional) — Atlas or local, for real backend. Without it, file store `server/.data/db.json` is used.
+
+### 1. Clone & Install
 
 ```bash
+git clone https://github.com/ssambit635-svg/Shadow-quest.git
+cd Shadow-quest
 npm install
-npm run dev        # BOTH halves: the data API (:8788) + the site (:5173)
-
-npm run dev:api    # just the API        (cd server && npm install, once)
-npm run dev:web    # just the site       (proxies /api → :8788)
-# with MongoDB:  MONGODB_URI='mongodb+srv://…' npm run dev:api
-
-npm run build
-node scripts/audit.mjs      # security/crash probe suite (23 probes)
-npm run smoke         # desktop: session + habits flow, ledger persists
-npm run smoke:mobile  # phone face: gate → ledger → stats → squad → profile
-npm run smoke:ladder  # milestones: renders live AND with the API down
-
-# owner's control panel (both must be set for #/app/admin to exist):
-#   ADMIN_EMAILS='you@your-domain.com' ADMIN_PIN='a-long-pin' npm run dev
-
-node scripts/pwa-icons.mjs      # regenerate the PWA / install icon set
-node scripts/android-assets.mjs # regenerate Android launcher + splash art
-npx cap sync android            # push dist into the native shell
+cd server && npm install && cd ..
 ```
 
-## Your Signal — the stats dashboard
+### 2. Run Both Halves (Recommended)
 
-A dedicated read-out of the operator's own recorded work — on the site
-(`#/app/stats`, tab **Stats**) and on the phone face (`#/app/stats`, reached
-from Home and Profile). Same palette discipline as everything else; the
-motion is the point:
+```bash
+npm run dev
+# → API  : http://127.0.0.1:8788
+# → Web  : http://localhost:5173
+```
 
-- **Life-level ring** — one brushed arc drawn to the exact level progress.
-- **Counters** that roll to their values (progress, goals sealed, streak,
-  power index, open goals, marks).
-- **Life-factor radar** — seven axes on one shape, drawn in from the centre,
-  hoverable vertex by vertex.
-- **Activity field** — the last 84 days as a heatmap, one cell a day, inking
-  itself in column by column; hover/tap reads the day.
-- **Weekly momentum bars** — progress sealed per week, last eight Mondays.
-- **Factor growth + reward donut** — where the points came from, by category.
-- **Marks** — the achievement ledger, earned vs. in-progress.
+- Browser calls same-origin `/api`, Vite proxies to `:8788`
+- With MongoDB: `MONGODB_URI='mongodb+srv://...' npm run dev`
 
-Data prefers the backend (`GET /v1/stats`) and falls back to the device
-ledger; the badge in the header says **live · backend** or **device copy**,
-so nobody mistakes one for the other.
+### 3. Run Separately
 
-## Theme — ink and paper
+```bash
+npm run dev:api   # just backend
+npm run dev:web   # just frontend (proxies /api → :8788)
+```
 
-The site carries a **dark / light toggle** in the nav: *ink* (the sumi
-ground, default) and *paper* (the same palette inverted, as if the ledger
-were printed). The swap is one token move — the two raw scales exchange
-roles — so every surface follows. The choice persists per browser. The
-phone face and the APK keep their own tokens and stay in ink on purpose;
-the toggle exists on the site face only.
+### 4. Build
 
-## Real data, no seeds
+```bash
+npm run build
+# → dist/ (web bundle)
+```
 
-Since the backend landed, nothing on the data surfaces is invented:
+### 5. Preview Production Build
 
-- **Tasks** — a fresh ledger is empty. Goals appear when a person adds them.
-- **Habits** — same: the ritual starts blank.
-- **Leaderboard** (`#/app/ladder`, tab **Milestones**) — reads
-  `GET /v1/leaderboard`: real operators ranked by recorded progress, with the
-  signed-in operator's own row marked **you**. Unreachable backend → an honest
-  *device copy*: the operator's own milestones from this device's ledger and a
-  badge saying where they came from. Never fake rows, never a red error for
-  "the API isn't running" — that is a deployment state, not a data failure.
-- **Squad** — no seeded pool. The "People on ShadowQuest" list is the live
-  roster of registered operators (`GET /v1/people`); when nobody else has
-  registered, it says so.
-- **Kept, on purpose**: the Google *demo accounts* on the sign-in screen
-  (local-first sign-in needs identities to choose from), and the Deep Work
-  duel/focus engine, which is a self-contained game rather than operator data.
+```bash
+npm run preview
+```
 
-## The gate — a real hard password
+---
 
-Sign-in now requires a **hard passphrase** — min 12 characters, at least one
-uppercase, one lowercase, one digit and one symbol. The form (desktop and
-phone) shows a live strength meter and refuses a weak one before it leaves
-the device.
+## 🔧 Environment Variables
 
-- **Online**: the backend stores only a scrypt hash and verifies in constant
-  time. Wrong passwords are rate-limited; new sign-ups are rate-limited and
-  capped (`SQ_MAX_USERS`).
-- **Offline**: this device's own PBKDF2-SHA-256 record (210k iterations,
-  per-user salt) gates the ledger, so the same key opens both worlds.
-- Accounts that predate passwords are **sealed** by the first valid
-  password presented — a one-time migration, first-set-wins.
+Create `.env` from `.env.example`:
 
-Full details, the personal data flow audit and every control:
-[`docs/SECURITY.md`](docs/SECURITY.md).
+```bash
+cp .env.example .env
+```
 
-## The chain — streaks
+| Variable | Default | Where | Purpose |
+|----------|---------|-------|---------|
+| `VITE_API_BASE_URL` | *(empty)* → `/api` | Frontend | Deployed API URL. Empty = dev proxy. Set for APK/prod: `https://api.your-domain.com` |
+| `VITE_API_MODE` | `mock` | Frontend | `mock` keeps duel engine even with API set. Ledger ALWAYS uses API. |
+| `MONGODB_URI` | *(unset)* → file store | Backend | MongoDB connection string. Unset = `server/.data/db.json` fallback |
+| `MONGODB_DB` | `shadowquest` | Backend | DB name |
+| `PORT` | `8788` | Backend | API listen port |
+| `ADMIN_EMAILS` | *(unset)* | Backend | Comma-separated owner emails. Both `EMAILS`+`PIN` required for admin panel |
+| `ADMIN_PIN` | *(unset)* | Backend | Control panel PIN (8+ chars) |
+| `SQ_MAX_USERS` | `1000` | Backend | Hard cap on operators |
+| `SQ_CORS_ORIGIN` | *(open in dev)* | Backend | CORS allowlist, comma-separated. Set in prod! |
+| `SQ_TRUST_PROXY` | `0` | Backend | Set `1` behind reverse proxy for honest IP rate limits |
 
-The Consistency stat, a heat-map panel on the desktop dashboard and a card
-on the phone profile are all driven by one honest computation
-(`src/lib/streaks.ts`): every sealed task, every habit mark and the engine's
-last-active record become the live chain, an 84-day heat grid, a week strip
-and a milestone track — **7 / 30 / 60 / 100 / 180 / 365 days**, each paying
-a one-time reward-point bonus when the chain reaches it.
+---
 
-## The control panel — owner only
+## 🔌 API Reference
 
-`#/app/admin` is the owner's console. It exists only for emails listed in
-`ADMIN_EMAILS`, opens only with `ADMIN_PIN`, and every call is re-verified
-by the backend (a locally edited role is cosmetic). From it the owner sees
-the real numbers — operators, activity, sign-ups — can search the directory
-(the only surface that shows emails), remove an operator, and revoke every
-session at once. See `docs/BACKEND.md` for the endpoints.
+Base: `https://shadow-quest.onrender.com/api` in production, `/api` in dev (proxied)
 
-## If the app ever crashes
+| Method | Path | Auth | What it does |
+|--------|------|------|--------------|
+| `GET` | `/v1/health` | — | Liveness + which store is active |
+| `POST` | `/v1/auth/signin` | — | Create / verify / seal account (scrypt hash, never plain) |
+| `GET` | `/v1/ledger` | Bearer | Your stored profile + tasks + habits |
+| `PUT` | `/v1/ledger` | Bearer | Replace stored ledger (validated, bounded, 120/min) |
+| `GET` | `/v1/stats` | Bearer | Aggregates: daily 84d, weekly 8w, factors, categories |
+| `GET` | `/v1/leaderboard` | — | Top 25 real operators by progress |
+| `GET` | `/v1/people` | Bearer | Other registered operators for squad |
+| `POST` | `/v1/admin/elevate` | Bearer+Role | Present PIN → mint short admin token |
+| `GET` | `/v1/admin/overview` | Admin | Totals, activity, sign-ups |
+| `GET` | `/v1/admin/users` | Admin | Directory (only place with emails) |
+| `DELETE` | `/v1/admin/users/:email` | Admin | Remove operator (can't delete admins) |
+| `POST` | `/v1/admin/sessions/revoke-all` | Admin | Rotate all tokens — everyone re-login |
 
-`src/components/FaultLine.tsx` is the error boundary around the whole app:
-a sealed, in-world recovery screen with a reload — never a stack trace,
-never an error message. The API answers every unexpected failure with a
-generic body, and the audit suite (`node scripts/audit.mjs`) boots the real
-bundle with hostile and corrupt storage to prove the app survives it.
+**Auth:** `Authorization: Bearer <token>` issued at sign-in, per-scope beside ledger.
 
-## Backend
+Full details: [`docs/BACKEND.md`](./docs/BACKEND.md)
 
-`server/` is a small Express API in front of **MongoDB** (`MONGODB_URI`) —
-see [`docs/BACKEND.md`](docs/BACKEND.md). Operators sign in, the frontend
-pushes their ledger (profile + tasks + habits) and reads it back on any
-device; the leaderboard, stats and people roster are aggregated from what
-was actually stored. When no MongoDB is configured the API persists to a
-local JSON file with the same shape — a dev fallback, still real data.
+---
 
-In dev, the browser calls same-origin `/api` and Vite proxies it to the API
-on `:8788`; APK / production builds point `VITE_API_BASE_URL` at the
-deployed URL instead. `src/lib/sync.ts` is the bridge: pull-on-load (server
-copy wins when newer), debounced write-through on every mutation, flush on
-tab close. The in-page duel engine in `src/api/mock.ts` remains the
-transport for the Deep Work game itself — the assumed-contract notes for it
-live in [`src/api/contract.md`](src/api/contract.md).
+## 📱 PWA & Android APK
 
-## Assets
+### PWA — Install from Browser
 
-`public/img-src/` holds the painted masters; `node scripts/sharp-assets.mjs`
-derives the web set (progressive JPEG for paper plates, plus the brush and wash
-**alpha masks** in `public/img/` — one asset each, paintable and animatable in
-any token colour instead of a second export per theme).
+- `public/manifest.webmanifest` + generated icons (`node scripts/pwa-icons.mjs`)
+- Standalone on iOS & Android, ink background `#0c0b0a` (no white flash)
+- Visit https://shadow-quest.onrender.com → Browser menu → **Install App**
 
-## ⚠️ Copyright & License
+### APK — Same Bundle, Native Shell
+
+The APK is a **Capacitor WebView** around the exact `dist` bundle.
+
+```bash
+npm run build                 # web bundle → dist
+npx cap sync android          # dist → android/app/src/main/assets/public
+cd android
+./gradlew assembleDebug       # → app-debug.apk
+```
+
+**Fast path (GitHub Release):**
+
+1. Repo → Actions → **Build Android APK** → Run workflow (or push tag `v1.1.0`)
+2. Wait 5-8 min → Releases → Download APK
+3. In-app **Download APK** button resolves newest `.apk` from Releases API
+
+**Point APK at real backend:**
+
+```bash
+VITE_API_BASE_URL=https://shadow-quest.onrender.com npm run build
+npx cap sync android
+```
+
+In CI, set repo Variable `VITE_API_BASE_URL` (Settings → Variables).
+
+**Live mode (APK loads hosted site):**
+
+```bash
+CAPACITOR_SERVER_URL=https://shadow-quest.onrender.com npx cap sync android
+```
+
+Full guide: [`docs/APK.md`](./docs/APK.md)
+
+**What's inside the shell:**
+
+- AppId `app.arena.shadowquest`, label *ShadowQuest*
+- Edge-to-edge: `WindowCompat.setDecorFitsSystemWindows(window, false)` + `env(safe-area-inset-*)`
+- Ink splash, no white flash, keyboard `adjustResize`
+- No landing page inside APK: cold boot → ledger if signed-in, gate if not
+- Back button = app back (history-aware, bottom sheet pushes entry)
+
+---
+
+## 🔒 Security — Password Gate
+
+Sign-in requires **hard passphrase**: min 12 chars, uppercase + lowercase + digit + symbol. Live strength meter, refused before leaving device.
+
+- **Online:** Backend stores only **scrypt hash**, verifies in constant time. Wrong passwords rate-limited (8/15min/email), sign-ups capped (`SQ_MAX_USERS`).
+- **Offline:** Device's own **PBKDF2-SHA-256** (210k iterations, per-user salt) gates ledger — same key opens both worlds.
+- **Legacy accounts:** Sealed by first valid password — first-set-wins migration.
+- **CSP:** `<meta>` injected at build time (works inside APK where no headers exist). `script-src 'self'` — no `unsafe-inline`, no `unsafe-eval`.
+- **Admin:** `ADMIN_EMAILS` + `ADMIN_PIN` must both be set, else every admin route 403. Every admin call re-verifies email + token server-side.
+
+Full audit: [`docs/SECURITY.md`](./docs/SECURITY.md) + `node scripts/audit.mjs` (23 probes)
+
+---
+
+## 🎨 Motion System
+
+Everything routes through `src/lib/motion.ts`:
+
+- **3 Eases Only:** `brush`, `snap`, `steel` + `breath` — registered once, no component invents its own
+- **5 Reveal Verbs:** `rise / wipe / draw / brush / bleed` via `data-rv` + `src/lib/reveal.ts`
+- **Ink SVG:** `DrawSVG` pulls ronin mark + ensō stroke-by-stroke, `feTurbulence` + `feDisplacementMap` keeps lines wet
+- **SplitText:** Headlines break into chars inside line masks — arrives as stroke, not typewriter
+- **Combat FX:** `hitStop()` freezes global timeline ~3 frames + `shake()` offsets struck panel
+- **Scroll Velocity → Marquee timeScale** — motion responds to input, not loops at you
+- **One Idle Loop:** `[data-fx-bleed]` ink under field, paused via IntersectionObserver when off-screen
+- **Reduced Motion:** Handled at registration layer (`REDUCED` + global `timeScale`) — no component can opt out
+- **Boot Curtain:** `src/components/Boot.tsx` — ink aurora, drifting grid, kanji embers, rising ink, counter-rotating rings, 影 slam + blade-line exit. Loops are **CSS**, dies with curtain — no rAF chains left (measured by audit)
+
+---
+
+## 🧪 Testing & Audits
+
+```bash
+npm run build
+node scripts/audit.mjs        # 23 security/crash probes - hostile + corrupt storage
+
+npm run smoke                 # desktop: session + habits flow, ledger persists
+npm run smoke:mobile          # phone face: gate → ledger → stats → squad → profile
+npm run smoke:ladder          # milestones: renders live AND with API down
+
+node scripts/pwa-icons.mjs      # regenerate PWA icons from public/icons/icon.svg
+node scripts/android-assets.mjs # regenerate Android launcher + splash (5 densities)
+```
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Ink & Paper art direction + brush motion system
+- [x] Deep Work room with 6 techniques + ensō clock (wall-clock)
+- [x] Real ledger, habits, streaks, stats, leaderboard, squad
+- [x] Offline-first sync bridge + PWA installable
+- [x] Android APK via Capacitor (GitHub Release CI)
+- [x] Hard password gate (scrypt + PBKDF2) + admin panel
+- [x] Live deployment https://shadow-quest.onrender.com
+- [ ] 🔜 Cloud audio for Mizu guide (currently local)
+- [ ] 🔜 Weekly email summary of momentum
+- [ ] 🔜 Multi-device conflict resolution (CRDT)
+- [ ] 🔜 iOS build via Capacitor
+- [ ] 🔜 Public API for integrations
+
+---
+
+## 🤝 Contributing
+
+This repo is public for **review & evaluation** — but not open for random PRs that copy design.
+
+If you want to improve it:
+
+1. Fork (for PR back to original only)
+2. Create branch: `git checkout -b feat/your-idea`
+3. Commit: `git commit -m "feat: your idea"`
+4. Push & open PR — describe *why*, not just *what*
+
+Please read [`LICENSE`](./LICENSE) first — design, motion system, session engine are sole property of author.
+
+---
+
+## 🌸 Credits
+
+- **Design & Code:** [@ssambit635-svg](https://github.com/ssambit635-svg)
+- **Art:** `public/img-src/` painted masters → `public/img/` via Sharp
+- **Motion:** GSAP 3.13 with free SplitText, DrawSVG, ScrambleText, CustomEase
+- **Fonts:** Google Fonts — Cinzel, Manrope, Oswald, Shippori Mincho
+- **Inspiration:** Sumi-e ink painting, Samurai dojo, Deep Work by Cal Newport
+
+---
+
+## ©️ Copyright & License
 
 **© 2026 ssambit635-svg — All Rights Reserved.**
 
@@ -301,11 +546,28 @@ This repository is public for **review and evaluation purposes only**.
 
 | | |
 |---|---|
-| ✅ You **MAY** | Read, review, and evaluate this code |
-| ❌ You **MAY NOT** | Copy, clone, fork, redistribute, or use in your own projects |
+| ✅ You **MAY** | Read, review, evaluate |
+| ❌ You **MAY NOT** | Copy, clone, fork for own projects, redistribute, repackage |
 
-Unauthorized copying or use of this code will result in a **DMCA takedown
-notice** filed with the hosting platform. See [`LICENSE`](LICENSE) for the
-full terms.
+Unauthorized copying will result in **DMCA takedown**. See [`LICENSE`](./LICENSE).
 
-To request a license for use in your own project, contact the author.
+To request a license: contact the author via GitHub.
+
+---
+
+<div align="center">
+
+### 影の道 — The Path of Shadows is not about doing more. It's about doing what matters, with full presence.
+
+**[🌸 Enter the Dojo — shadow-quest.onrender.com](https://shadow-quest.onrender.com)**
+
+<br/>
+
+*Made with ink, paper, and steel. No purple gradients.*
+
+<br/>
+
+[![GitHub stars](https://img.shields.io/github/stars/ssambit635-svg/Shadow-quest?style=social)](https://github.com/ssambit635-svg/Shadow-quest/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/ssambit635-svg/Shadow-quest?style=social)](https://github.com/ssambit635-svg/Shadow-quest/network/members)
+
+</div>
