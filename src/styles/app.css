@@ -96,3 +96,36 @@
 .nav__signout:hover {
   color: var(--vermilion-lit);
 }
+
+/* ---------- the Android APK control ---------- */
+/* One vermilion-edged button that reaches out to the GitHub Releases page.
+   The 携 mark is the only Japanese on it: "carry" — the app you carry. */
+.btn--apk {
+  border-color: color-mix(in srgb, var(--brass) 45%, transparent);
+  color: var(--bone-200);
+}
+
+.btn--apk .btn__apk-mark {
+  font-family: var(--font-jp);
+  font-size: 1.05em;
+  line-height: 1;
+  color: var(--brass);
+}
+
+.btn--apk[data-state="ready"] {
+  border-color: var(--vermilion);
+}
+.btn--apk[data-state="ready"] .btn__apk-mark {
+  color: var(--vermilion-lit);
+}
+
+.btn--apk[data-state="looking"] {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.btn--apk-compact {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.66rem;
+  min-height: 2.4rem;
+}

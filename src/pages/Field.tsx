@@ -25,11 +25,11 @@ import {
   makeId,
   todayISO,
 } from "../lib/todo";
-import { TECHNIQUES, cycleLine } from "../lib/techniques";
+import { TECHNIQUES, cycleLine, sessionMinutes, humanMinutes } from "../lib/techniques";
 import { mmss, useFocusSession, type PhaseEvent } from "../hooks/useFocusSession";
 import { prefs } from "../lib/prefs";
 import { notificationPermission, requestNotificationPermission } from "../lib/habits";
-import { gsap, REDUCED } from "../lib/motion";
+import { gsap, isNarrow, REDUCED } from "../lib/motion";
 import { SessionRing } from "../components/session/SessionRing";
 
 const PHASE_KANJI = { focus: "集中", rest: "休息", done: "完" } as const;
@@ -220,9 +220,11 @@ export function Field({ onExit }: { onExit: () => void }) {
     return () => ctx.revert();
   }, [Boolean(s)]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The one idle loop here: the ink beneath the room breathes.
+  // The one idle loop here: the ink beneath the room breathes. On a phone
+  // an infinite transform loop on a full-bleed gradient layer is a battery
+  // tax with nothing to show for it — the room reads still and calm anyway.
   useEffect(() => {
-    if (REDUCED) return;
+    if (REDUCED || isNarrow()) return;
     const t = gsap.to("[data-fx-bleed]", {
       scale: 1.045,
       opacity: 0.55,
@@ -340,6 +342,15 @@ export function Field({ onExit }: { onExit: () => void }) {
   const timed = t.focusMin !== null || s.phase === "rest";
   const urgent =
     s.phase === "focus" && s.running && timed && t.focusMin !== null && sess.phaseMs <= 10_000;
+  /**
+   * The round the seat is actually on: how many focus blocks are done, plus
+   * the one in front of you. Derived from `cyclesDone` rather than `cycle` so
+   * the written number, the diamond row and the aria label can never disagree
+   * — `cycle` lags a beat behind during the rest that follows a round.
+   */
+  const round = Math.min(over ? t.cycles : s.cyclesDone + 1, t.cycles);
+  /** What the whole session is worth in wall time, when the shape is fixed. */
+  const total = sessionMinutes(t);
 
   return (
     <section className="field field--room" ref={root} data-phase={s.phase}>
@@ -360,13 +371,16 @@ export function Field({ onExit }: { onExit: () => void }) {
         <div
           className="field__cycles"
           role="group"
-          aria-label={`cycle ${Math.min(s.cycle, t.cycles)} of ${t.cycles}`}
+          aria-label={`round ${round} of ${t.cycles}`}
         >
+          <span className="field__round num">
+            {round}/{t.cycles}
+          </span>
           {Array.from({ length: t.cycles }).map((_, i) => (
             <i
               key={i}
               data-done={i < s.cyclesDone || undefined}
-              data-now={i === s.cyclesDone && !over || undefined}
+              data-now={(i === s.cyclesDone && !over) || undefined}
             />
           ))}
         </div>
@@ -398,10 +412,18 @@ export function Field({ onExit }: { onExit: () => void }) {
               running={s.running}
               urgent={urgent}
               kanji={PHASE_KANJI[s.phase]}
+              countsUp={t.focusMin === null && s.phase === "focus"}
             />
           </div>
 
           <p className="sess__vow">{t.line}</p>
+
+          {/* The shape, written out: the same line the picker promised, so the
+              room never quietly runs a different session than the card sold. */}
+          <p className="sess__shape num">
+            {cycleLine(t)}
+            {total ? ` · ${humanMinutes(total)} seated` : ""}
+          </p>
 
           <div className="sess__ctl">
             {!over && (
@@ -413,14 +435,18 @@ export function Field({ onExit }: { onExit: () => void }) {
               >
                 <span className="btn__slash" />
                 {s.running ? "Pause" : "Hold"}
-                <span className="sess__key label">space</span>
+                <span className="sess__key label" data-keys>
+                  space
+                </span>
               </button>
             )}
             {!over && (
               <button className="btn" type="button" data-fx-ctl onClick={() => sess.skip()}>
                 <span className="btn__slash" />
                 {s.phase === "focus" ? "Settle focus" : "Skip rest"}
-                <span className="sess__key label">s</span>
+                <span className="sess__key label" data-keys>
+                  s
+                </span>
               </button>
             )}
             <button

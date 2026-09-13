@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The shell wears the same palette as the app: sumi ink ground, bone light,
+  vermilion for the single action colour. These override the indigo defaults
+  the Capacitor library ships, because resource resolution prefers the app
+  module over its dependencies.
+-->
+<resources>
+    <color name="colorPrimary">#0c0b0a</color>
+    <color name="colorPrimaryDark">#0c0b0a</color>
+    <color name="colorAccent">#c1362b</color>
+
+    <color name="ink">#0c0b0a</color>
+    <color name="bone">#e6ded0</color>
+    <color name="vermilion">#c1362b</color>
+
+    <!-- Adaptive-icon backdrop and the splash/WebView ground. -->
+    <color name="ic_launcher_background">#0c0b0a</color>
+</resources>

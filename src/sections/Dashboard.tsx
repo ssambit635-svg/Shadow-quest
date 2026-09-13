@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap, REDUCED, registerVelTargets } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
 import { HabitsPanel } from "../components/habits/HabitsPanel";
+import { ApkLink } from "../components/ApkLink";
 import type { User } from "../lib/auth";
 import {
   type Task,
@@ -179,14 +180,17 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
               is yours — sealed to your signal.
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn--primary dash__new-btn"
-            onClick={() => setShowAdd((s) => !s)}
-          >
-            <span className="btn__slash" />
-            {showAdd ? "Close" : "New Goal"}
-          </button>
+          <div className="dash__head-actions">
+            <ApkLink compact />
+            <button
+              type="button"
+              className="btn btn--primary dash__new-btn"
+              onClick={() => setShowAdd((s) => !s)}
+            >
+              <span className="btn__slash" />
+              {showAdd ? "Close" : "New Goal"}
+            </button>
+          </div>
         </header>
 
         {/* Top stats row — two accents only: vermilion acts, brass pays. */}

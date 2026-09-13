@@ -1,6 +1,23 @@
 node_modules
 dist
 dist-ssr
+
+# --- Android / Capacitor ---
+# The native project is committed (that is the Capacitor convention), but the
+# copied web bundle and every Gradle output are regenerable: `npx cap sync`
+# rebuilds assets/public from dist, and Gradle rebuilds the rest.
+android/app/src/main/assets/public/
+android/app/build/
+android/build/
+android/capacitor-cordova-android-plugins/build/
+android/.gradle/
+android/local.properties
+*.apk
+*.aab
+# Signing material must never reach the repository.
+*.keystore
+*.jks
+release-signing.properties
 .DS_Store
 *.local
 .vscode/*

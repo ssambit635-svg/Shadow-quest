@@ -13,6 +13,11 @@ AI-generated "game site" ships with.
 | **Accent** | vermilion `#c1362b`, used for exactly three things: the blade line, the active state, one dot per screen |
 | **Support** | aged brass `#a98a55` for ki/guard readouts only |
 | **Type** | Cinzel (display, epic game serif) · Manrope (body) · Oswald (labels, readouts) · Shippori Mincho kept for header Japanese accents only |
+
+Every Focus Area carries its name in **both scripts** — the English name the
+product speaks in, the Japanese name in mincho beneath it, and the romaji
+reading as furigana (`Shadow.nameJa` / `readingJa` / `schoolJa`, all optional
+on the wire so a backend that never sent them still renders a card).
 | **Corners** | 2px. No soft card radii, no glass, no aurora gradients, no glow |
 
 Light sections are **paper plates mounted on the ink page** — the sumi-e painting
@@ -67,6 +72,49 @@ a cycle shape, each with a kanji seal: Pomodoro 間 (25/5 ×4), Ultradian 波
 - Phase changes stamp ink on the ring and — opted in, permission granted —
   raise one system notification each. The tab title carries the countdown.
 
+## The loop, honestly
+
+The growth loop (`04 — the loop`) and the ensō clock are driven by **one
+number each**, so nothing on screen can disagree about where you are:
+
+- the ring turns exactly one full circle across the section; the brush gap
+  meets station *i*'s marker at `p = i / N`;
+- the active station is `floor(p * N)` and its copy is at full opacity for
+  the whole of its own band — the first and last stations read as clearly as
+  the middle ones;
+- every write is a `gsap.set`. A tween started from inside a scrub's
+  `onUpdate` restarts each frame and never arrives; that lag was what made
+  the numerals trail the ring.
+- a technique card states its true shape — `25′ focus · 5′ rest ×3 · 4 rounds
+  · 1h 55m` — because the engine runs `cycles − 1` rests (none after the
+  final round) and the card used to promise `cycles` of them.
+- the ensō's arc is a CSS transition exactly one clock tick long
+  (`TICK_MS`), so the stroke is a continuous ramp that lands on the numerals
+  instead of chasing them.
+
+## The phone face
+
+Below `860px` this stops being a squeezed website and becomes an app: a
+**docked bottom tab bar** (thumb reach, safe from the scroll-hide transform,
+padded above the home-gesture inset), the side rails gone, gutters in, every
+tap target ≥ 44px, hover-only motion unattached on touch, and the two
+full-screen blend-mode overlays (grain, vignette) dropped because a phone
+compositor pays for them every frame. Above the breakpoint none of it applies
+— the laptop keeps the HUD exactly as authored. `src/styles/mobile.css` is
+loaded last and is entirely breakpoint-scoped; `isNarrow()` in `lib/motion.ts`
+uses the same test so the JS and the CSS never disagree.
+
+It is also installable: `public/manifest.webmanifest` + a generated icon set
+(`node scripts/pwa-icons.mjs`) make it a standalone PWA on iOS and Android.
+
+## Android APK
+
+The same bundle ships as an APK through a Capacitor shell — see
+[`docs/APK.md`](docs/APK.md) for the build, the CI release pipeline, signing,
+and device install. The in-app **Download APK** button resolves the newest
+`.apk` from the GitHub Releases page; with no build published yet it takes
+you to the Releases page instead of dead-ending.
+
 ## The ritual
 
 The dashboard grows a **Habits** panel: one row per daily habit, a kanji seal
@@ -85,14 +133,17 @@ CSS framework, no animation library besides GSAP.
 ```
 src/
   api/          transport, mappers, mock duel engine, assumed-contract notes
-  components/   Boot, Nav, Cursor, SamuraiMark, hud/*
+  components/   Boot, Nav, Cursor, SamuraiMark, hud/*, ApkLink
   hooks/        useResource, useQuest, useSession, useReducedMotion
   lib/          motion.ts (eases/reveals/cursor/fx), reveal.ts, prefs.ts, ready.ts
   pages/        Home (landing), Field (the Deep Work room)
   sections/     Hero, Ticker, Way, Roster, Form, Ladder, Outro
   components/   session/ (ensō ring), habits/ (daily ritual panel)
   hooks/        useFocusSession (wall-clock session engine), useApi
-  styles/       tokens, base, home, arena, dashboard
+  styles/       tokens, base, home, arena, dashboard, login, app, mobile
+android/        Capacitor native shell (web bundle under assets/public is
+                gitignored; `npx cap sync` regenerates it)
+docs/APK.md     the Android build / release / signing / install guide
 ```
 
 ## Run
@@ -103,6 +154,10 @@ npm run dev        # http://localhost:5173
 npm run build
 npm run smoke      # boots the built bundle in happy-dom, clicks the whole
                    # session + habits flow, asserts the ledger persists
+
+node scripts/pwa-icons.mjs      # regenerate the PWA / install icon set
+node scripts/android-assets.mjs # regenerate Android launcher + splash art
+npx cap sync android            # push dist into the native shell
 ```
 
 ## Backend

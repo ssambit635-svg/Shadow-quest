@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ShadowQuest</string>
+    <string name="title_activity_main">ShadowQuest</string>
+    <string name="package_name">app.arena.shadowquest</string>
+    <string name="custom_url_scheme">app.arena.shadowquest</string>
+</resources>

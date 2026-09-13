@@ -79,6 +79,14 @@ export interface FocusSessionHandle {
 
 const KEY = "sq.session.v2";
 const MIN = 60_000;
+
+/**
+ * How often the clock re-reads the wall. The ensō's arc is a CSS transition
+ * of exactly this length (see `--sq-tick` on `.sring`), which is what makes
+ * the stroke a continuous ramp instead of a series of catches: a transition
+ * longer than the tick never arrives, so the ring visibly trails the numerals.
+ */
+export const TICK_MS = 500;
 const flowCapMs = (t: Technique) => (t.capMin ?? FLOW_CAP_MIN) * MIN;
 
 function makeId(): string {
@@ -106,8 +114,18 @@ function line(kind: SessionLogLine["kind"], text: string): SessionLogLine {
   return { id: makeId(), at: Date.now(), kind, text };
 }
 
-export function mmss(ms: number): string {
-  const total = Math.max(0, Math.round(ms / 1000));
+/**
+ * Format milliseconds as `MM:SS`.
+ *
+ * A countdown rounds *up* — so the ring reads `25:00` for the whole of the
+ * first second and only reaches `00:00` at the instant the phase actually
+ * ends, never half a second early. A count-up (Flowmodoro) rounds down, so it
+ * starts at `00:00` and earns each second. Getting this backwards is the
+ * classic "the writing doesn't match the timing" bug.
+ */
+export function mmss(ms: number, dir: "down" | "up" = "down"): string {
+  const safe = Math.max(0, ms);
+  const total = dir === "up" ? Math.floor(safe / 1000) : Math.ceil(safe / 1000);
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
@@ -138,7 +156,7 @@ export function useFocusSession(onPhase?: (e: PhaseEvent) => void): FocusSession
   /* ---------------- the clock ---------------- */
   useEffect(() => {
     if (!s?.running) return;
-    const t = window.setInterval(() => setNow(Date.now()), 500);
+    const t = window.setInterval(() => setNow(Date.now()), TICK_MS);
     return () => window.clearInterval(t);
   }, [s?.running]);
 

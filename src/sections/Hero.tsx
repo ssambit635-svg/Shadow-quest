@@ -12,6 +12,7 @@ import {
   attachWash,
   brushReveal,
   gsap,
+  isNarrow,
   magnetic,
   REDUCED,
   splitTo,
@@ -93,9 +94,11 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
           1.9,
         );
 
-      // The painting itself breathes: a 26-second Ken Burns drift. Pure
-      // transform, so it costs one composited layer.
-      if (!REDUCED) {
+      // The painting itself breathes: a 26-second Ken Burns drift, plus the
+      // ember dust. Both are ambient loops — pure transform, cheap on a
+      // laptop GPU, but a phone compositor pays for them every frame for the
+      // whole session, so the phone face gets the still painting instead.
+      if (!REDUCED && !isNarrow()) {
         gsap.to("[data-hero-painting]", {
           scale: 1.1,
           xPercent: -1.5,
