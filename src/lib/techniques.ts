@@ -98,11 +98,61 @@ export function techniqueOf(id: string | null | undefined): Technique {
   return TECHNIQUES.find((t) => t.id === id) ?? TECHNIQUES[0];
 }
 
-/** Shape a technique's cycle into one honest readout line: 25′ focus · 5′ rest · ×4 */
+/**
+ * How many rest blocks a full session actually contains. The engine goes
+ * straight to `done` after the last focus round — there is no rest *after*
+ * the final cycle, and Zazen has none at all — so the honest count is
+ * `cycles - 1`, not `cycles`. Anything that writes the shape of a session
+ * has to use this, or the card promises minutes the clock never runs.
+ */
+export function restRounds(t: Technique): number {
+  if (t.restMin === 0) return 0;
+  return Math.max(0, t.cycles - 1);
+}
+
+/**
+ * Total wall time of one full session, in minutes — or null when the shape is
+ * open-ended (Flowmodoro counts up, and its rest is earned from the depth
+ * held, so no total can be promised before the session is run).
+ */
+export function sessionMinutes(t: Technique): number | null {
+  if (t.focusMin === null) return null;
+  const rest = t.restMin === null ? null : t.restMin * restRounds(t);
+  if (rest === null) return null;
+  return t.focusMin * t.cycles + rest;
+}
+
+/** `115` → `1h 55m`; `52` → `52m`. */
+export function humanMinutes(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+
+/**
+ * Shape a technique's cycle into one honest readout line. The rest count is
+ * spelled out because `×4` on its own reads as four rests, and the fourth
+ * one never happens:
+ *
+ *   25′ focus · 5′ rest ×3 · 4 rounds · 1h 55m
+ */
 export function cycleLine(t: Technique): string {
   const focus = t.focusMin === null ? "open" : `${t.focusMin}′`;
-  const rest = t.restMin === null ? "earned" : t.restMin === 0 ? "no rest" : `${t.restMin}′`;
-  return `${focus} focus · ${rest} rest · ×${t.cycles}`;
+  const rests = restRounds(t);
+  const rest =
+    t.restMin === null
+      ? "earned rest"
+      : t.restMin === 0
+        ? "no rest"
+        : rests === 0
+          ? `${t.restMin}′ rest`
+          : `${t.restMin}′ rest ×${rests}`;
+  const total = sessionMinutes(t);
+  return `${focus} focus · ${rest} · ${t.cycles} round${t.cycles === 1 ? "" : "s"}${
+    total ? ` · ${humanMinutes(total)}` : ""
+  }`;
 }
 
 export const FLOW_CAP_MIN = 90;

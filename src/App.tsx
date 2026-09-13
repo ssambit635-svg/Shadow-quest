@@ -149,6 +149,13 @@ export default function App() {
     document.body.dataset.booted = booted ? "true" : "false";
   }, [booted]);
 
+  // The stylesheet needs to know which screen owns the viewport so the
+  // phone face can reserve room for the docked tab bar behind exactly the
+  // routes that show one. `data-route` on <body> is the single source.
+  useEffect(() => {
+    document.body.dataset.route = route;
+  }, [route]);
+
   return (
     <ReadyContext.Provider value={booted}>
       <Boot

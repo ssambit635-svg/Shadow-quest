@@ -21,6 +21,27 @@ export const REDUCED =
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/**
+ * True only when the primary input can genuinely hover — a mouse, trackpad or
+ * pen. Every pointer-chasing effect on this site (3D tilt, the wash, magnetic
+ * pull, the ink ripple) is gated on it, because on a phone those effects have
+ * no honest trigger: `pointermove` fires once on tap, `pointerleave` may never
+ * fire at all, and the card is left frozen mid-tilt with a spotlight stuck
+ * where a thumb happened to land. On touch the cards are simply cards.
+ */
+export const CAN_HOVER =
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+/**
+ * Small-screen guard. Layout work that must not run on a phone — a pinned
+ * scroll-scrub, a five-blade wipe — checks this instead of guessing from
+ * `window.innerWidth`, so the answer matches the CSS breakpoints.
+ */
+export const isNarrow = () =>
+  typeof window !== "undefined" && window.matchMedia("(max-width: 860px)").matches;
+
 let registered = false;
 
 export function initMotion() {
@@ -217,7 +238,9 @@ function velTick() {
 }
 
 export function initVelocity() {
-  if (velAttached || typeof window === "undefined" || REDUCED) return;
+  // Momentum scrolling on a phone throws velocities a trackpad never reaches,
+  // and the lean reads as breakage rather than weight there. Desktop only.
+  if (velAttached || typeof window === "undefined" || REDUCED || !CAN_HOVER) return;
   velAttached = true;
   velState.last = window.scrollY;
   window.addEventListener("scroll", nudgeVelocity, { passive: true });
@@ -288,7 +311,7 @@ export function initInkRipple() {
  * moves, so it stays cheap at 60fps.
  */
 export function magnetic(el: HTMLElement, strength = 0.28, radius = 140) {
-  if (REDUCED) return () => undefined;
+  if (REDUCED || !CAN_HOVER) return () => undefined;
   const xTo = gsap.quickTo(el, "x", { duration: 0.5, ease: "brush" });
   const yTo = gsap.quickTo(el, "y", { duration: 0.5, ease: "brush" });
   const onMove = (e: PointerEvent) => {
@@ -325,7 +348,7 @@ export function magnetic(el: HTMLElement, strength = 0.28, radius = 140) {
  * tween; the visible wash is pure CSS, so nothing renders until hover.
  */
 export function attachWash(el: HTMLElement) {
-  if (REDUCED) return () => undefined;
+  if (REDUCED || !CAN_HOVER) return () => undefined;
   const xTo = gsap.quickTo(el, "--wx", { duration: 0.45, ease: "brush" });
   const yTo = gsap.quickTo(el, "--wy", { duration: 0.45, ease: "brush" });
   const onMove = (e: PointerEvent) => {
@@ -344,7 +367,7 @@ export function attachWash(el: HTMLElement) {
  * writes are transforms + CSS vars — no layout thrash.
  */
 export function tiltCard(card: HTMLElement, max = 7) {
-  if (REDUCED) return () => undefined;
+  if (REDUCED || !CAN_HOVER) return () => undefined;
   const inner = card.querySelector<HTMLElement>("[data-tilt-inner]");
   const rX = gsap.quickTo(card, "rotationX", { duration: 0.6, ease: "brush" });
   const rY = gsap.quickTo(card, "rotationY", { duration: 0.6, ease: "brush" });

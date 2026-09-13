@@ -2,9 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Mobile app shell:
+        · viewport-fit=cover  — let the page run under the notch / home bar and
+          compensate with env(safe-area-inset-*), instead of leaving a grey
+          letterbox.
+        · interactive-widget  — keep the layout honest when the soft keyboard
+          opens rather than squeezing 100svh to nothing.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <meta name="theme-color" content="#0c0b0a" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0c0b0a" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0c0b0a" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- iOS "Add to Home Screen": run as a standalone app, ink status bar. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ShadowQuest" />
+    <meta name="format-detection" content="telephone=no" />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta
       name="description"
       content="ShadowQuest — a futuristic personal operating system with RPG-inspired progression. Turn real-life action into real-life growth."
@@ -12,8 +36,13 @@
     <title>ShadowQuest — Personal OS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Shippori Mincho is the Japanese voice: every card name, school line and
+      ensō kanji is set in it. Without it in the webfont set the JP falls back
+      to a device serif and the two scripts stop feeling like one design.
+    -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=Oswald:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=Oswald:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&family=Shippori+Mincho:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
   </head>

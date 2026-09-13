@@ -9,6 +9,9 @@ import "./styles/dashboard.css";
 import "./styles/login.css";
 import "./styles/app.css";
 import "./styles/arena.css";
+/* Last, and therefore decisive: the phone face of the app. Every rule
+   inside is breakpoint-scoped, so the laptop never sees it. */
+import "./styles/mobile.css";
 
 initMotion();
 

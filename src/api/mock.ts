@@ -19,12 +19,21 @@ import type {
 const HP = 100;
 const TURN_LIMIT = 20000;
 
+/**
+ * Every shadow carries its name in both scripts: the English name the product
+ * speaks in, and the Japanese name the art direction is built on — kanji for
+ * the name, hiragana/romaji for the reading. `nameJa` is what the card stamps
+ * next to `name`; `readingJa` is the furigana line under it.
+ */
 export const ROSTER: Shadow[] = [
   {
     id: "kage",
     name: "Focused Mind",
+    nameJa: "影・集中の心",
+    readingJa: "kage — shūchū no kokoro",
     kanji: "◆",
     school: "Deep Work Protocol",
+    schoolJa: "深作業の型",
     vow: "Acts once. Momentum does the rest.",
     stats: { cut: 8, guard: 3, speed: 9, ki: 5 },
     portraitUrl: "/img/shadows/kage.jpg",
@@ -32,8 +41,11 @@ export const ROSTER: Shadow[] = [
   {
     id: "hannya",
     name: "Iron Will",
+    nameJa: "般若・鉄の意志",
+    readingJa: "hannya — tetsu no ishi",
     kanji: "⬢",
     school: "Resilience Gate",
+    schoolJa: "耐えの門",
     vow: "Carries resolve as armour, and never removes it.",
     stats: { cut: 9, guard: 8, speed: 3, ki: 4 },
     portraitUrl: "/img/shadows/hannya.jpg",
@@ -41,8 +53,11 @@ export const ROSTER: Shadow[] = [
   {
     id: "suzume",
     name: "Rapid Flow",
+    nameJa: "雀・疾き流れ",
+    readingJa: "suzume — hayaki nagare",
     kanji: "◈",
     school: "Velocity Sparks",
+    schoolJa: "速さの火",
     vow: "Faster than the distraction that tried to interrupt.",
     stats: { cut: 5, guard: 4, speed: 10, ki: 7 },
     portraitUrl: "/img/shadows/suzume.jpg",
@@ -50,8 +65,11 @@ export const ROSTER: Shadow[] = [
   {
     id: "bokushi",
     name: "Strategist",
+    nameJa: "墨志・策士",
+    readingJa: "bokushi — sakushi",
     kanji: "✧",
     school: "Planning Division",
+    schoolJa: "図るの部",
     vow: "Maps the path, then walks it.",
     stats: { cut: 6, guard: 5, speed: 6, ki: 10 },
     portraitUrl: "/img/shadows/bokushi.jpg",
@@ -59,8 +77,11 @@ export const ROSTER: Shadow[] = [
   {
     id: "tetsu",
     name: "Steady",
+    nameJa: "鉄・不動",
+    readingJa: "tetsu — fudō",
     kanji: "■",
     school: "Consistency System",
+    schoolJa: "続くの道",
     vow: "Never rushed. Never broken.",
     stats: { cut: 4, guard: 10, speed: 4, ki: 6 },
     portraitUrl: "/img/shadows/tetsu.jpg",
@@ -68,8 +89,11 @@ export const ROSTER: Shadow[] = [
   {
     id: "yami",
     name: "Deep Flow",
+    nameJa: "闇・深き流れ",
+    readingJa: "yami — fukaki nagare",
     kanji: "⬣",
     school: "Flow State Path",
+    schoolJa: "流の道",
     vow: "Reads the rhythm two beats before the next task.",
     stats: { cut: 7, guard: 6, speed: 7, ki: 8 },
     portraitUrl: "/img/shadows/yami.jpg",

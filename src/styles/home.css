@@ -947,6 +947,15 @@
   margin-top: 0.7rem;
 }
 
+.roster__title-ja {
+  margin-top: 0.45rem;
+  font-family: var(--font-jp);
+  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  color: var(--bone-500);
+}
+
 .roster__lede {
   max-width: 52ch;
   color: var(--bone-500);
@@ -1112,6 +1121,12 @@
   padding-top: 0.35rem;
 }
 
+.roster__names {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
 .roster__name {
   display: block;
   font-family: var(--font-display);
@@ -1120,9 +1135,43 @@
   letter-spacing: -0.01em;
 }
 
+/* The same name in Japanese — the card's second voice. Set in the mincho
+   the header accents use, ink-black on the paper, never vermilion: it is a
+   name, not a state. */
+.roster__nameja {
+  display: block;
+  font-family: var(--font-jp);
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--ink-900) 78%, transparent);
+}
+
+.roster__reading {
+  display: block;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  color: color-mix(in srgb, var(--ink-900) 46%, transparent);
+  text-transform: lowercase;
+}
+
 .roster__school {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   color: var(--vermilion-deep);
   font-size: 0.62rem;
+}
+
+.roster__school-ja {
+  font-family: var(--font-jp);
+  font-style: normal;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: color-mix(in srgb, var(--ink-900) 55%, transparent);
 }
 
 .roster__vow {
@@ -1265,8 +1314,30 @@
   border: 1px solid var(--vermilion);
 }
 
+.roster__chosen-names {
+  display: grid;
+  gap: 0.05rem;
+  line-height: 1.1;
+}
+
+.roster__chosen-ja {
+  font-family: var(--font-jp);
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: var(--bone-400);
+}
+
 .roster__chosen-school {
   align-self: center;
+}
+
+.roster__chosen-school em {
+  font-family: var(--font-jp);
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0.08em;
 }
 
 .sk--pic {
@@ -1305,12 +1376,29 @@
   margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
 }
 
-.form__progress {
+.form__meter {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   margin-top: 1.6rem;
+  max-width: 34rem;
+}
+
+.form__count {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--vermilion);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.form__progress {
+  flex: 1;
   height: 2px;
   background: var(--line);
   overflow: hidden;
-  max-width: 34rem;
 }
 
 .form__progress > span {
@@ -1386,7 +1474,9 @@
   color: var(--bone-400);
 }
 
-/* the four stations sit outside the ring, one per cardinal point */
+/* The four station numerals sit outside the ring, one per cardinal point —
+   the same four points the dots hold, so a numeral, its dot and its copy are
+   always the same station. GSAP writes opacity/scale/colour on scrub. */
 .form__orbit .form__kanji {
   position: absolute;
   font-family: var(--font-display);
@@ -1394,6 +1484,7 @@
   letter-spacing: 0.06em;
   opacity: 0.42;
   transform: translate(-50%, -50%);
+  will-change: transform, opacity;
 }
 
 .form__orbit .form__kanji:nth-child(1) {
@@ -1413,18 +1504,20 @@
   left: 0;
 }
 
+/* All four stations share ONE grid cell, so the stack is always exactly as
+   tall as the longest of them — no magic min-height to clip copy against,
+   and no overlap with the meter underneath when a body runs long. */
 .form__stations {
-  position: relative;
-  min-height: 15rem;
+  display: grid;
+  align-items: start;
 }
 
 .form__station {
-  position: absolute;
-  inset: 0 auto auto 0;
+  grid-area: 1 / 1;
   width: 100%;
   display: grid;
   gap: 0.6rem;
-  will-change: transform;
+  will-change: transform, opacity;
 }
 
 .form__n {
@@ -1485,29 +1578,29 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* No pin, no scrub — so the stations become a normal list instead of
-     four absolutely-positioned blocks stacked on one another. */
+  /* No pin, no scrub — so the stations unstack into a normal list instead of
+     four blocks sharing one grid cell. */
   .form {
     min-height: 0;
   }
   .form__stations {
-    min-height: 0;
-    display: grid;
     gap: 2rem;
   }
   .form__station {
-    position: static;
+    grid-area: auto;
     opacity: 1 !important;
+    visibility: visible !important;
     transform: none !important;
+    filter: none !important;
+  }
+  .form__meter {
+    display: none;
   }
 }
 
 @media (max-width: 900px) {
   .form__grid {
     grid-template-columns: 1fr;
-  }
-  .form__stations {
-    min-height: 18rem;
   }
 }
 

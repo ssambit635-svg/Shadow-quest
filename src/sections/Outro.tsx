@@ -4,6 +4,7 @@
 import { useEffect, useRef } from "react";
 import { attachWash, gsap, magnetic, REDUCED, ScrollTrigger, wipeIn } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
+import { ApkLink } from "../components/ApkLink";
 
 export function Outro({ onEnter }: { onEnter: () => void }) {
   const root = useRef<HTMLElement>(null);
@@ -104,6 +105,7 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
           >
             See the Loop
           </button>
+          <ApkLink />
         </div>
       </div>
 

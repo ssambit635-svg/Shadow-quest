@@ -24,9 +24,19 @@ export type MoveKind = "strike" | "guard" | "riposte" | "technique";
 export interface Shadow {
   id: string;
   name: string;
+  /**
+   * The same name written in Japanese — kanji where the name has one, kana
+   * where it does not. Shown beside `name` everywhere the roster appears, so
+   * a card reads in both scripts at a glance.
+   */
+  nameJa: string;
+  /** Romaji reading of `nameJa`, in hiragana order — the furigana line. */
+  readingJa: string;
   /** Single kanji used as the sigil throughout the UI. */
   kanji: string;
   school: string;
+  /** The school written in Japanese. */
+  schoolJa: string;
   /** Short flavour line — one sentence, no marketing tone. */
   vow: string;
   stats: {

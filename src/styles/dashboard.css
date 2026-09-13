@@ -999,3 +999,20 @@
     justify-content: flex-end;
   }
 }
+
+/* Header actions on a phone: the APK link and New Goal stack full-width. */
+.dash__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+@media (max-width: 860px) {
+  .dash__head-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .dash__head-actions .btn {
+    justify-content: center;
+  }
+}

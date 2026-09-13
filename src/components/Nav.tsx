@@ -7,6 +7,11 @@
  *   login    → brand + back, nothing else — the gate is its own screen
  *   app      → the real interface tabs (Today / Deep Work / Milestones),
  *              the operator's name, and sign out
+ *
+ * On a phone the app face becomes an actual mobile app: the same three tabs
+ * leave the top bar and dock as a fixed **bottom tab bar** (thumb reach, safe
+ * from the scroll-hide transform, above the home-gesture inset), while the top
+ * bar keeps only the brand and the operator chip.
  */
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "../lib/motion";
@@ -20,10 +25,10 @@ const PITCH_LINKS = [
   { label: "The Loop", id: "form" },
 ];
 
-const APP_TABS: { label: string; route: Route; id: string }[] = [
-  { label: "Today", route: "app", id: "today" },
-  { label: "Deep Work", route: "field", id: "field" },
-  { label: "Milestones", route: "ladder", id: "ladder" },
+const APP_TABS: { label: string; route: Route; id: string; ja: string }[] = [
+  { label: "Today", route: "app", id: "today", ja: "今日" },
+  { label: "Deep Work", route: "field", id: "field", ja: "集中" },
+  { label: "Milestones", route: "ladder", id: "ladder", ja: "道" },
 ];
 
 export function Nav({
@@ -122,6 +127,7 @@ export function Nav({
   };
 
   return (
+    <>
     <header className="nav" ref={rootRef} data-route={route}>
       <a
         className="nav__brand"
@@ -228,5 +234,45 @@ export function Nav({
       <span className="nav__progress" ref={barRef} />
       <span className="nav__progress-head" ref={headRef} aria-hidden="true" />
     </header>
+
+    {/*
+      The docked tab bar — the mobile-app face of the interface. It lives
+      OUTSIDE `.nav` on purpose: `.nav` is the element the scroll-hide slides
+      off-screen, and a thumb-reach control may never be part of that
+      transform. CSS hides it entirely above the phone breakpoint, where the
+      top bar's tab row is the navigation.
+    */}
+    {inApp && (
+      <nav className="tabbar" aria-label="app sections">
+        {APP_TABS.map((t) => {
+          const href =
+            t.route === "app" ? "#/app" : t.route === "field" ? "#/app/field" : "#/app/ladder";
+          return (
+            <a
+              key={t.id}
+              className={`tabbar__tab ${route === t.route ? "is-active" : ""}`}
+              href={href}
+              aria-current={route === t.route ? "page" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate(t.route);
+              }}
+            >
+              <span className="tabbar__mark" aria-hidden="true">
+                {t.ja}
+              </span>
+              <span className="tabbar__label label">{t.label}</span>
+            </a>
+          );
+        })}
+        <button className="tabbar__tab tabbar__tab--out" type="button" onClick={onSignOut}>
+          <span className="tabbar__mark" aria-hidden="true">
+            終
+          </span>
+          <span className="tabbar__label label">Sign out</span>
+        </button>
+      </nav>
+    )}
+    </>
   );
 }

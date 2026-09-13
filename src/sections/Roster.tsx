@@ -1,11 +1,16 @@
 /**
  * Roster.tsx — character select, drawn from the API (`GET /v1/shadows`).
  *
- * Cards are paper plates on the ink page, each carrying a painted portrait.
+ * Cards are paper plates on the ink page, each carrying a painted portrait
+ * and its name in **both scripts**: the English name the product speaks in,
+ * the Japanese name underneath it in mincho, and the romaji reading as
+ * furigana. The school line reads bilingually too.
+ *
  * Hover does five things at once and nothing else: the card tilts in 3D, a
  * spotlight follows the pointer, the portrait pushes in, the ink wash bleeds
  * up, and the blade line draws. Selecting a shadow stamps the card and fires
- * a pulse ring — that's what the field screen boots with.
+ * a pulse ring — that's what the field screen boots with. On a touch device
+ * none of the pointer-driven motion is attached at all: the card is a card.
  */
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
@@ -116,6 +121,9 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
           <h2 className="roster__title" data-rv="brush">
             Choose your Focus Area.
           </h2>
+          <p className="roster__title-ja" lang="ja" data-rv="rise">
+            影を選べ — 集中の型
+          </p>
         </div>
         <p className="roster__lede" data-rv="rise">
           Every Focus Area is a real personal-development profile scored on the
@@ -212,11 +220,28 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
                       <span className="roster__ring" />
                     </span>
                     <span className="roster__top">
-                      <span className="roster__name">{s.name}</span>
+                      <span className="roster__names">
+                        <span className="roster__name">{s.name}</span>
+                        {s.nameJa && (
+                          <span className="roster__nameja" lang="ja">
+                            {s.nameJa}
+                          </span>
+                        )}
+                        {s.readingJa && (
+                          <span className="roster__reading label">{s.readingJa}</span>
+                        )}
+                      </span>
                       <span className="roster__id num">{String(i + 1).padStart(2, "0")}</span>
                     </span>
 
-                    <span className="roster__school label">{s.school}</span>
+                    <span className="roster__school label">
+                      {s.school}
+                      {s.schoolJa && (
+                        <em className="roster__school-ja" lang="ja">
+                          {s.schoolJa}
+                        </em>
+                      )}
+                    </span>
                     <span className="roster__vow">{s.vow}</span>
 
                     <span className="roster__stats">
@@ -258,8 +283,18 @@ export function Roster({ onPick }: { onPick: (id: string) => void }) {
                   width={44}
                   height={44}
                 />
-                {chosen.name}
-                <span className="roster__chosen-school label">{chosen.school}</span>
+                <span className="roster__chosen-names">
+                  {chosen.name}
+                  {chosen.nameJa && (
+                    <span className="roster__chosen-ja" lang="ja">
+                      {chosen.nameJa}
+                    </span>
+                  )}
+                </span>
+                <span className="roster__chosen-school label">
+                  {chosen.school}
+                  {chosen.schoolJa && <em lang="ja"> · {chosen.schoolJa}</em>}
+                </span>
               </p>
             )}
             <button

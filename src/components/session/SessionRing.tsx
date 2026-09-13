@@ -9,7 +9,7 @@
  * The ring never lies about which way time moves: focus *fills* the ensō,
  * rest *drains* it.
  */
-import { mmss } from "../../hooks/useFocusSession";
+import { mmss, TICK_MS } from "../../hooks/useFocusSession";
 
 const R = 132;
 const C = 2 * Math.PI * R;
@@ -24,6 +24,7 @@ export function SessionRing({
   running,
   urgent,
   kanji,
+  countsUp = false,
 }: {
   /** What the big numerals read: remaining (timed) or held (flow). */
   ms: number;
@@ -35,7 +36,10 @@ export function SessionRing({
   urgent: boolean;
   /** Phase kanji worn behind the numerals. */
   kanji: string;
+  /** True for a Flowmodoro focus block, where the clock counts up. */
+  countsUp?: boolean;
 }) {
+  const dir = countsUp ? "up" : "down";
   const arc = C * OPEN;
   const offset = arc * (1 - fraction);
 
@@ -45,6 +49,9 @@ export function SessionRing({
       data-phase={phase}
       data-running={running || undefined}
       data-urgent={urgent || undefined}
+      // The arc's transition is exactly one clock tick long, set from the
+      // same constant the tick uses — the two can never drift apart.
+      style={{ ["--sq-tick" as string]: `${TICK_MS}ms` }}
     >
       <svg viewBox="0 0 300 300" aria-hidden="true">
         <defs>
@@ -83,9 +90,9 @@ export function SessionRing({
       </span>
 
       <div className="sring__core">
-        <span className="sring__time num">{phase === "done" ? "完" : mmss(ms)}</span>
+        <span className="sring__time num">{phase === "done" ? "完" : mmss(ms, dir)}</span>
         <span className="sring__limit label">
-          {phase === "done" ? "held" : `of ${mmss(limit)}`}
+          {phase === "done" ? "held" : countsUp ? `cap ${mmss(limit, "up")}` : `of ${mmss(limit, "up")}`}
         </span>
       </div>
 

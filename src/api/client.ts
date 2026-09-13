@@ -70,11 +70,17 @@ const str = (v: unknown, fallback = "") => (typeof v === "string" ? v : fallback
  *  real doc doesn't immediately white-screen the app. */
 export function mapShadow(raw: Record<string, unknown>): Shadow {
   const stats = (raw.stats ?? {}) as Record<string, unknown>;
+  // Japanese naming is optional on the wire: a backend that never sent it
+  // still yields a card, it just reads in one script instead of two.
+  const nameJa = str(raw.name_ja ?? raw.nameJa ?? raw.japanese_name ?? raw.name_jp);
   return {
     id: str(raw.id ?? raw.shadow_id ?? raw.slug),
     name: str(raw.name ?? raw.display_name),
+    nameJa,
+    readingJa: str(raw.reading_ja ?? raw.readingJa ?? raw.romaji ?? raw.reading),
     kanji: str(raw.kanji ?? raw.sigil ?? raw.emblem).slice(0, 1) || "影",
     school: str(raw.school ?? raw.style),
+    schoolJa: str(raw.school_ja ?? raw.schoolJa ?? raw.style_ja),
     vow: str(raw.vow ?? raw.flavour ?? raw.description),
     stats: {
       cut: num(stats.cut ?? stats.attack),

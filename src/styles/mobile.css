@@ -1,0 +1,702 @@
+/* ============================================================
+   mobile.css — the phone face of ShadowQuest.
+
+   Loaded last, so it wins. Everything here is scoped to a real
+   breakpoint (`max-width: 860px` — the same test `isNarrow()` uses in JS,
+   so the motion layer and the stylesheet can never disagree about which
+   device they are on), plus `(hover: none)` for touch-only rules that
+   apply to tablets and phones alike.
+
+   The rule of the file: on a phone this is an *app*, not a squeezed
+   website. That means
+     · a docked bottom tab bar, thumb-reach, safe from the scroll-hide
+     · no chrome that steals width — the side rails go, gutters shrink
+     · no overlay that costs a frame — grain, vignette and washes are
+       desktop decoration; a phone compositor is not a desktop GPU
+     · safe-area insets everywhere an edge is real (notch, home bar)
+     · every tap target ≥ 44px, every hover-only effect switched off
+   Above the breakpoint none of this applies and the laptop keeps its
+   HUD exactly as authored.
+   ============================================================ */
+
+/* ---------------------------------------------------------- tokens */
+:root {
+  /* The dock's own height; content padding keys off it so nothing ever
+     hides behind the tab bar. */
+  --sq-tabbar: 3.9rem;
+  --sq-safe-b: env(safe-area-inset-bottom, 0px);
+  --sq-safe-t: env(safe-area-inset-top, 0px);
+  --sq-safe-l: env(safe-area-inset-left, 0px);
+  --sq-safe-r: env(safe-area-inset-right, 0px);
+}
+
+/* ============================================================
+   1 — ground rules: touch, scroll, tap feedback
+   ============================================================ */
+@media (max-width: 860px) {
+  html {
+    /* The page must not rubber-band sideways; a single stray 100vw element
+       (the marquee, the pinned loop) would otherwise drag the whole document. */
+    overflow-x: hidden;
+  }
+
+  body {
+    /* Kill the grey tap flash and the 300ms double-tap zoom delay without
+       locking pinch-zoom out of the user's hands. */
+    -webkit-tap-highlight-color: transparent;
+    /* Momentum scrolling feels native; contain means an overscroll at the
+       bottom of a panel does not drag the whole app with it. */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  .roster__hit,
+  .tech {
+    touch-action: manipulation;
+  }
+
+  /* The scroll-hide lean is a desktop gesture; on a phone a bar that
+     shears under a flick reads as a rendering fault. */
+  [data-vel] {
+    transform: none !important;
+  }
+}
+
+/* ============================================================
+   2 — the overlays, de-bloated.
+   On desktop the grain is a 200%-of-viewport soft-light layer and the
+   vignette a full-screen radial: beautiful, and exactly the two layers a
+   phone compositor chokes on, because a blend mode over the whole page
+   defeats layer promotion and repaints everything beneath it. On a phone
+   they simply go — the ink is already in the palette, they only added
+   texture on top of it.
+   ============================================================ */
+@media (max-width: 860px) {
+  .grain,
+  .vignette {
+    display: none;
+  }
+
+  /* The frame corners survive — two 18px borders cost nothing — but they
+     tuck inside the safe area instead of sitting on the bezel. */
+  .frame::before {
+    top: calc(10px + var(--sq-safe-t));
+    left: calc(10px + var(--sq-safe-l));
+  }
+  .frame::after {
+    bottom: calc(10px + var(--sq-safe-b));
+    right: calc(10px + var(--sq-safe-r));
+  }
+
+  /* The pointer spotlight / wash are hover-only effects with no honest
+     trigger on glass; keep the DOM, drop the paint. */
+  .roster__spot,
+  .wash::after {
+    display: none;
+  }
+
+  /* Three blades read the same as five at phone width and cost 40% less
+     to composite during a route change. */
+  .wipe__bars {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .wipe__bars > i:nth-child(n + 4) {
+    display: none;
+  }
+
+  /* The ink under the Deep Work room breathes via GSAP; the *bleed*
+     gradients themselves are two big radial layers, so on a phone keep
+     them but stop them from painting outside the viewport. */
+  .field__bleed {
+    inset: 0;
+  }
+}
+
+/* ============================================================
+   3 — chrome: rails off, gutters in
+   ============================================================ */
+@media (max-width: 860px) {
+  .rail {
+    display: none;
+  }
+
+  :root {
+    --rail: 0px;
+    --gutter: clamp(1rem, 5vw, 1.6rem);
+  }
+
+  .shell {
+    padding-inline: calc(var(--gutter) + var(--sq-safe-l) + var(--sq-safe-r));
+  }
+}
+
+/* ============================================================
+   4 — top bar + the docked tab bar
+   ============================================================ */
+@media (max-width: 860px) {
+  .nav {
+    padding: calc(0.5rem + var(--sq-safe-t)) calc(var(--gutter) + var(--sq-safe-r))
+      0.5rem calc(var(--gutter) + var(--sq-safe-l));
+    gap: 0.75rem;
+    background: color-mix(in srgb, var(--ink-900) 92%, transparent);
+  }
+
+  /* The app tab row leaves the top bar — it is the dock's job now. The
+     login screen keeps its single "The System" link: it is the only way
+     back to the landing from the gate. */
+  .nav[data-route="app"] .nav__tabs,
+  .nav[data-route="field"] .nav__tabs,
+  .nav[data-route="ladder"] .nav__tabs {
+    display: none;
+  }
+
+  /* Sign-out moves into the dock as its own tab; the handle chip is the
+     one thing the top bar keeps besides the brand. */
+  .nav__signout {
+    display: none;
+  }
+
+  .nav__handle {
+    font-size: 0.62rem;
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .nav__cta {
+    padding: 0.5rem 0.85rem;
+    min-height: 2.5rem;
+  }
+
+  /* ---------- the dock ---------- */
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 74;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    /* Solid, not glass — the design has no glass, and a dock over ink
+       does not need translucency to sit well. */
+    background: color-mix(in srgb, var(--ink-900) 97%, transparent);
+    border-top: 1px solid var(--line);
+    padding-bottom: var(--sq-safe-b);
+  }
+
+  .tabbar__tab {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 0.18rem;
+    min-height: var(--sq-tabbar);
+    padding-block: 0.45rem;
+    color: var(--bone-500);
+    transition: color var(--t-2) var(--e-snap);
+  }
+
+  /* The active tab wears the one vermilion mark on screen: a 2px blade
+     along the dock's top edge, and the kanji inks up. */
+  .tabbar__tab::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 22%;
+    right: 22%;
+    height: 2px;
+    background: var(--vermilion);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform var(--t-3) var(--e-brush);
+  }
+
+  .tabbar__tab.is-active {
+    color: var(--bone-100);
+  }
+  .tabbar__tab.is-active::before {
+    transform: scaleX(1);
+  }
+  .tabbar__tab.is-active .tabbar__mark {
+    color: var(--vermilion-lit);
+  }
+
+  .tabbar__mark {
+    font-family: var(--font-jp);
+    font-size: 1.05rem;
+    line-height: 1;
+    color: inherit;
+    transition: color var(--t-2) var(--e-snap);
+  }
+
+  .tabbar__label {
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
+    color: inherit;
+  }
+
+  .tabbar__tab--out .tabbar__mark {
+    font-size: 0.95rem;
+  }
+
+  /* Pressed feedback a thumb can feel. */
+  .tabbar__tab:active {
+    background: color-mix(in srgb, var(--bone-100) 6%, transparent);
+  }
+}
+
+/* The dock is a phone artefact; a laptop keeps the top tab row. */
+@media (min-width: 861px) {
+  .tabbar {
+    display: none;
+  }
+}
+
+/* Clear the dock: anything that owns the bottom edge of an app screen. */
+@media (max-width: 860px) {
+  body[data-route="app"] #app-main,
+  body[data-route="ladder"] #app-main {
+    padding-bottom: calc(var(--sq-tabbar) + var(--sq-safe-b) + 1.5rem);
+  }
+
+  /* The Deep Work room runs edge to edge; give it the same clearance so
+     the last control never sits under a thumb bar. */
+  .field {
+    padding-bottom: calc(var(--sq-tabbar) + var(--sq-safe-b) + 2rem);
+  }
+
+  /* The completion floater stack must not land on the dock. */
+  .dash__events {
+    top: auto;
+    bottom: calc(var(--sq-tabbar) + var(--sq-safe-b) + 1rem);
+    right: 1rem;
+    left: 1rem;
+    justify-items: stretch;
+  }
+  .dash__event {
+    text-align: center;
+  }
+}
+
+/* ============================================================
+   5 — landing, as an app reads it
+   ============================================================ */
+@media (max-width: 860px) {
+  .hero {
+    min-height: 100svh;
+    padding-block: calc(5.2rem + var(--sq-safe-t)) 2.2rem;
+  }
+
+  .hero__plate {
+    /* The painting becomes a full-bleed band under the argument instead
+       of a framed plate beside it — a phone screen has no wall space. */
+    margin-inline: calc(var(--gutter) * -1);
+  }
+
+  .hero__foot {
+    display: none;
+  }
+
+  .hero__actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 3rem;
+  }
+
+  .ticker {
+    padding-block: 0.7rem;
+  }
+
+  /* The pinned growth loop: on a phone the ring stacks above the copy and
+     shrinks to a badge the thumb can spin past, not a centrepiece. */
+  .form__grid {
+    gap: 1.8rem;
+  }
+  .form__ring {
+    max-width: 15rem;
+  }
+  .form__orbit {
+    font-size: 1.1rem;
+  }
+  .form__stations {
+    min-height: 0;
+  }
+  .form__plate {
+    display: none;
+  }
+  .form__body {
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+
+  /* Roster: one column of full-width paper plates. */
+  .roster__grid {
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+  .roster__card {
+    min-height: 0;
+  }
+  .roster__vow {
+    min-height: 0;
+  }
+  .roster__cta {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+  }
+  .roster__cta .btn {
+    justify-content: center;
+    min-height: 3rem;
+  }
+
+  /* Way / principles spine collapses to a single column with the numeral
+     column becoming an inline marker. */
+  .way__grid,
+  .outro__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   6 — the gate (login) on a phone
+   ============================================================ */
+@media (max-width: 860px) {
+  .login {
+    min-height: 100svh;
+    padding-block: calc(4.6rem + var(--sq-safe-t)) calc(2.5rem + var(--sq-safe-b));
+  }
+  .login__grid {
+    gap: 2.2rem;
+  }
+  .login__aside {
+    gap: 1.4rem;
+  }
+  .login__plate {
+    aspect-ratio: 16 / 9;
+  }
+  .login__form .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 3.1rem;
+  }
+  .login__ghost {
+    font-size: 92vw;
+    bottom: -8vh;
+  }
+}
+
+/* ============================================================
+   7 — the ledger (dashboard) on a phone
+   ============================================================ */
+@media (max-width: 860px) {
+  .dash {
+    padding-top: calc(4.6rem + var(--sq-safe-t));
+  }
+
+  .dash__head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    margin-bottom: 1.4rem;
+  }
+  .dash__new-btn {
+    justify-content: center;
+    min-height: 3rem;
+  }
+
+  /* Stats: two up, never a 180px min that leaves an orphan card. */
+  .dash__stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+  .stat-card {
+    padding: 0.8rem 0.9rem;
+  }
+  .stat-card__value {
+    font-size: 1.55rem;
+  }
+
+  .dash__factors-grid {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  /* The filter row scrolls sideways instead of wrapping into a brick
+     wall — one thumb swipe, all filters reachable. */
+  .dash__filters {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.5rem;
+    padding-bottom: 0.4rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .dash__filters::-webkit-scrollbar {
+    display: none;
+  }
+  .dash__filter {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    min-height: 2.4rem;
+  }
+
+  /* Tasks: the checkbox column and the body stack; the meta chips wrap. */
+  .task {
+    padding: 0.9rem 0.9rem;
+  }
+  .task__meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+  }
+  .task__rewards {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .add-form {
+    padding: 1.1rem;
+  }
+  .add-form__actions {
+    flex-direction: column-reverse;
+  }
+  .add-form__actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 3rem;
+  }
+  .add-form__chips {
+    flex-wrap: wrap;
+  }
+
+  /* Habits: the ritual panel tightens; the seven-day dot row scrolls
+     sideways rather than squeezing each day below legibility. */
+  .habits {
+    margin-top: 1.8rem;
+    padding: 1.1rem 1rem 1.2rem;
+  }
+  .habit {
+    gap: 0.7rem;
+  }
+  .habit__days {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .habit__days::-webkit-scrollbar {
+    display: none;
+  }
+  .habits__add {
+    flex-wrap: wrap;
+  }
+  .habits__add-entry {
+    flex: 1 1 100%;
+  }
+  .habits__add-go,
+  .habits__add-time {
+    min-height: 2.6rem;
+  }
+}
+
+/* ============================================================
+   8 — the Deep Work room on a phone
+   ============================================================ */
+@media (max-width: 860px) {
+  .field__bar {
+    padding: calc(4.4rem + var(--sq-safe-t)) calc(var(--gutter) + var(--sq-safe-r))
+      0.8rem calc(var(--gutter) + var(--sq-safe-l));
+    gap: 0.75rem 1rem;
+  }
+  /* Leave + bell on the first row, technique and cycles on the second. */
+  .field__leave {
+    order: 1;
+  }
+  .field__bell {
+    order: 2;
+    margin-left: auto;
+  }
+  .field__tech {
+    order: 3;
+  }
+  .field__cycles {
+    order: 4;
+    margin-left: auto;
+  }
+  .field__phase {
+    order: 5;
+    width: 100%;
+  }
+
+  .pick__head {
+    padding-top: calc(5rem + var(--sq-safe-t));
+  }
+  .pick__grid {
+    grid-template-columns: 1fr;
+    margin-top: 2rem;
+  }
+  .tech {
+    padding: 1.25rem 1.1rem 1.2rem;
+    min-height: 44px;
+  }
+  .pick__go {
+    margin: 2rem auto 3rem;
+  }
+  .pick__go .btn {
+    width: 100%;
+    min-height: 3.1rem;
+  }
+
+  /* Ring above the ledger rail, both full width. */
+  .sess {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding-top: 1.6rem;
+  }
+  .sess__main {
+    gap: 1.1rem;
+  }
+  .sring {
+    width: min(76vw, 20rem);
+  }
+  .sring__time {
+    font-size: clamp(2.4rem, 12vw, 3.6rem);
+  }
+  .sring__kanji {
+    font-size: clamp(4rem, 26vw, 7rem);
+  }
+
+  .sess__ctl {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+  .sess__ctl .btn {
+    justify-content: center;
+    min-height: 3.1rem;
+  }
+  /* Keyboard hints are a keyboard's business. */
+  .sess__key[data-keys] {
+    display: none;
+  }
+
+  .sess__rail {
+    gap: 1.4rem;
+  }
+  .slog__list {
+    max-height: 12rem;
+  }
+
+  .summ__card {
+    padding: 2rem 1.4rem;
+    margin-inline: 1rem;
+  }
+  .summ__actions {
+    flex-direction: column;
+  }
+  .summ__actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 3rem;
+  }
+}
+
+/* ============================================================
+   9 — milestones
+   ============================================================ */
+@media (max-width: 860px) {
+  .ladder {
+    padding-top: calc(4.6rem + var(--sq-safe-t));
+  }
+  .ladder__head {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+}
+
+/* ============================================================
+   10 — touch-only, at any width
+   Hover-painted feedback has no place on glass: a tap is not a hover,
+   and a button that fills on `:hover` stays filled after the tap until
+   the user touches something else.
+   ============================================================ */
+@media (hover: none) {
+  .btn:hover::before {
+    transform: translateY(101%);
+  }
+  .btn:hover {
+    color: inherit;
+    border-color: var(--line-strong);
+  }
+  .btn--primary:hover,
+  .btn--ink:hover {
+    border-color: currentColor;
+  }
+  .btn:active::before {
+    transform: translateY(0);
+  }
+  .btn:active {
+    color: var(--bone-100);
+    border-color: var(--vermilion);
+  }
+  .tech:hover {
+    background: color-mix(in srgb, var(--ink-800) 82%, transparent);
+  }
+  .tech[data-sel]:hover {
+    background: color-mix(in srgb, var(--vermilion) 9%, var(--ink-800));
+  }
+  .roster__card:hover .roster__spot {
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   11 — tiny phones (≤ 420px): the last squeeze
+   ============================================================ */
+@media (max-width: 420px) {
+  :root {
+    --fs-hero: clamp(2.1rem, 10.4vw, 3.4rem);
+    --fs-display: clamp(1.5rem, 6.6vw, 2.2rem);
+  }
+
+  .nav__word {
+    font-size: 0.82rem;
+  }
+
+  .dash__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .field__bar {
+    gap: 0.5rem 0.7rem;
+  }
+  .field__round {
+    display: none;
+  }
+
+  .sring {
+    width: min(84vw, 18rem);
+  }
+}
+
+/* Landscape phones: the room goes side-by-side again, because there is
+   width to spend and a stacked column would scroll the ring out of sight. */
+@media (max-width: 860px) and (orientation: landscape) and (min-height: 380px) {
+  .sess {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 0.9fr);
+  }
+  .sring {
+    width: min(42vh, 18rem);
+  }
+  .hero {
+    min-height: auto;
+  }
+}
