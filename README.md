@@ -292,3 +292,20 @@ live in [`src/api/contract.md`](src/api/contract.md).
 derives the web set (progressive JPEG for paper plates, plus the brush and wash
 **alpha masks** in `public/img/` — one asset each, paintable and animatable in
 any token colour instead of a second export per theme).
+
+## ⚠️ Copyright & License
+
+**© 2026 ssambit635-svg — All Rights Reserved.**
+
+This repository is public for **review and evaluation purposes only**.
+
+| | |
+|---|---|
+| ✅ You **MAY** | Read, review, and evaluate this code |
+| ❌ You **MAY NOT** | Copy, clone, fork, redistribute, or use in your own projects |
+
+Unauthorized copying or use of this code will result in a **DMCA takedown
+notice** filed with the hosting platform. See [`LICENSE`](LICENSE) for the
+full terms.
+
+To request a license for use in your own project, contact the author.
