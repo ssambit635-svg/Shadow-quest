@@ -9,10 +9,10 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/🔴_LIVE_DEMO-shadow--quest.onrender.com-c1362b?style=for-the-badge&logo=render&logoColor=white)](https://shadow-quest.onrender.com)
+[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-shadow--quest.onrender.com-c1362b?style=for-the-badge&logo=render&logoColor=white)](https://shadow-quest.onrender.com)
 [![Version](https://img.shields.io/badge/version-0.1.0-0c0b0a?style=for-the-badge)](./package.json)
-[![License](https://img.shields.io/badge/license-All_Rights_Reserved-a98a55?style=for-the-badge)](#-copyright--license)
-[![PWA Ready](https://img.shields.io/badge/PWA-Ready-5a8dee?style=for-the-badge&logo=pwa&logoColor=white)](#-pwa--android-apk)
+[![License](https://img.shields.io/badge/license-All_Rights_Reserved-a98a55?style=for-the-badge)](#copyright--license)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-5a8dee?style=for-the-badge&logo=pwa&logoColor=white)](#pwa--android-apk)
 
 <br/>
 
@@ -24,15 +24,15 @@
 [![Express](https://img.shields.io/badge/Express-4.x-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Capacitor](https://img.shields.io/badge/Capacitor-8-119EFF?style=flat-square&logo=capacitor&logoColor=white)](https://capacitorjs.com/)
-[![Android](https://img.shields.io/badge/Android-APK-3DDC84?style=flat-square&logo=android&logoColor=white)](#-pwa--android-apk)
+[![Android](https://img.shields.io/badge/Android-APK-3DDC84?style=flat-square&logo=android&logoColor=white)](#pwa--android-apk)
 
-**[🌸 Live Website](https://shadow-quest.onrender.com) • [📖 Backend Docs](./docs/BACKEND.md) • [📱 APK Guide](./docs/APK.md) • [🔒 Security](./docs/SECURITY.md)**
+**[Live Website](https://shadow-quest.onrender.com) • [Backend Docs](./docs/BACKEND.md) • [APK Guide](./docs/APK.md) • [Security](./docs/SECURITY.md)**
 
 </div>
 
 ---
 
-## 📸 Preview — Ink & Paper Aesthetic
+## Preview — Ink & Paper Aesthetic
 
 <div align="center">
 
@@ -47,28 +47,28 @@
 
 ---
 
-## 🧭 Table of Contents
+## Table of Contents
 
-- [What is Shadow Quest?](#-what-is-shadow-quest)
-- [✨ Features](#-features)
-- [🧠 Approach in Simple Words](#-approach-in-simple-words)
-- [🛠️ Tech Stack — Real Links & Logos](#️-tech-stack--real-links--logos)
-- [🏗️ Architecture](#️-architecture)
-- [📁 Project Structure](#-project-structure)
-- [🚀 Quick Start](#-quick-start)
-- [🔧 Environment Variables](#-environment-variables)
-- [🔌 API Reference](#-api-reference)
-- [📱 PWA & Android APK](#-pwa--android-apk)
-- [🔒 Security & Password Gate](#-security--password-gate)
-- [🎨 Motion System](#-motion-system)
-- [🧪 Testing & Audits](#-testing--audits)
-- [🗺️ Roadmap](#️-roadmap)
-- [🤝 Contributing](#-contributing)
-- [©️ Copyright & License](#️-copyright--license)
+- [What is Shadow Quest?](#what-is-shadow-quest)
+- [Features](#features)
+- [Approach in Simple Words](#approach-in-simple-words)
+- [Tech Stack — Real Links & Logos](#tech-stack--real-links--logos)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [API Reference](#api-reference)
+- [PWA & Android APK](#pwa--android-apk)
+- [Security & Password Gate](#security--password-gate)
+- [Motion System](#motion-system)
+- [Testing & Audits](#testing--audits)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Copyright & License](#copyright--license)
 
 ---
 
-## 🌑 What is Shadow Quest?
+## What is Shadow Quest?
 
 **Shadow Quest is not a to-do app. It's a Samurai Operating System for Deep Work.**
 
@@ -83,33 +83,33 @@ Most productivity apps look like dashboards. Shadow Quest feels like a dojo.
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎯 Core Productivity
-- **📝 Real Task Ledger** — Add, link, seal, reopen goals. No seeds. Empty on first login.
-- **⏳ Ensō Clock** — One brushed circle = your focus. Fills & drains with `phaseEndsAt` wall-clock logic.
-- **🔄 6 Techniques** — Pomodoro, Ultradian, 52/17, Flowmodoro (count-up), Zazen (stillness), Kaizen (sprints).
-- **🔥 Streak Engine** — `src/lib/streaks.ts` computes live chain from sealed tasks + habit marks + last active.
-- **📊 Your Signal Dashboard** — Level ring, rolling counters, radar (7 life-factors), 84-day heatmap, momentum bars, reward donut.
+### Core Productivity
+- **Real Task Ledger** — Add, link, seal, reopen goals. No seeds. Empty on first login.
+- **Ensō Clock** — One brushed circle = your focus. Fills & drains with `phaseEndsAt` wall-clock logic.
+- **6 Techniques** — Pomodoro, Ultradian, 52/17, Flowmodoro (count-up), Zazen (stillness), Kaizen (sprints).
+- **Streak Engine** — `src/lib/streaks.ts` computes live chain from sealed tasks + habit marks + last active.
+- **Your Signal Dashboard** — Level ring, rolling counters, radar (7 life-factors), 84-day heatmap, momentum bars, reward donut.
 
-### 🧘 Rituals & Growth
-- **☯️ Habits Panel** — Daily ritual with kanji seal per date, time-of-day reminders, 7-day dot row.
-- **🏔️ Milestones / Ladder** — Real leaderboard `GET /v1/leaderboard` — top 25 by progress, with `you` marker. Offline = honest device copy.
-- **👥 Squad Roster** — `GET /v1/people` — live registered operators, not mocked.
-- **🎌 Bilingual Focus Areas** — English + Japanese + romaji furigana (`nameJa / readingJa / schoolJa`).
+### Rituals & Growth
+- **Habits Panel** — Daily ritual with kanji seal per date, time-of-day reminders, 7-day dot row.
+- **Milestones / Ladder** — Real leaderboard `GET /v1/leaderboard` — top 25 by progress, with `you` marker. Offline = honest device copy.
+- **Squad Roster** — `GET /v1/people` — live registered operators, not mocked.
+- **Bilingual Focus Areas** — English + Japanese + romaji furigana (`nameJa / readingJa / schoolJa`).
 
-### 📱 Experience
-- **📱 True Phone Face** — Below `860px` it becomes an app: bottom tab bar, safe-area insets, 44px targets, no grain/vignette compositor cost. `src/styles/mobile.css` is breakpoint-scoped.
-- **🌗 Ink / Paper Theme** — Toggle in nav: dark sumi ground vs inverted paper ledger. Persists per browser.
-- **💾 Offline First** — `src/lib/sync.ts` — pull on load (server wins if newer), debounced push, flush on `pagehide`.
-- **🔔 Notifications** — One per phase change, one per habit due — permission-gated, tab-coalesced.
+### Experience
+- **True Phone Face** — Below `860px` it becomes an app: bottom tab bar, safe-area insets, 44px targets, no grain/vignette compositor cost. `src/styles/mobile.css` is breakpoint-scoped.
+- **Ink / Paper Theme** — Toggle in nav: dark sumi ground vs inverted paper ledger. Persists per browser.
+- **Offline First** — `src/lib/sync.ts` — pull on load (server wins if newer), debounced push, flush on `pagehide`.
+- **Notifications** — One per phase change, one per habit due — permission-gated, tab-coalesced.
 
-### 👑 Owner Control
-- **🛡️ Admin Panel** `#/app/admin` — Owner only (`ADMIN_EMAILS` + `ADMIN_PIN`), re-verified by backend every call. Overview, user directory (only place with emails), revoke all sessions.
+### Owner Control
+- **Admin Panel** `#/app/admin` — Owner only (`ADMIN_EMAILS` + `ADMIN_PIN`), re-verified by backend every call. Overview, user directory (only place with emails), revoke all sessions.
 
 ---
 
-## 🧠 Approach in Simple Words
+## Approach in Simple Words
 
 We asked: **What if a productivity app felt like ink, not plastic?**
 
@@ -129,7 +129,7 @@ We asked: **What if a productivity app felt like ink, not plastic?**
 
 ---
 
-## 🛠️ Tech Stack — Real Links & Logos
+## Tech Stack — Real Links & Logos
 
 <div align="center">
 
@@ -177,7 +177,7 @@ We asked: **What if a productivity app felt like ink, not plastic?**
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 flowchart TD
@@ -224,7 +224,7 @@ flowchart TD
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 shadow-quest/
@@ -301,7 +301,7 @@ shadow-quest/
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -350,7 +350,7 @@ npm run preview
 
 ---
 
-## 🔧 Environment Variables
+## Environment Variables
 
 Create `.env` from `.env.example`:
 
@@ -373,7 +373,7 @@ cp .env.example .env
 
 ---
 
-## 🔌 API Reference
+## API Reference
 
 Base: `https://shadow-quest.onrender.com/api` in production, `/api` in dev (proxied)
 
@@ -398,7 +398,7 @@ Full details: [`docs/BACKEND.md`](./docs/BACKEND.md)
 
 ---
 
-## 📱 PWA & Android APK
+## PWA & Android APK
 
 ### PWA — Install from Browser
 
@@ -450,7 +450,7 @@ Full guide: [`docs/APK.md`](./docs/APK.md)
 
 ---
 
-## 🔒 Security — Password Gate
+## Security — Password Gate
 
 Sign-in requires **hard passphrase**: min 12 chars, uppercase + lowercase + digit + symbol. Live strength meter, refused before leaving device.
 
@@ -464,7 +464,7 @@ Full audit: [`docs/SECURITY.md`](./docs/SECURITY.md) + `node scripts/audit.mjs` 
 
 ---
 
-## 🎨 Motion System
+## Motion System
 
 Everything routes through `src/lib/motion.ts`:
 
@@ -480,7 +480,7 @@ Everything routes through `src/lib/motion.ts`:
 
 ---
 
-## 🧪 Testing & Audits
+## Testing & Audits
 
 ```bash
 npm run build
@@ -496,7 +496,7 @@ node scripts/android-assets.mjs # regenerate Android launcher + splash (5 densit
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] Ink & Paper art direction + brush motion system
 - [x] Deep Work room with 6 techniques + ensō clock (wall-clock)
@@ -505,15 +505,15 @@ node scripts/android-assets.mjs # regenerate Android launcher + splash (5 densit
 - [x] Android APK via Capacitor (GitHub Release CI)
 - [x] Hard password gate (scrypt + PBKDF2) + admin panel
 - [x] Live deployment https://shadow-quest.onrender.com
-- [ ] 🔜 Cloud audio for Mizu guide (currently local)
-- [ ] 🔜 Weekly email summary of momentum
-- [ ] 🔜 Multi-device conflict resolution (CRDT)
-- [ ] 🔜 iOS build via Capacitor
-- [ ] 🔜 Public API for integrations
+- [ ] Cloud audio for Mizu guide (currently local)
+- [ ] Weekly email summary of momentum
+- [ ] Multi-device conflict resolution (CRDT)
+- [ ] iOS build via Capacitor
+- [ ] Public API for integrations
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 This repo is public for **review & evaluation** — but not open for random PRs that copy design.
 
@@ -528,7 +528,7 @@ Please read [`LICENSE`](./LICENSE) first — design, motion system, session engi
 
 ---
 
-## 🌸 Credits
+## Credits
 
 - **Design & Code:** [@ssambit635-svg](https://github.com/ssambit635-svg)
 - **Art:** `public/img-src/` painted masters → `public/img/` via Sharp
@@ -538,16 +538,16 @@ Please read [`LICENSE`](./LICENSE) first — design, motion system, session engi
 
 ---
 
-## ©️ Copyright & License
+## Copyright & License
 
-**© 2026 ssambit635-svg — All Rights Reserved.**
+**2026 ssambit635-svg — All Rights Reserved.**
 
 This repository is public for **review and evaluation purposes only**.
 
 | | |
 |---|---|
-| ✅ You **MAY** | Read, review, evaluate |
-| ❌ You **MAY NOT** | Copy, clone, fork for own projects, redistribute, repackage |
+| You **MAY** | Read, review, evaluate |
+| You **MAY NOT** | Copy, clone, fork for own projects, redistribute, repackage |
 
 Unauthorized copying will result in **DMCA takedown**. See [`LICENSE`](./LICENSE).
 
@@ -559,7 +559,7 @@ To request a license: contact the author via GitHub.
 
 ### 影の道 — The Path of Shadows is not about doing more. It's about doing what matters, with full presence.
 
-**[🌸 Enter the Dojo — shadow-quest.onrender.com](https://shadow-quest.onrender.com)**
+**[Enter the Dojo — shadow-quest.onrender.com](https://shadow-quest.onrender.com)**
 
 <br/>
 
