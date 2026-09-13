@@ -17,9 +17,14 @@
  * component and still renders on a laptop.
  */
 import { useState } from "react";
-import { login } from "../../lib/auth";
+import { login, normalizeEmail, normalizeHandle } from "../../lib/auth";
 import { writeProvider, GOOGLE_ACCOUNTS, type GoogleAccount } from "../demoAccounts";
 import { Avatar, Sheet, initialsOf } from "../parts";
+
+/** RFC 5321's ceiling. Anything longer is not an address, it is a payload. */
+const MAX_EMAIL = 254;
+const MAX_HANDLE = 32;
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Phase = "idle" | "checking" | "granted";
 
@@ -36,14 +41,26 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
    * One beat of "verifying" before the door opens. It is not theatre for its
    * own sake: it gives the account you picked time to appear next to the
    * mark, so the transition reads as a sign-in rather than a teleport.
+   *
+   * Both entry paths land here, so this is the single place the identity is
+   * normalised before it is written: control characters and bidi overrides
+   * are stripped, the address is lowercased and capped, and anything that is
+   * not shaped like an address is refused rather than stored.
    */
   const enter = (handle: string, mail: string, google: GoogleAccount | null) => {
     if (phase !== "idle") return;
-    setWho(handle);
+    const cleanMail = normalizeEmail(mail);
+    if (!EMAIL_SHAPE.test(cleanMail)) {
+      setError("That does not look like an email address.");
+      return;
+    }
+    const cleanName = normalizeHandle(handle, cleanMail);
+    setError(null);
+    setWho(cleanName);
     setPhase("checking");
     window.setTimeout(
       () => {
-        login(handle, mail);
+        login(cleanName, cleanMail);
         writeProvider(
           google
             ? { kind: "google", accountId: google.id, at: Date.now() }
@@ -58,13 +75,13 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
 
   const submitLocal = (e: React.FormEvent) => {
     e.preventDefault();
-    const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    const okEmail = EMAIL_SHAPE.test(normalizeEmail(email));
     if (!name.trim() || !okEmail) {
       setError("A name and a valid email are both needed.");
       return;
     }
     setError(null);
-    enter(name.trim(), email.trim().toLowerCase(), null);
+    enter(name, email, null);
   };
 
   return (
@@ -109,10 +126,11 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
           <span className="m-field__l">Name</span>
           <input
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value.slice(0, MAX_HANDLE))}
             placeholder="How the ledger calls you"
-            maxLength={32}
+            maxLength={MAX_HANDLE}
             autoComplete="name"
+            spellCheck={false}
             disabled={phase !== "idle"}
           />
         </label>
@@ -121,9 +139,14 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value.slice(0, MAX_EMAIL))}
             placeholder="you@domain"
+            maxLength={MAX_EMAIL}
             autoComplete="email"
+            inputMode="email"
+            spellCheck={false}
+            autoCapitalize="none"
+            autoCorrect="off"
             disabled={phase !== "idle"}
           />
         </label>
@@ -183,7 +206,7 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
               enter("Operator", "operator@local.device", null);
             }}
           >
-            <Avatar initials={initialsOf("Operator")} hue={210} size={38} />
+            <Avatar initials={initialsOf("Operator")} hue={6} size={38} />
             <span className="m-gpick__b">
               <span className="m-gpick__n">Continue without an account</span>
               <span className="m-gpick__e">operator@local.device</span>

@@ -35,7 +35,7 @@ export function Caption({
 
 export function Avatar({
   initials,
-  hue = 232,
+  hue = 6,
   size = 40,
   online,
   className = "",
