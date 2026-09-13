@@ -1,7 +1,7 @@
 /**
  * MobileLogin.tsx — the gate, on a phone.
  *
- * Two ways through, and the first is the one the brief asked for:
+ * Two ways in, one key:
  *
  *   Google — a demo account chooser. ShadowQuest's sign-in is local-first
  *            (`login(handle, email)` in lib/auth), so a Google sign-in needs
@@ -10,15 +10,27 @@
  *            provider was used is remembered separately so Profile can show
  *            it and offer to detach.
  *
- *   Name + email — the path the desktop gate has always had, kept intact so
- *            nobody loses a way in.
+ *   Name + email + passphrase — the only actual key. A hard password is
+ *            required: the backend verifies (scrypt) when reachable, this
+ *            device's PBKDF2 record verifies when it is not, and a weak
+ *            password never leaves the form.
+ *
+ * Picking a Google account fills the form and hands the user the passphrase
+ * field — the password is the gate for every identity, demo or not.
  *
  * The desktop Login screen is not touched by any of this; it is a separate
  * component and still renders on a laptop.
  */
-import { useState } from "react";
-import { login, normalizeEmail, normalizeHandle } from "../../lib/auth";
+import { useEffect, useRef, useState } from "react";
+import { login, normalizeEmail, normalizeHandle, type User } from "../../lib/auth";
 import { writeProvider, GOOGLE_ACCOUNTS, type GoogleAccount } from "../demoAccounts";
+import {
+  checkPassword,
+  setLocalPassword,
+  verifyLocalPassword,
+  PASSWORD_MAX,
+} from "../../lib/password";
+import { PasswordError, signInWithPassword } from "../../api/ledger";
 import { Avatar, Sheet, initialsOf } from "../parts";
 
 /** RFC 5321's ceiling. Anything longer is not an address, it is a payload. */
@@ -35,54 +47,103 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const pwRef = useRef<HTMLInputElement>(null);
+  const [google, setGoogle] = useState<GoogleAccount | null>(null);
+  const policy = checkPassword(password);
+  const meterLabel = !password
+    ? "empty"
+    : policy.score <= 1
+      ? "weak"
+      : policy.score <= 3
+        ? "fair"
+        : policy.ok
+          ? "hard"
+          : "almost";
+
   /**
-   * One beat of "verifying" before the door opens. It is not theatre for its
-   * own sake: it gives the account you picked time to appear next to the
-   * mark, so the transition reads as a sign-in rather than a teleport.
-   *
-   * Both entry paths land here, so this is the single place the identity is
-   * normalised before it is written: control characters and bidi overrides
-   * are stripped, the address is lowercased and capped, and anything that is
-   * not shaped like an address is refused rather than stored.
+   * Both entry paths land here: the account chooser hands over name + email,
+   * the form is the only way to present the passphrase. The check runs
+   * against the backend first; when it is away, this device's own verifier
+   * takes the gate. Identity is normalised before anything is written:
+   * control characters and bidi overrides are stripped, the address is
+   * lowercased and capped, and anything that is not shaped like an address
+   * is refused rather than stored.
    */
-  const enter = (handle: string, mail: string, google: GoogleAccount | null) => {
+  const submitLocal = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (phase !== "idle") return;
-    const cleanMail = normalizeEmail(mail);
+    const cleanMail = normalizeEmail(email);
     if (!EMAIL_SHAPE.test(cleanMail)) {
       setError("That does not look like an email address.");
       return;
     }
-    const cleanName = normalizeHandle(handle, cleanMail);
+    if (!policy.ok) {
+      setError("Weak passphrase — needs " + policy.problems.join(", ") + ".");
+      return;
+    }
+    const cleanName = normalizeHandle(name, cleanMail);
     setError(null);
     setWho(cleanName);
     setPhase("checking");
-    window.setTimeout(
-      () => {
-        login(cleanName, cleanMail);
-        writeProvider(
-          google
-            ? { kind: "google", accountId: google.id, at: Date.now() }
-            : { kind: "local", at: Date.now() },
-        );
-        setPhase("granted");
-        window.setTimeout(onDone, 260);
-      },
-      480,
-    );
-  };
 
-  const submitLocal = (e: React.FormEvent) => {
-    e.preventDefault();
-    const okEmail = EMAIL_SHAPE.test(normalizeEmail(email));
-    if (!name.trim() || !okEmail) {
-      setError("A name and a valid email are both needed.");
+    let role: User["role"] = "operator";
+    let failure: string | null = null;
+    try {
+      const result = await signInWithPassword({ handle: cleanName, email: cleanMail }, password);
+      if (result) {
+        role = result.role;
+        void setLocalPassword({ handle: cleanName, email: cleanMail, joinedAt: Date.now() }, password);
+      } else {
+        const probe: User = { handle: cleanName, email: cleanMail, joinedAt: Date.now() };
+        const verdict = await verifyLocalPassword(probe, password);
+        if (verdict === "wrong") failure = "Wrong passphrase. Try again.";
+        else if (verdict === "unset") await setLocalPassword(probe, password);
+      }
+    } catch (err) {
+      if (err instanceof PasswordError) {
+        failure =
+          err.code === "wrong-password"
+            ? "Wrong passphrase. Try again."
+            : err.code === "throttled"
+              ? "Too many attempts — wait a moment."
+              : err.code === "closed"
+                ? "Registration is closed right now."
+                : "Passphrase refused — strengthen it first.";
+      } else {
+        failure = "Could not verify the passphrase.";
+      }
+    }
+    if (failure) {
+      setPhase("idle");
+      setWho(null);
+      setError(failure);
       return;
     }
-    setError(null);
-    enter(name, email, null);
+
+    login(cleanName, cleanMail, role);
+    writeProvider(
+      google ? { kind: "google", accountId: google.id, at: Date.now() } : { kind: "local", at: Date.now() },
+    );
+    setPhase("granted");
+    window.setTimeout(onDone, 260);
   };
+
+  /** The chooser fills the form; the passphrase field gets the focus. */
+  const pick = (a: GoogleAccount | null) => {
+    setGoogle(a);
+    setName(a ? a.name : "Operator");
+    setEmail(a ? a.email : "operator@local.device");
+    setPicker(false);
+    window.setTimeout(() => pwRef.current?.focus(), 60);
+  };
+
+  useEffect(() => {
+    if (picker) pwRef.current?.blur();
+  }, [picker]);
 
   return (
     <div className="m-login">
@@ -101,8 +162,9 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
 
       <h1 className="m-login__t">Open your ledger</h1>
       <p className="m-login__s">
-        Tasks, progress and streaks are scoped to whoever signs in — kept on
-        this device, and synced with the ShadowQuest backend when it answers.
+        Tasks, progress and streaks are scoped to whoever signs in — sealed by
+        a hard passphrase, kept on this device, and synced with the backend
+        when it answers.
       </p>
 
       <button
@@ -150,6 +212,43 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
             disabled={phase !== "idle"}
           />
         </label>
+        <label className="m-field">
+          <span className="m-field__l">
+            Passphrase
+            <button
+              type="button"
+              className="m-field__eye"
+              onClick={() => setShowPw((v) => !v)}
+              tabIndex={-1}
+              aria-label={showPw ? "Hide passphrase" : "Show passphrase"}
+            >
+              {showPw ? "hide" : "show"}
+            </button>
+          </span>
+          <input
+            ref={pwRef}
+            type={showPw ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value.slice(0, PASSWORD_MAX))}
+            placeholder="12+ chars · upper · lower · digit · symbol"
+            maxLength={PASSWORD_MAX}
+            autoComplete="current-password"
+            spellCheck={false}
+            autoCapitalize="none"
+            autoCorrect="off"
+            disabled={phase !== "idle"}
+          />
+          <span className="m-field__meter" data-level={meterLabel} aria-hidden="true">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <i key={i} />
+            ))}
+          </span>
+          <span className="m-field__policy" data-ok={policy.ok || undefined}>
+            {policy.ok
+              ? "passphrase meets the bar"
+              : `needs: ${policy.problems.join(", ")}`}
+          </span>
+        </label>
         {error ? (
           <p className="m-login__err" role="alert">
             {error}
@@ -158,15 +257,15 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
         <button
           type="submit"
           className="m-btn m-btn--go"
-          disabled={phase !== "idle" || !name.trim() || !email.trim()}
+          disabled={phase !== "idle" || !name.trim() || !email.trim() || !password}
         >
           {phase === "granted" ? "Granted" : phase === "checking" ? "Verifying" : "Continue"}
         </button>
       </form>
 
       <p className="m-login__foot">
-        No password. Sign-in lives on this device; your ledger syncs when a
-        backend is reachable.
+        Hard password required. The key is scrypt-sealed on the server and
+        PBKDF2-sealed on this device.
       </p>
 
       {phase !== "idle" && who ? (
@@ -183,15 +282,7 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
         <div className="m-gpick">
           <p className="m-gpick__h">to continue to ShadowQuest</p>
           {GOOGLE_ACCOUNTS.map((a) => (
-            <button
-              type="button"
-              key={a.id}
-              className="m-gpick__a"
-              onClick={() => {
-                setPicker(false);
-                enter(a.name, a.email, a);
-              }}
-            >
+            <button type="button" key={a.id} className="m-gpick__a" onClick={() => pick(a)}>
               <Avatar initials={a.initials} hue={a.hue} size={38} />
               <span className="m-gpick__b">
                 <span className="m-gpick__n">{a.name}</span>
@@ -202,10 +293,7 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             className="m-gpick__a m-gpick__a--alt"
-            onClick={() => {
-              setPicker(false);
-              enter("Operator", "operator@local.device", null);
-            }}
+            onClick={() => pick(null)}
           >
             <Avatar initials={initialsOf("Operator")} hue={6} size={38} />
             <span className="m-gpick__b">
@@ -214,7 +302,8 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
             </span>
           </button>
           <p className="m-gpick__f">
-            Demo identities — choosing one signs you in on this device only.
+            Demo identities — choosing one fills the form; your passphrase is
+            still the key in.
           </p>
         </div>
       </Sheet>

@@ -69,6 +69,12 @@ export function loadHabits(scope: string): Habit[] {
 
 export function saveHabits(scope: string, habits: Habit[]): void {
   localStorage.setItem(key(scope), JSON.stringify(habits));
+  // Anything derived from habits (the streak board) re-reads on this beat.
+  try {
+    window.dispatchEvent(new CustomEvent("sq:habits"));
+  } catch {
+    /* derived views simply wait for the next mount */
+  }
 }
 
 export function makeHabitId(): string {

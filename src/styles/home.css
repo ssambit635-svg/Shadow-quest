@@ -22,30 +22,164 @@
 }
 
 /* ---------------------------------------------------------- boot */
+/* The loader is a short film. Everything that loops (aurora, grid, glyphs,
+   ink, shimmer, scan) is CSS: when the curtain unmounts, the loops die with
+   it — the boot leaves no rAF chains behind. GSAP only choreographs the
+   entrance and the exit. */
+
 .boot {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: var(--ink-900);
+  background:
+    radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--vermilion) 16%, transparent), transparent 60%),
+    var(--ink-900);
   overflow: hidden;
+  isolation: isolate;
 }
 
-.boot__panel {
+/* — the atmosphere — */
+
+.boot__sky {
   position: absolute;
   inset: 0;
-  background: var(--ink-900);
-  border-right: 1px solid color-mix(in srgb, var(--vermilion) 40%, transparent);
+  visibility: hidden;
 }
 
-.boot__panel:nth-child(2) {
-  left: 33.34%;
-  border-right-color: transparent;
+.boot__grid {
+  position: absolute;
+  inset: -2px;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--bone-400) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--bone-400) 7%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(75% 75% at 50% 45%, #000 30%, transparent 100%);
+  animation: boot-grid 9s linear infinite;
 }
 
-.boot__panel:nth-child(3) {
-  left: 66.68%;
-  border-right: 0;
+@keyframes boot-grid {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 0 56px, 56px 0; }
 }
+
+.boot__orb {
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  animation: boot-orb 7s ease-in-out infinite alternate;
+}
+
+.boot__orb--verm {
+  top: -18vmax;
+  left: -12vmax;
+  background: radial-gradient(circle at 35% 35%, var(--vermilion-lit), transparent 62%);
+}
+
+.boot__orb--indigo {
+  bottom: -20vmax;
+  right: -14vmax;
+  background: radial-gradient(circle at 60% 40%, color-mix(in srgb, var(--indigo, #4f46e5) 80%, transparent), transparent 62%);
+  animation-delay: -2.4s;
+  animation-duration: 8.4s;
+}
+
+.boot__orb--brass {
+  top: 30%;
+  left: 34%;
+  width: 30vmax;
+  height: 30vmax;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brass) 65%, transparent), transparent 60%);
+  animation-delay: -4.1s;
+  animation-duration: 6.2s;
+}
+
+@keyframes boot-orb {
+  from { transform: translate3d(-4%, -3%, 0) scale(0.92) rotate(0deg); opacity: 0.32; }
+  to { transform: translate3d(5%, 4%, 0) scale(1.12) rotate(24deg); opacity: 0.6; }
+}
+
+.boot__scan {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bone-200) 4%, transparent) 46%,
+    color-mix(in srgb, var(--bone-200) 7%, transparent) 50%,
+    color-mix(in srgb, var(--bone-200) 4%, transparent) 54%,
+    transparent 100%
+  );
+  background-size: 100% 46vh;
+  background-repeat: no-repeat;
+  animation: boot-scan 4.6s ease-in-out infinite;
+}
+
+@keyframes boot-scan {
+  from { background-position: 0 -60vh; }
+  to { background-position: 0 130vh; }
+}
+
+/* — stray kanji, drifting like embers — */
+
+.boot__glyphs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.boot__glyphs > span {
+  position: absolute;
+  left: var(--gx, 10%);
+  top: -12%;
+  font-family: var(--font-jp);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 6vw, 4.6rem);
+  color: var(--bone-300);
+  visibility: hidden;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--vermilion) 35%, transparent);
+  animation: boot-glyph var(--gd, 9s) linear infinite;
+}
+
+@keyframes boot-glyph {
+  0% { transform: translateY(0) rotate(-8deg); opacity: 0; }
+  12% { opacity: 0.28; }
+  88% { opacity: 0.2; }
+  100% { transform: translateY(118vh) rotate(10deg); opacity: 0; }
+}
+
+/* — rising ink — */
+
+.boot__ink {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.boot__ink > i {
+  position: absolute;
+  left: var(--ix, 5%);
+  bottom: -3%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--vermilion-lit) 70%, var(--bone-100));
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--vermilion) 55%, transparent);
+  visibility: hidden;
+  animation: boot-ink var(--id, 3s) ease-in var(--idl, 0s) infinite;
+}
+
+@keyframes boot-ink {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  10% { opacity: 0.75; }
+  85% { opacity: 0.12; }
+  100% { transform: translateY(-104vh) scale(0.4); opacity: 0; }
+}
+
+/* — the stage — */
 
 .boot__inner {
   position: absolute;
@@ -53,30 +187,96 @@
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 1.15rem;
+  gap: 1.05rem;
   z-index: 2;
 }
 
+.boot__emblem {
+  position: relative;
+  width: clamp(210px, 42vw, 260px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.boot__rings {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.boot__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.boot__ring--dash {
+  border: 1px dashed color-mix(in srgb, var(--bone-400) 55%, transparent);
+  animation: boot-ring-spin 7s linear infinite reverse;
+}
+
+.boot__ring--thin {
+  inset: 12%;
+  border: 1px solid color-mix(in srgb, var(--vermilion) 45%, transparent);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--vermilion) 30%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--vermilion) 22%, transparent);
+  animation: boot-ring-spin 5s linear infinite;
+}
+
+@keyframes boot-ring-spin {
+  to { transform: rotate(360deg); }
+}
+
 .boot__enso {
-  width: 108px;
-  opacity: 0.5;
+  width: 62%;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--bone-200) 35%, transparent));
+}
+
+.boot__halo {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  border: 1px solid var(--vermilion);
+  visibility: hidden;
+}
+
+.boot__flash {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--vermilion-lit) 85%, transparent), transparent 70%);
+  filter: blur(18px);
+  visibility: hidden;
+}
+
+.boot__glow {
+  position: absolute;
+  inset: -6%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--vermilion) 26%, transparent), transparent 66%);
+  visibility: hidden;
 }
 
 .boot__kanji {
   font-family: var(--font-jp);
   font-weight: 800;
-  font-size: clamp(4.5rem, 11vw, 9rem);
+  font-size: clamp(4.6rem, 15vw, 9rem);
   line-height: 0.8;
   color: var(--bone-100);
-  margin-block: -1.2rem;
-  text-shadow: 0 0 0 var(--vermilion);
+  visibility: hidden;
+  text-shadow:
+    0 0 42px color-mix(in srgb, var(--vermilion) 65%, transparent),
+    0 4px 0 color-mix(in srgb, var(--vermilion) 40%, transparent);
 }
 
 .boot__meta {
   display: flex;
   align-items: baseline;
   gap: 1rem;
-  min-width: min(320px, 62vw);
+  min-width: min(340px, 68vw);
   justify-content: space-between;
 }
 
@@ -84,22 +284,34 @@
   font-family: var(--font-label);
   font-size: 0.9rem;
   color: var(--bone-300);
+  font-variant-numeric: tabular-nums;
 }
 
-.boot__line {
-  width: min(320px, 62vw);
-  height: 1px;
+.boot__bar {
+  position: relative;
+  width: min(340px, 68vw);
+  height: 3px;
   background: var(--line-strong);
   overflow: hidden;
+  border-radius: 2px;
 }
 
-.boot__line > span {
+.boot__bar > span {
   display: block;
   height: 100%;
   width: 100%;
   background: linear-gradient(90deg, var(--vermilion), var(--vermilion-lit));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--vermilion) 70%, transparent);
   transform: scaleX(0);
   transform-origin: left center;
+}
+
+.boot__bar > i {
+  position: absolute;
+  inset: 0;
+  width: 34%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bone-100) 85%, transparent), transparent);
+  transform: translateX(-110%);
 }
 
 .boot__stage {
@@ -117,6 +329,50 @@
   color: var(--bone-500);
   letter-spacing: 0.14em;
   opacity: 0;
+}
+
+/* — the exit: five panels + the blade line — */
+
+.boot__blade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 46%;
+  height: 2px;
+  z-index: 6;
+  background: linear-gradient(90deg, transparent, var(--vermilion-lit) 18%, var(--vermilion-lit) 82%, transparent);
+  box-shadow: 0 0 22px 4px color-mix(in srgb, var(--vermilion) 60%, transparent);
+  transform: scaleX(0);
+}
+
+.boot__panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 20.2%;
+  z-index: 5;
+  background: var(--ink-900);
+  border-right: 1px solid color-mix(in srgb, var(--vermilion) 34%, transparent);
+}
+
+/* five children of .boot, in order: sky, glyphs, ink, inner, blade, then
+   the five panels as children 6..10 — one strip each. */
+.boot__panel:nth-child(6) { left: 0; }
+.boot__panel:nth-child(7) { left: 20%; border-right-color: transparent; }
+.boot__panel:nth-child(8) { left: 40%; border-right-color: transparent; }
+.boot__panel:nth-child(9) { left: 60%; }
+.boot__panel:nth-child(10) { left: 80%; border-right: 0; }
+
+/* — quiet for small screens: the aurora and the glyphs thin out — */
+
+@media (max-width: 700px) {
+  .boot__orb { filter: blur(44px); }
+  .boot__glyphs > span:nth-child(n + 7) { display: none; }
+  .boot__ink > i:nth-child(n + 10) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot { display: none; }
 }
 
 /* ---------------------------------------------------------- wipe */

@@ -243,10 +243,10 @@ async function boot({ width = 420, height = 860, hash = "#/login", hover, seed, 
       el.dispatchEvent(new win.Event("input", { bubbles: true }));
       return el;
     },
-    /** Drive the local (name+email) sign-in form. */
-    async signInLocal(name, email) {
+    /** Drive the local (name+email+passphrase) sign-in form. */
+    async signInLocal(name, email, password = "ProbePass123!") {
       const fields = win.document.querySelectorAll(".m-login__form .m-field input");
-      if (fields.length < 2) throw new Error(`sign-in form has ${fields.length} inputs`);
+      if (fields.length < 3) throw new Error(`sign-in form has ${fields.length} inputs`);
       const set = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, "value").set;
       const put = (el, v) => {
         set.call(el, v);
@@ -254,9 +254,10 @@ async function boot({ width = 420, height = 860, hash = "#/login", hover, seed, 
       };
       put(fields[0], name);
       put(fields[1], email);
+      put(fields[2], password);
       await sleep(80);
       win.document.querySelector('.m-login__form button[type="submit"]')?.click();
-      await sleep(1400);
+      await sleep(1800);
     },
     go(hash) {
       win.location.hash = hash;
@@ -378,6 +379,144 @@ async function scopeProbe(email) {
   p.stop();
   return key ? key.replace(/^sq\.[a-z]+\./, "") : "(none)";
 }
+
+/** Build the exact PBKDF2 record the app stores, so the harness can seed a
+ *  device verifier it knows the password of. */
+async function localPwRecord(password) {
+  const { webcrypto } = await import("node:crypto");
+  const salt = webcrypto.getRandomValues(new Uint8Array(16));
+  const key = await webcrypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  const bits = await webcrypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: salt, iterations: 210_000, hash: "SHA-256" },
+    key,
+    256,
+  );
+  const b64 = (u8) => Buffer.from(u8).toString("base64");
+  return { v: 1, iters: 210_000, salt: b64(salt), hash: b64(new Uint8Array(bits)) };
+}
+
+/* ------------------------------------------------------------------ *
+ * gate: the hard-password policy and the device verifier
+ * ------------------------------------------------------------------ */
+probes.gate = async () => {
+  // 1. A weak password never leaves the form: no identity, one clear line.
+  const p = await boot();
+  await p.signInLocal("Weak", "weak@local.device", "weak");
+  const stored = p.win.localStorage.getItem("sq.user.v1");
+  const err = p.text(".m-login__err");
+  record(
+    "gate/weak-password-refused",
+    !stored && /passphrase/i.test(err ?? ""),
+    stored ? "weak password created an identity" : err ? `refused: "${err}"` : "no error line",
+  );
+  p.stop();
+
+  // 2. The device verifier: the wrong key stays out, the right key opens.
+  const email = "gate@local.device";
+  const scope = email.replace(/[^a-z0-9]/g, "");
+  const password = "RightKey#42x!";
+  const rec = await localPwRecord(password);
+  const p2 = await boot({
+    seed: (win) => {
+      win.localStorage.setItem(`sq.pw.${scope}`, JSON.stringify(rec));
+    },
+  });
+  await p2.signInLocal("Gate", email, "WrongKey#42x!");
+  const afterWrong = p2.win.localStorage.getItem("sq.user.v1");
+  const err2 = p2.text(".m-login__err");
+  record(
+    "gate/wrong-password-refused",
+    !afterWrong && /passphrase/i.test(err2 ?? ""),
+    afterWrong ? "wrong password opened the ledger" : err2 ? `refused: "${err2}"` : "no error line",
+  );
+  await p2.signInLocal("Gate", email, password);
+  const afterRight = p2.win.localStorage.getItem("sq.user.v1");
+  record(
+    "gate/right-password-opens",
+    Boolean(afterRight) && !p2.errors.length,
+    afterRight ? "identity stored with the right key" : "right key did not open the ledger",
+  );
+  p2.stop();
+};
+
+/* ------------------------------------------------------------------ *
+ * admin: the control panel is closed to everyone but the owner
+ * ------------------------------------------------------------------ */
+probes.admin = async () => {
+  // 1. A plain operator sees the sealed gate — no console, nothing else.
+  const p = await boot({
+    hash: "#/app/admin",
+    width: 1280,
+    height: 900,
+    seed: (win) => {
+      win.localStorage.setItem(
+        "sq.user.v1",
+        JSON.stringify({ handle: "Oper", email: "oper@local.device", joinedAt: Date.now() }),
+      );
+    },
+  });
+  await p.sleep(900);
+  const sealed = Boolean(p.q(".admin__seal")) && !p.q(".admin__pin") && !p.q(".admin__grid");
+  record(
+    "admin/non-admin-sealed",
+    sealed && !p.errors.length,
+    sealed
+      ? "sealed notice only — no gate, no console"
+      : `unexpected surface: ${p.errors[0] ?? "console or gate rendered"}`,
+  );
+  p.stop();
+
+  // 2. A locally-tampered admin role cannot open the console — the backend
+  //    (away, here) is what mints access, so the PIN gate must stand.
+  const p2 = await boot({
+    hash: "#/app/admin",
+    width: 1280,
+    height: 900,
+    seed: (win) => {
+      win.localStorage.setItem(
+        "sq.user.v1",
+        JSON.stringify({
+          handle: "Owner",
+          email: "owner@local.device",
+          joinedAt: Date.now(),
+          role: "admin",
+        }),
+      );
+    },
+  });
+  await p2.sleep(900);
+  const pinGate = Boolean(p2.q(".admin__pin"));
+  const noConsole = !p2.q(".admin__grid");
+  record(
+    "admin/tampered-role-still-pin-gated",
+    pinGate && noConsole && !p2.errors.length,
+    pinGate
+      ? "PIN gate stands; console closed"
+      : `tampered role opened something: ${p2.errors[0] ?? "console rendered"}`,
+  );
+  // A PIN with the backend away: honest refusal, no crash, no console.
+  const input = p2.q(".admin__pin-form input");
+  if (input) {
+    const set = Object.getOwnPropertyDescriptor(p2.win.HTMLInputElement.prototype, "value").set;
+    set.call(input, "12345678");
+    input.dispatchEvent(new p2.win.Event("input", { bubbles: true }));
+    p2.q('.admin__pin-form button[type="submit"]')?.click();
+  }
+  await p2.sleep(800);
+  const err = p2.text(".admin__pin-err");
+  record(
+    "admin/pin-offline-honest",
+    /unreachable/i.test(err ?? "") && !p2.q(".admin__grid"),
+    err ? `refused honestly: "${err}"` : "no honest offline refusal",
+  );
+  p2.stop();
+};
 
 /* ------------------------------------------------------------------ *
  * squad: corrupt formation data

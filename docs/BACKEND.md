@@ -25,12 +25,17 @@ npm start            # or: npm run dev (watch mode)
 
 Environment:
 
-| variable      | default              | meaning                                        |
-| ------------- | -------------------- | ---------------------------------------------- |
-| `PORT`        | `8788`               | listen port (the vite proxy expects this)       |
-| `MONGODB_URI` | *(unset)*            | MongoDB connection string — Atlas or self-hosted |
-| `MONGODB_DB`  | `shadowquest`        | database name                                   |
-| `SQ_DATA_DIR` | `server/.data`       | where the file store persists when no Mongo     |
+| variable          | default       | meaning                                        |
+| ----------------- | ------------- | ---------------------------------------------- |
+| `PORT`            | `8788`        | listen port (the vite proxy expects this)       |
+| `MONGODB_URI`     | *(unset)*     | MongoDB connection string — Atlas or self-hosted |
+| `MONGODB_DB`      | `shadowquest` | database name                                   |
+| `SQ_DATA_DIR`     | `server/.data` | where the file store persists when no Mongo     |
+| `ADMIN_EMAILS`    | *(unset)*     | comma-separated owner addresses; enables admin   |
+| `ADMIN_PIN`       | *(unset)*     | the control panel PIN (8+ chars); both required |
+| `SQ_MAX_USERS`    | `1000`        | hard cap on registered operators                 |
+| `SQ_CORS_ORIGIN`  | *(unset)*     | CORS allowlist, comma-separated origins          |
+| `SQ_TRUST_PROXY`  | `0`           | set `1` behind a platform proxy for honest IPs   |
 
 With `MONGODB_URI` set and reachable the API uses MongoDB (collection
 `users`, one document per operator, ledger embedded). Without it, the API
@@ -46,18 +51,47 @@ MONGODB_URI='mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net' npm start
 
 ## Endpoints
 
-| method + path          | auth   | purpose                                             |
-| ---------------------- | ------ | --------------------------------------------------- |
-| `GET /v1/health`       | –      | liveness + which store is active                    |
-| `POST /v1/auth/signin` | –      | upsert operator by email, returns a bearer token    |
-| `GET /v1/ledger`       | bearer | the operator's stored profile + tasks + habits      |
-| `PUT /v1/ledger`       | bearer | replace the stored ledger (validated, bounded)      |
-| `GET /v1/stats`        | bearer | aggregates for the stats dashboard (see below)      |
-| `GET /v1/leaderboard`  | –      | real operators ranked by total progress (top 25)    |
-| `GET /v1/people`       | bearer | other registered operators, for the squad roster    |
+| method + path                    | auth        | purpose                                             |
+| -------------------------------- | ----------- | --------------------------------------------------- |
+| `GET /v1/health`                 | –           | liveness + which store is active                    |
+| `POST /v1/auth/signin`           | –           | create / verify / seal the account with a password  |
+| `GET /v1/ledger`                 | bearer      | the operator's stored profile + tasks + habits      |
+| `PUT /v1/ledger`                 | bearer      | replace the stored ledger (validated, bounded)      |
+| `GET /v1/stats`                  | bearer      | aggregates for the stats dashboard (see below)      |
+| `GET /v1/leaderboard`            | –           | real operators ranked by total progress (top 25)    |
+| `GET /v1/people`                 | bearer      | other registered operators, for the squad roster    |
+| `POST /v1/admin/elevate`         | bearer+role | present the PIN → mint a short-lived admin token    |
+| `GET /v1/admin/overview`         | admin       | totals, activity, sign-ups, top operators           |
+| `GET /v1/admin/users`            | admin       | operator directory (the only surface with emails)   |
+| `DELETE /v1/admin/users/:email`  | admin       | remove an operator (admins cannot delete admins)    |
+| `POST /v1/admin/sessions/revoke-all` | admin  | rotate every token — everyone signs in again        |
 
 Auth is a bearer token issued at sign-in (`Authorization: Bearer <token>`),
-kept per-scope in the browser beside the ledger it belongs to.
+kept per-scope in the browser beside the ledger it belongs to. Admin calls
+carry **both** identities: the operator token in `x-sq-token` and the
+PIN-minted admin token in `Authorization`; every admin route re-verifies the
+email against `ADMIN_EMAILS` and the token against the in-memory vault.
+
+### Sign-in has three branches
+
+1. **New operator** — the password must pass the policy (min 12 chars,
+   upper + lower + digit + symbol). A scrypt hash is stored; the password
+   itself is never persisted. `mode: "created"`.
+2. **Returning operator** — the password is verified in constant time.
+   Wrong passwords are rate-limited (8 / 15 min / email). `mode: "verified"`.
+3. **Legacy operator** (registered before passwords existed) — the first
+   valid password presented seals the account. `mode: "sealed"`.
+
+### Rate limits & caps
+
+| limit                        | window     |
+| ---------------------------- | ---------- |
+| sign-in attempts per IP      | 12 / 10 min |
+| wrong passwords per email    | 8 / 15 min  |
+| ledger writes per token      | 120 / min   |
+| admin calls per IP           | 30 / 5 min  |
+| JSON body                    | 512 kB      |
+| registered operators         | `SQ_MAX_USERS` (default 1000) |
 
 ### What `/v1/stats` returns
 
@@ -97,4 +131,5 @@ registrations only; when nobody else has registered it says exactly that.
   `sanitizeHabits`, `repairProfile`), and the server validates again.
 - The Deep Work duel engine (`src/api/mock.ts`) is intentionally untouched —
   it is a self-contained game, not operator data. The Google demo accounts
-  on the sign-in screen stay as they were, by request.
+  on the sign-in screen remain a chooser; like every identity they now pass
+  through the password gate, demo or not.

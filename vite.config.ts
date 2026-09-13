@@ -92,12 +92,17 @@ function proxyError(
   res: { writeHead?: unknown; end?: unknown; headersSent?: boolean },
 ) {
   const away = err.code === "ECONNREFUSED" || err.code === "ENOTFOUND";
+  // Dev gets the hint that the backend is not running; production never
+  // echoes internals to the browser — the failure is generic on purpose.
+  const detail = away
+    ? `the ShadowQuest API is not listening on ${BACKEND} — run \`npm run dev\` (starts both halves) or \`npm run dev:api\` on its own`
+    : process.env.NODE_ENV === "production"
+      ? undefined
+      : err?.message;
   const body = JSON.stringify({
     ok: false,
     error: away ? "backend offline" : "proxy failure",
-    detail: away
-      ? `the ShadowQuest API is not listening on ${BACKEND} — run \`npm run dev\` (starts both halves) or \`npm run dev:api\` on its own`
-      : err.message,
+    ...(detail ? { detail } : {}),
   });
   if (typeof res?.writeHead !== "function" || typeof res.end !== "function") return;
   if (res.headersSent) return;

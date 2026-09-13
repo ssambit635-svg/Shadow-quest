@@ -1,0 +1,468 @@
+/* ============================================================
+   admin.css — the control panel + the sealed crash screen.
+   Owner-only surfaces: quiet ink, one vermilion per decision.
+   Every selector here lives under .admin or .fault, so nothing
+   reaches the rest of the app.
+   ============================================================ */
+
+.admin {
+  min-height: 100vh;
+  padding-top: calc(var(--nav-h) + 2rem);
+  padding-bottom: 6rem;
+}
+
+.admin .card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 1.2rem 1.4rem;
+}
+
+/* — the sealed gate (non-admin) — */
+
+.admin__seal {
+  max-width: 34rem;
+  margin: 8vh auto 0;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  color: var(--bone-400);
+}
+
+.admin__seal-t {
+  font-size: 1.6rem;
+  color: var(--bone-100);
+}
+
+.admin__seal-s {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--bone-400);
+}
+
+/* — the PIN gate — */
+
+.admin__pin {
+  max-width: 30rem;
+  margin: 6vh auto 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.admin__pin-tag {
+  color: var(--vermilion-lit);
+}
+
+.admin__pin-t {
+  font-size: 1.9rem;
+  color: var(--bone-100);
+}
+
+.admin__pin-s {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--bone-400);
+}
+
+.admin__pin-form {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.admin__pin-form input {
+  flex: 1;
+  background: none;
+  border-bottom: 1px solid var(--line-strong);
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  letter-spacing: 0.3em;
+  color: var(--bone-100);
+}
+
+.admin__pin-form input:focus {
+  border-color: var(--vermilion);
+}
+
+.admin__pin-err {
+  color: var(--vermilion-lit);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.admin__pin-foot {
+  color: var(--bone-500);
+}
+
+/* — console head — */
+
+.admin__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.6rem;
+}
+
+.admin__title {
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  color: var(--bone-100);
+}
+
+.admin__head-end {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin__chip {
+  color: var(--bone-400);
+  border: 1px solid var(--line);
+  padding: 0.3rem 0.6rem;
+}
+
+.admin__offline {
+  color: var(--vermilion-lit);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  margin-bottom: 1rem;
+}
+
+/* — stats — */
+
+.admin__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin__stat {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.admin__stat-v {
+  font-size: 2.2rem;
+  color: var(--bone-100);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin__stat-s {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: var(--bone-500);
+}
+
+/* — panels — */
+
+.admin__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.admin__panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin__panel-sub {
+  color: var(--bone-500);
+}
+
+.admin__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  height: 7rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.4rem;
+}
+
+.admin__bar {
+  flex: 1;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  gap: 0.2rem;
+  height: 100%;
+  justify-items: center;
+}
+
+.admin__bar i {
+  align-self: end;
+  width: 60%;
+  min-height: 3px;
+  background: linear-gradient(180deg, var(--vermilion-lit), var(--vermilion-deep));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--vermilion) 45%, transparent);
+}
+
+.admin__bar em {
+  font-size: 0.62rem;
+  color: var(--bone-300);
+  font-style: normal;
+}
+
+.admin__bar span {
+  font-size: 0.56rem;
+  color: var(--bone-500);
+  letter-spacing: 0.08em;
+}
+
+.admin__top {
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.admin__top li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.8rem;
+  align-items: baseline;
+  font-size: 0.86rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.4rem;
+}
+
+.admin__top b {
+  color: var(--bone-100);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin__top span {
+  font-size: 0.66rem;
+  color: var(--bone-400);
+}
+
+.admin__top em {
+  font-size: 0.8rem;
+  color: var(--brass);
+  font-style: normal;
+}
+
+/* — operator directory — */
+
+.admin__users-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin__search {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.admin__search input {
+  background: none;
+  border-bottom: 1px solid var(--line-strong);
+  font-size: 0.85rem;
+  color: var(--bone-100);
+  width: 14rem;
+}
+
+.admin__search input:focus {
+  border-color: var(--vermilion);
+}
+
+.admin__search button {
+  background: none;
+  color: var(--bone-400);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.admin__search button:hover {
+  color: var(--bone-100);
+}
+
+.admin__users {
+  list-style: none;
+  display: grid;
+}
+
+.admin__user {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 0.8fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin__user-main {
+  display: grid;
+  min-width: 0;
+}
+
+.admin__user-main b {
+  color: var(--bone-100);
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin__admin {
+  color: var(--vermilion-lit);
+  font-style: normal;
+  font-size: 0.62rem;
+  margin-left: 0.5rem;
+}
+
+.admin__user-email {
+  color: var(--bone-500);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin__user-meta {
+  font-size: 0.66rem;
+  color: var(--bone-400);
+  letter-spacing: 0.04em;
+}
+
+.admin__drop {
+  background: none;
+  border: 1px solid var(--line-strong);
+  color: var(--bone-400);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.55rem;
+  cursor: pointer;
+}
+
+.admin__drop:hover:not(:disabled) {
+  color: var(--vermilion-lit);
+  border-color: var(--vermilion);
+}
+
+.admin__drop.is-armed {
+  background: var(--vermilion-deep);
+  border-color: var(--vermilion);
+  color: var(--bone-100);
+}
+
+.admin__drop:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.admin__none {
+  padding: 1.4rem 0;
+  color: var(--bone-500);
+  font-size: 0.85rem;
+}
+
+/* — danger zone — */
+
+.admin__danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+  margin-top: 1.6rem;
+  border-color: color-mix(in srgb, var(--vermilion) 30%, var(--line)) !important;
+}
+
+.admin__danger-s {
+  font-size: 0.82rem;
+  color: var(--bone-400);
+  margin-top: 0.3rem;
+  max-width: 46ch;
+}
+
+.admin .btn--danger {
+  border-color: var(--vermilion);
+  color: var(--vermilion-lit);
+}
+
+.admin .btn--danger:hover {
+  background: var(--vermilion-deep);
+  color: var(--bone-100);
+}
+
+.admin__note {
+  margin-top: 1rem;
+  color: var(--brass);
+}
+
+/* — narrow: the panel stacks — */
+
+@media (max-width: 1000px) {
+  .admin__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .admin__cols {
+    grid-template-columns: 1fr;
+  }
+  .admin__user {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .admin__user-meta {
+    display: none;
+  }
+}
+
+/* ============================================================
+   fault — the sealed crash screen. No stack, no path, no "why".
+   ============================================================ */
+
+.fault {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background:
+    radial-gradient(90% 70% at 50% 110%, color-mix(in srgb, var(--vermilion) 12%, transparent), transparent 60%),
+    var(--ink-900);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.fault__kanji {
+  font-family: var(--font-jp);
+  font-weight: 800;
+  font-size: clamp(4rem, 12vw, 7rem);
+  color: var(--bone-100);
+  text-shadow: 0 0 42px color-mix(in srgb, var(--vermilion) 55%, transparent);
+}
+
+.fault__title {
+  font-size: clamp(1.4rem, 3.4vw, 2.2rem);
+  color: var(--bone-100);
+}
+
+.fault__copy {
+  max-width: 38ch;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--bone-400);
+}
+
+.fault__actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}

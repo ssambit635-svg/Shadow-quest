@@ -21,6 +21,7 @@ import { Boot } from "./components/Boot";
 import { Nav } from "./components/Nav";
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
+import { Admin } from "./pages/Admin";
 import { Field } from "./pages/Field";
 import { Dashboard } from "./sections/Dashboard";
 import { Ladder } from "./sections/Ladder";
@@ -36,9 +37,9 @@ import { MobileApp } from "./mobile/MobileApp";
 import { MobileLogin } from "./mobile/screens/MobileLogin";
 import { usePhoneViewport } from "./mobile/device";
 
-export type Route = "home" | "login" | "app" | "field" | "ladder" | "stats";
+export type Route = "home" | "login" | "app" | "field" | "ladder" | "stats" | "admin";
 
-const APP_ROUTES: Route[] = ["app", "field", "ladder", "stats"];
+const APP_ROUTES: Route[] = ["app", "field", "ladder", "stats", "admin"];
 
 const readHash = (): Route => {
   const h = window.location.hash.replace(/^#\/?/, "").replace(/\/+$/, "");
@@ -49,6 +50,8 @@ const readHash = (): Route => {
   // On a laptop this is the animated stats dashboard; on a phone the shell
   // treats it as an `app` route and the phone face shows its own Stats tab.
   if (h === "app/stats" || h === "stats") return "stats";
+  // The operator's control panel. Renders its own access gate.
+  if (h === "app/admin" || h === "admin") return "admin";
   // Anything else under #/app/ belongs to the phone face's own sub-navigation
   // (#/app/tasks, /progress, /rewards, /profile, /squad). The shell treats all
   // of them as the `app` route and stays out of the way; the phone face reads
@@ -152,9 +155,11 @@ export default function App() {
               ? "#/app/field"
               : next === "stats"
                 ? "#/app/stats"
-                : next === "ladder"
-                  ? "#/app/ladder"
-                  : "#/";
+                : next === "admin"
+                  ? "#/app/admin"
+                  : next === "ladder"
+                    ? "#/app/ladder"
+                    : "#/";
       // `replace` swaps the current history entry instead of pushing one.
       // Redirects (the gate, the native boot, sign-out) use it so BACK never
       // walks back *into* a screen the app itself refused to show — without
@@ -296,6 +301,14 @@ export default function App() {
             {/* The ladder degrades to this operator's own device ledger when
                 the backend is away, so it needs their scope to do it. */}
             <Ladder scope={scopeOf(user)} handle={user.handle} />
+          </div>
+        )}
+        {route === "admin" && user && (
+          <div className="app-page">
+            {/* The control panel. Access is decided here and re-decided by
+                the backend on every call — a local role claim is never
+                enough on its own. */}
+            <Admin user={user} scope={scopeOf(user)} />
           </div>
         )}
         {/* while the gate decides where an unauthenticated app-route goes,

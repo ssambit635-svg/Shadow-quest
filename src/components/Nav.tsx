@@ -33,8 +33,19 @@ const APP_TABS: { label: string; route: Route; id: string; ja: string }[] = [
   { label: "Milestones", route: "ladder", id: "ladder", ja: "道" },
 ];
 
+/** The control panel tab exists only for the role the backend granted. */
+const ADMIN_TAB = { label: "Admin", route: "admin" as Route, id: "admin", ja: "御" };
+
 const hrefOf = (r: Route) =>
-  r === "app" ? "#/app" : r === "field" ? "#/app/field" : r === "stats" ? "#/app/stats" : "#/app/ladder";
+  r === "app"
+    ? "#/app"
+    : r === "field"
+      ? "#/app/field"
+      : r === "stats"
+        ? "#/app/stats"
+        : r === "admin"
+          ? "#/app/admin"
+          : "#/app/ladder";
 
 export function Nav({
   route,
@@ -52,7 +63,13 @@ export function Nav({
   const bloomRef = useRef<HTMLSpanElement>(null);
   const headRef = useRef<HTMLSpanElement>(null);
   const lastProgressRef = useRef(0);
-  const inApp = route === "app" || route === "field" || route === "ladder" || route === "stats";
+  const inApp =
+    route === "app" ||
+    route === "field" ||
+    route === "ladder" ||
+    route === "stats" ||
+    route === "admin";
+  const isAdmin = user?.role === "admin";
   const theme = useTheme();
 
   // Hide/reveal + blooming ink progress — no scroll listeners.
@@ -170,7 +187,7 @@ export function Nav({
 
       {inApp && (
         <nav className="nav__links nav__tabs">
-          {APP_TABS.map((t) => (
+          {[...APP_TABS, ...(isAdmin ? [ADMIN_TAB] : [])].map((t) => (
             <a
               key={t.id}
               className={`nav__link nav__tab ${route === t.route ? "is-active" : ""}`}
@@ -224,6 +241,7 @@ export function Nav({
           <span className="nav__handle label" title="signed in">
             <i className="nav__pip" aria-hidden="true" />
             {user.handle}
+            {isAdmin && <em className="nav__admin">◆</em>}
           </span>
         )}
         {route === "home" && (

@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { FaultLine } from "./components/FaultLine";
 import { initMotion } from "./lib/motion";
 import { isNativeApp } from "./lib/native";
 import { initTheme } from "./lib/theme";
@@ -12,6 +13,7 @@ import "./styles/stats.css";
 import "./styles/login.css";
 import "./styles/app.css";
 import "./styles/arena.css";
+import "./styles/admin.css";
 /* Paper mode — the light theme. Loaded after every desktop stylesheet so
    its token overrides win; the phone face's own tokens are untouched. */
 import "./styles/theme-light.css";
@@ -32,6 +34,8 @@ initMotion();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <FaultLine>
+      <App />
+    </FaultLine>
   </StrictMode>,
 );

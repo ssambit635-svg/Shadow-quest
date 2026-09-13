@@ -9,7 +9,14 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Sigil } from "../components/Sigil";
-import { login, normalizeEmail, normalizeHandle } from "../lib/auth";
+import { login, normalizeEmail, normalizeHandle, type User } from "../lib/auth";
+import {
+  checkPassword,
+  setLocalPassword,
+  verifyLocalPassword,
+  PASSWORD_MAX,
+} from "../lib/password";
+import { PasswordError, signInWithPassword } from "../api/ledger";
 import {
   brushReveal,
   gsap,
@@ -43,8 +50,21 @@ export function Login({ onDone }: { onDone: () => void }) {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [phase, setPhase] = useState<"idle" | "verifying" | "granted">("idle");
   const [refused, setRefused] = useState(false);
+
+  const policy = checkPassword(password);
+  const meterLabel = !password
+    ? "empty"
+    : policy.score <= 1
+      ? "weak"
+      : policy.score <= 3
+        ? "fair"
+        : policy.ok
+          ? "hard"
+          : "almost";
 
   // (A user already existing on this screen is handled by the app shell:
   //  it carries a signed-in operator straight over the gate to the ledger.)
@@ -120,6 +140,19 @@ export function Login({ onDone }: { onDone: () => void }) {
     };
   }, [ready]);
 
+  const refuse = (message: string) => {
+    setRefused(true);
+    setStatus(message);
+    if (!REDUCED && formRef.current) {
+      gsap
+        .timeline()
+        .to(formRef.current, { x: -7, duration: 0.06, ease: "none" })
+        .to(formRef.current, { x: 6, duration: 0.06, ease: "none" })
+        .to(formRef.current, { x: -3, duration: 0.06, ease: "none" })
+        .to(formRef.current, { x: 0, duration: 0.1, ease: "none" });
+    }
+  };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (phase === "verifying") return;
@@ -128,16 +161,13 @@ export function Login({ onDone }: { onDone: () => void }) {
     const cleanName = normalizeHandle(name, cleanEmail);
     const okEmail = EMAIL_SHAPE.test(cleanEmail);
     if (!name.trim() || !okEmail) {
-      setRefused(true);
-      setStatus(STAGES.refused);
-      if (!REDUCED && formRef.current) {
-        gsap
-          .timeline()
-          .to(formRef.current, { x: -7, duration: 0.06, ease: "none" })
-          .to(formRef.current, { x: 6, duration: 0.06, ease: "none" })
-          .to(formRef.current, { x: -3, duration: 0.06, ease: "none" })
-          .to(formRef.current, { x: 0, duration: 0.1, ease: "none" });
-      }
+      refuse(STAGES.refused);
+      return;
+    }
+    // A weak passphrase never leaves the form: the server enforces the same
+    // bar, so refusing it here is not theatre — it is the same check, sooner.
+    if (!policy.ok) {
+      refuse("weak passphrase — strengthen it first");
       return;
     }
     setRefused(false);
@@ -152,20 +182,73 @@ export function Login({ onDone }: { onDone: () => void }) {
       { scaleX: 1, duration: REDUCED ? 0.05 : 1.05, ease: "power2.inOut" },
     );
 
-    const finish = () => {
+    // One outcome computed once: server verdict when the backend answers,
+    // the device's own PBKDF2 verifier when it does not. Either way a hard
+    // password is the only key in.
+    const authDone = (async () => {
+      let outcome: "grant" | "wrong" | "throttled" | "closed" | "weak" | "unreachable" = "grant";
+      let role: User["role"] = "operator";
+      try {
+        const result = await signInWithPassword({ handle: cleanName, email: cleanEmail }, password);
+        if (result) {
+          role = result.role;
+          // Remember the key locally too, so the same passphrase opens the
+          // ledger on this device while the backend is away.
+          void setLocalPassword(
+            { handle: cleanName, email: cleanEmail, joinedAt: Date.now() },
+            password,
+          );
+        } else {
+          const probe: User = { handle: cleanName, email: cleanEmail, joinedAt: Date.now() };
+          const verdict = await verifyLocalPassword(probe, password);
+          if (verdict === "wrong") {
+            outcome = "wrong";
+          } else {
+            // First time on this device: the key seals here and now.
+            if (verdict === "unset") await setLocalPassword(probe, password);
+          }
+        }
+      } catch (err) {
+        if (err instanceof PasswordError) {
+          outcome = err.code === "wrong-password" ? "wrong" : err.code;
+        } else {
+          outcome = "wrong";
+        }
+      }
+      return { outcome, role };
+    })();
+
+    const finish = async () => {
+      const { outcome, role } = await authDone;
+      if (outcome !== "grant") {
+        setPhase("idle");
+        setRefused(true);
+        setStatus(
+          outcome === "wrong"
+            ? "wrong passphrase — try again"
+            : outcome === "throttled"
+              ? "too many attempts — wait a moment"
+              : outcome === "weak"
+                ? "passphrase refused — strengthen it first"
+                : outcome === "unreachable"
+                  ? "could not verify — try again"
+                  : "registration is closed — come back later",
+        );
+        return;
+      }
       setPhase("granted");
       setStatus(STAGES.granted);
-      login(cleanName, cleanEmail);
+      login(cleanName, cleanEmail, role);
       // A beat for the word to land before the wipe swallows the page.
       window.setTimeout(onDone, REDUCED ? 60 : 420);
     };
 
     if (REDUCED) {
-      finish();
+      void finish();
       return;
     }
     gsap
-      .timeline({ onComplete: finish })
+      .timeline({ onComplete: () => void finish() })
       .to("[data-login-mark]", { scale: 1.06, duration: 0.35, ease: "power2.out" }, 0.55)
       .to("[data-login-mark]", { scale: 1, duration: 0.5, ease: "brush" }, 0.9)
       .add(p, 0);
@@ -207,12 +290,12 @@ export function Login({ onDone }: { onDone: () => void }) {
               <span>local-first · this device</span>
             </div>
             <div className="login__spec-row">
-              <span className="label">sync</span>
-              <span>your ledger, when the backend is reachable</span>
+              <span className="label">key</span>
+              <span>scrypt-sealed on the server · PBKDF2 on this device</span>
             </div>
             <div className="login__spec-row">
-              <span className="label">cost</span>
-              <span>nothing</span>
+              <span className="label">sync</span>
+              <span>your ledger, when the backend is reachable</span>
             </div>
           </div>
         </div>
@@ -234,8 +317,9 @@ export function Login({ onDone }: { onDone: () => void }) {
           </h1>
 
           <p className="login__sub" data-login-line>
-            Sign in to open your ledger. Tasks, energy, streaks and growth are
-            scoped to your signal and kept on this device.
+            Sign in to open your ledger. A hard passphrase is the only key —
+            new accounts must pass the strength bar, returning ones must
+            repeat it.
           </p>
 
           <form
@@ -275,6 +359,45 @@ export function Login({ onDone }: { onDone: () => void }) {
               />
             </label>
 
+            <label className="entry login__entry login__entry--pw">
+              <span className="label">Passphrase</span>
+              <span className="login__pwbox">
+                <span className="login__pw">
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value.slice(0, PASSWORD_MAX))}
+                    placeholder="12+ chars · upper · lower · digit · symbol"
+                    maxLength={PASSWORD_MAX}
+                    autoComplete="current-password"
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    disabled={phase !== "idle"}
+                  />
+                  <button
+                    type="button"
+                    className="login__pw-eye label"
+                    onClick={() => setShowPw((v) => !v)}
+                    tabIndex={-1}
+                    aria-label={showPw ? "Hide passphrase" : "Show passphrase"}
+                  >
+                    {showPw ? "hide" : "show"}
+                  </button>
+                </span>
+                <span className="login__meter" data-level={meterLabel} aria-hidden="true">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <i key={i} />
+                  ))}
+                </span>
+                <span className="login__policy" data-ok={policy.ok || undefined}>
+                  {policy.ok
+                    ? "passphrase meets the bar — hard, and yours alone"
+                    : `needs: ${policy.problems.join(" · ")}`}
+                </span>
+              </span>
+            </label>
+
             <div className="login__submit">
               <button
                 type="submit"
@@ -302,7 +425,7 @@ export function Login({ onDone }: { onDone: () => void }) {
           </form>
 
           <p className="login__foot label" data-login-line>
-            no-password sign-in · sealed to your signal · synced when a
+            hard password required · sealed to your signal · synced when a
             backend answers
           </p>
         </div>

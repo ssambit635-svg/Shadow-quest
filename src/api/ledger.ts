@@ -17,6 +17,7 @@
 import { ApiError } from "./transport";
 import { sanitizeHabits, type Habit } from "../lib/habits";
 import { sanitizeTasks, type Profile, type Task } from "../lib/todo";
+import { scopeOf } from "../lib/auth";
 import type { LeaderRow } from "./types";
 
 const BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api").replace(
@@ -94,7 +95,13 @@ export function reprobeBackend(): void {
 
 interface SigninResponse {
   token: string;
-  user: { id?: string; handle?: string; email?: string; createdAt?: number };
+  user: {
+    id?: string;
+    handle?: string;
+    email?: string;
+    createdAt?: number;
+    role?: "operator" | "admin";
+  };
 }
 
 const signinCache = new Map<string, Promise<string | null>>();
@@ -131,6 +138,212 @@ export function ensureSignedIn(
 function authHeaders(scope: string): Record<string, string> | null {
   const token = storedToken(scope);
   return token ? { authorization: `Bearer ${token}` } : null;
+}
+
+/* ------------------------------------------------------------------ *
+ * password sign-in — the gate's backend check
+ * ------------------------------------------------------------------ */
+
+export type SigninMode = "created" | "verified" | "sealed";
+
+export interface SigninResult {
+  token: string;
+  mode: SigninMode;
+  role: "operator" | "admin";
+  id?: string;
+}
+
+/** A sign-in the server actively refused — each code maps to one UI line. */
+export class PasswordError extends Error {
+  code: "wrong-password" | "weak" | "throttled" | "closed" | "unreachable";
+  constructor(code: PasswordError["code"]) {
+    super(code);
+    this.code = code;
+  }
+}
+
+/**
+ * Ask the backend to create / verify / seal the account with the given
+ * password. Throws PasswordError for refusals; resolves null only when the
+ * backend is unreachable (the caller falls back to the local verifier).
+ */
+export async function signInWithPassword(
+  identity: { handle: string; email: string },
+  password: string,
+): Promise<SigninResult | null> {
+  const ok = await backendReachable();
+  if (!ok) return null;
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/v1/auth/signin`, {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ handle: identity.handle, email: identity.email, password }),
+    });
+  } catch {
+    return null;
+  }
+  if (res.status === 401) throw new PasswordError("wrong-password");
+  if (res.status === 429) throw new PasswordError("throttled");
+  if (res.status === 503) throw new PasswordError("closed");
+  if (res.status === 400 || res.status === 409) throw new PasswordError("weak");
+  if (!res.ok) throw new PasswordError("unreachable");
+  const raw = (await res.json().catch(() => null)) as SigninResponse & {
+    mode?: SigninMode;
+  } | null;
+  if (!raw?.token) throw new PasswordError("unreachable");
+  keepToken(scopeOf({ email: identity.email, handle: identity.handle, joinedAt: 0 }), raw.token);
+  return {
+    token: raw.token,
+    mode: raw.mode ?? "verified",
+    role: raw.user?.role === "admin" ? "admin" : "operator",
+    id: raw.user?.id,
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * admin — the control panel client
+ * ------------------------------------------------------------------ */
+
+const ADMIN_TOKEN_KEY = "sq.admin.token";
+const ADMIN_EXPIRY_KEY = "sq.admin.expiry";
+
+/** The admin token lives in sessionStorage only — it dies with the tab. */
+export function storedAdminToken(): string | null {
+  try {
+    const exp = Number(sessionStorage.getItem(ADMIN_EXPIRY_KEY) ?? 0);
+    if (exp && exp < Date.now()) {
+      sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+      sessionStorage.removeItem(ADMIN_EXPIRY_KEY);
+      return null;
+    }
+    return sessionStorage.getItem(ADMIN_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function keepAdminToken(token: string, expiresInMs: number): void {
+  try {
+    sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+    sessionStorage.setItem(ADMIN_EXPIRY_KEY, String(Date.now() + expiresInMs));
+  } catch {
+    /* volatile session only */
+  }
+}
+
+export function clearAdminToken(): void {
+  try {
+    sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+    sessionStorage.removeItem(ADMIN_EXPIRY_KEY);
+  } catch {
+    /* already gone */
+  }
+}
+
+/**
+ * Admin calls carry both identities: the operator token (x-sq-token, which
+ * `authed` reads) and the admin token (authorization, which the admin gate
+ * checks). Neither alone is enough.
+ */
+function adminHeaders(scope: string): Record<string, string> | null {
+  const userToken = storedToken(scope);
+  const adminToken = storedAdminToken();
+  if (!userToken || !adminToken) return null;
+  return { authorization: `Bearer ${adminToken}`, "x-sq-token": userToken };
+}
+
+export type ElevateResult =
+  | { ok: true }
+  | { ok: false; reason: "wrong-pin" | "throttled" | "denied" | "offline" };
+
+/** Present the PIN; on success the admin token is kept for this tab. */
+export async function elevateAdmin(scope: string, pin: string): Promise<ElevateResult> {
+  const headers = authHeaders(scope);
+  if (!headers) return { ok: false, reason: "offline" };
+  try {
+    const res = await fetch(`${BASE}/v1/admin/elevate`, {
+      method: "POST",
+      headers: { ...JSON_HEADERS, ...headers },
+      body: JSON.stringify({ pin }),
+    });
+    if (res.status === 401) return { ok: false, reason: "wrong-pin" };
+    if (res.status === 429) return { ok: false, reason: "throttled" };
+    if (!res.ok) return { ok: false, reason: "denied" };
+    const raw = (await res.json()) as { token?: string; expiresInMs?: number };
+    if (!raw?.token) return { ok: false, reason: "denied" };
+    keepAdminToken(raw.token, raw.expiresInMs ?? 6 * 60 * 60 * 1000);
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "offline" };
+  }
+}
+
+export interface AdminOverview {
+  totalUsers: number;
+  userCap: number;
+  active24h: number;
+  active7d: number;
+  signups: { date: string; count: number }[];
+  top: { handle: string; level: number; streak: number; progress: number }[];
+  store: string;
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  handle: string;
+  role: "operator" | "admin";
+  createdAt: number;
+  lastSeenAt: number;
+  level: number;
+  streak: number;
+  progress: number;
+  tasks: number;
+  hasPassword: boolean;
+}
+
+async function adminCall<T>(scope: string, path: string, init: RequestInit = {}): Promise<T | null> {
+  const headers = adminHeaders(scope);
+  if (!headers) return null;
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: { ...(init.body ? JSON_HEADERS : {}), ...headers, ...(init.headers ?? {}) },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function fetchAdminOverview(scope: string): Promise<AdminOverview | null> {
+  return adminCall<AdminOverview>(scope, "/v1/admin/overview");
+}
+
+export function fetchAdminUsers(
+  scope: string,
+  q = "",
+): Promise<{ items: AdminUserRow[]; total: number } | null> {
+  const query = q ? `?q=${encodeURIComponent(q)}` : "";
+  return adminCall<{ items: AdminUserRow[]; total: number }>(scope, `/v1/admin/users${query}`);
+}
+
+export async function adminDeleteUser(scope: string, email: string): Promise<boolean> {
+  const r = await adminCall<{ removed?: boolean }>(
+    scope,
+    `/v1/admin/users/${encodeURIComponent(email)}`,
+    { method: "DELETE" },
+  );
+  return r?.removed === true;
+}
+
+export async function adminRevokeAllSessions(scope: string): Promise<number | null> {
+  const r = await adminCall<{ revoked?: number }>(scope, "/v1/admin/sessions/revoke-all", {
+    method: "POST",
+  });
+  return typeof r?.revoked === "number" ? r.revoked : null;
 }
 
 /* ------------------------------------------------------------------ *
