@@ -234,16 +234,7 @@ export default function App() {
 
   return (
     <ReadyContext.Provider value={booted}>
-      <Boot
-        onDone={() => {
-          setBooted(true);
-          gsap.fromTo(
-            "#app-main",
-            { autoAlpha: 0 },
-            { autoAlpha: 1, duration: 0.9, ease: "brush", clearProps: "all" },
-          );
-        }}
-      />
+      <Boot onDone={() => setBooted(true)} />
 
       <div className="frame" />
       <div className="grain" />

@@ -7,6 +7,7 @@
  * points — lives behind the sign-in, in the real interface.
  */
 import { useEffect, useRef } from "react";
+import { MizuGuide } from "../components/MizuGuide";
 import { Hero } from "../sections/Hero";
 import { Ticker } from "../sections/Ticker";
 import { Way } from "../sections/Way";
@@ -66,6 +67,7 @@ export function Home({
       <Ticker tone="bone" />
       <Form />
       <Outro onEnter={onEnter} />
+      <MizuGuide onEnter={onEnter} />
     </div>
   );
 }

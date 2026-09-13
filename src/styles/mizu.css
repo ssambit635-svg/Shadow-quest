@@ -1,0 +1,102 @@
+/* A self-contained, deliberately quiet corner companion. */
+.mizu {
+  --mizu-bg: #080e17;
+  --mizu-text: #e7eee9;
+  --mizu-dim: #9dadaf;
+  --mizu-accent: #9fe1d1;
+  position: fixed;
+  right: max(22px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 45;
+  width: min(380px, calc(100vw - 32px));
+  color: var(--mizu-text);
+  font-family: var(--font-body, sans-serif);
+  font-size: 14px;
+  line-height: 1.6;
+  pointer-events: none;
+}
+.mizu button, .mizu input { font: inherit; }
+.mizu button { cursor: pointer; }
+.mizu button:disabled { cursor: default; opacity: .5; }
+.mizu button:focus-visible, .mizu input:focus-visible {
+  outline: 2px solid var(--mizu-accent);
+  outline-offset: 3px;
+}
+.mizu__panel {
+  pointer-events: auto;
+  margin-bottom: 12px;
+  background: var(--mizu-bg);
+  border: 1px solid #344d53;
+  border-radius: 20px;
+  box-shadow: 0 18px 65px #0006;
+  overflow: auto;
+  max-height: min(740px, calc(100dvh - 130px));
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #344d53 var(--mizu-bg);
+  animation: mizu-arrive .35s ease-out both;
+}
+.mizu__header { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 20px 20px 0; }
+.mizu__eyebrow { color: var(--mizu-accent); font-size: 9px; letter-spacing: .16em; }
+.mizu__header h2 { margin: 5px 0 0; font: 500 21px/1.3 var(--font-display, sans-serif); text-transform: none; letter-spacing: -.02em; color: var(--mizu-text); }
+.mizu__icon { background: #ffffff08; border: 1px solid #ffffff15; border-radius: 50%; color: var(--mizu-dim); min-width: 36px; min-height: 36px; font-size: 23px !important; line-height: 1; }
+.mizu__body { display: grid; grid-template-columns: 95px minmax(0, 1fr); gap: 12px; align-items: start; padding: 18px 20px 12px; }
+.mizu__portrait { position: sticky; top: 12px; }
+.mizu__portrait img { width: 95px; height: 148px; object-fit: contain; border-radius: 16px; }
+.mizu__name { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 12px; color: var(--mizu-accent); }
+.mizu__name > span { color: var(--mizu-dim); margin-left: 4px; }
+.mizu__name i, .mizu__launcher small i { width: 5px; height: 5px; display: inline-block; border-radius: 50%; background: var(--mizu-accent); }
+.mizu__message { margin: 0; font-size: 13px; line-height: 1.75; color: var(--mizu-text); }
+.mizu__question { color: var(--mizu-accent); font-size: 12px; margin: 0 0 10px; padding: 8px 10px; border-radius: 8px; background: #9fe1d10c; overflow-wrap: anywhere; }
+.mizu__voice-row { display: flex; align-items: center; justify-content: space-between; padding: 0 20px 14px; gap: 12px; }
+.mizu__listen { border: 1px solid #9fe1d13d; background: #9fe1d10c; color: var(--mizu-accent); border-radius: 999px; padding: 8px 14px; min-height: 40px; font-size: 12px !important; }
+.mizu__listen > span { display: inline-block; width: 17px; }
+.mizu__mute, .mizu__quiet, .mizu__app-link { background: none; border: 0; color: var(--mizu-dim); padding: 10px 0; font-size: 12px !important; }
+.mizu__mute[aria-pressed="true"] { color: var(--mizu-accent); }
+.mizu__intro-actions { padding: 0 20px; display: grid; }
+.mizu__primary { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 0; border-radius: 10px; background: var(--mizu-accent); color: #10262b; font-weight: 600 !important; }
+.mizu__topics { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 0 20px 14px; }
+.mizu__topics button { background: #ffffff04; border: 1px solid #ffffff20; color: var(--mizu-text); border-radius: 9px; padding: 9px 8px; min-height: 40px; font-size: 12px; text-align: left; }
+.mizu__topics button:hover, .mizu__icon:hover { border-color: var(--mizu-accent); background: #9fe1d114; }
+.mizu__form { margin: 0 20px; padding: 5px; display: flex; gap: 5px; border: 1px solid #344d53; border-radius: 10px; }
+.mizu__form input { min-width: 0; flex: 1; border: 0; background: transparent; color: var(--mizu-text); padding: 6px; font-size: 12px; }
+.mizu__form input::placeholder { color: var(--mizu-dim); opacity: 1; }
+.mizu__form button { flex-shrink: 0; width: 36px; height: 36px; border: 0; background: var(--mizu-accent); color: #10262b; border-radius: 7px; font-size: 20px; }
+.mizu__app-link { display: block; margin: 0 auto; color: var(--mizu-accent); }
+.mizu__disclosure { padding: 12px 16px; margin-top: 2px; border-top: 1px solid #ffffff10; font-size: 9px; color: var(--mizu-dim); text-align: center; letter-spacing: .01em; }
+.mizu__error { color: #f4cd96; padding: 0 20px 12px; font-size: 12px; margin: 0; }
+.mizu__launcher { pointer-events: auto; margin-left: auto; display: flex; align-items: center; gap: 10px; padding: 5px 15px 5px 7px; border: 1px solid #344d53; border-radius: 18px; background: var(--mizu-bg); color: var(--mizu-text); box-shadow: 0 8px 30px #0004; text-align: left; transition: border-color .2s; }
+.mizu__launcher:hover { border-color: var(--mizu-accent); }
+.mizu__launcher img { width: 45px; height: 52px; object-fit: cover; object-position: center 18%; border-radius: 12px; }
+.mizu__launcher > span { font-size: 13px; }
+.mizu__launcher small { display: block; color: var(--mizu-dim); font-size: 9px; }
+.mizu__launcher small i { margin-right: 4px; }
+.mizu__launcher-mark { margin-left: 8px; color: var(--mizu-accent); font-size: 21px !important; }
+.mizu--speaking .mizu__name i { animation: mizu-speaking 1s ease-in-out infinite alternate; }
+@keyframes mizu-arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mizu-speaking { from { opacity: .4; } to { opacity: 1; } }
+@media (max-width: 600px) {
+  /* Anchor to viewport units, not the landing page's scrollable overflow.
+     Mobile Chromium can otherwise place a fixed right/bottom corner offscreen. */
+  .mizu {
+    right: auto;
+    bottom: auto;
+    left: max(12px, env(safe-area-inset-left), calc(100vw - 372px));
+    top: calc(100dvh - max(12px, env(safe-area-inset-bottom)));
+    transform: translateY(-100%);
+    width: min(360px, calc(100vw - 24px));
+  }
+  .mizu__panel { max-height: calc(100dvh - 108px); }
+  .mizu__header { padding: 16px 16px 0; }
+  .mizu__body { padding: 14px 16px 12px; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; }
+  .mizu__portrait img { width: 72px; height: 114px; }
+  .mizu__form input { font-size: 16px; }
+  .mizu__launcher { padding-block: 3px; }
+  .mizu__launcher img { height: 44px; width: 38px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mizu *, .mizu *::before, .mizu *::after { animation: none !important; transition: none !important; }
+}
+.mizu__transcript { margin-top: 10px; color: var(--mizu-dim); font-size: 11px; }
+.mizu__transcript summary { cursor: pointer; color: var(--mizu-accent); }
+.mizu__transcript p { margin: 8px 0 0; }
