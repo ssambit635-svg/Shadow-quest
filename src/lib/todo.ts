@@ -269,19 +269,76 @@ export function seedTasks(): Task[] {
   ];
 }
 
+const num = (v: unknown, fallback: number): number =>
+  typeof v === "number" && Number.isFinite(v) ? v : fallback;
+const str = (v: unknown, fallback = ""): string => (typeof v === "string" ? v : fallback);
+
+const PRIORITIES: TaskPriority[] = ["low", "medium", "high", "critical"];
+const DIFFICULTIES: TaskDifficulty[] = ["trivial", "easy", "normal", "hard", "major"];
+const STATUSES: TaskStatus[] = ["pending", "in-progress", "completed", "overdue"];
+const FACTOR_KEYS = Object.keys(LIFE_FACTOR_META) as LifeFactor[];
+
+/**
+ * Repair one stored task.
+ *
+ * The ledger is read on every mount and rendered straight off the result, so
+ * a row that lost its title or arrived as a bare number used to take the list
+ * down. Rows that cannot be repaired are dropped; the rest are coerced back
+ * into shape.
+ */
+function toTask(raw: unknown): Task | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const id = str(r.id).trim();
+  const title = str(r.title).trim();
+  if (!id || !title) return null;
+  return {
+    id: id.slice(0, 64),
+    title: title.slice(0, 200),
+    description: typeof r.description === "string" ? r.description.slice(0, 2000) : undefined,
+    priority: PRIORITIES.includes(r.priority as TaskPriority)
+      ? (r.priority as TaskPriority)
+      : "medium",
+    difficulty: DIFFICULTIES.includes(r.difficulty as TaskDifficulty)
+      ? (r.difficulty as TaskDifficulty)
+      : "normal",
+    dueDate: typeof r.dueDate === "string" ? r.dueDate.slice(0, 10) : undefined,
+    daily: r.daily === true,
+    factors: Array.isArray(r.factors)
+      ? (r.factors as unknown[])
+          .map((f): LifeFactorGain | null => {
+            if (!f || typeof f !== "object") return null;
+            const e = f as Record<string, unknown>;
+            if (!FACTOR_KEYS.includes(e.factor as LifeFactor)) return null;
+            return { factor: e.factor as LifeFactor, amount: Math.max(0, Math.round(num(e.amount, 1))) };
+          })
+          .filter((f): f is LifeFactorGain => f !== null)
+      : [],
+    progress: Math.max(0, Math.round(num(r.progress, 0))),
+    rewardPoints: Math.max(0, Math.round(num(r.rewardPoints, 0))),
+    status: STATUSES.includes(r.status as TaskStatus) ? (r.status as TaskStatus) : "pending",
+    createdAt: num(r.createdAt, Date.now()),
+    completedAt: typeof r.completedAt === "number" ? r.completedAt : undefined,
+    category: typeof r.category === "string" ? r.category.slice(0, 64) : undefined,
+  };
+}
+
 export function loadTasks(scope: string): Task[] {
   try {
     const raw = localStorage.getItem(tasksKey(scope));
     if (raw) {
-      const parsed = JSON.parse(raw) as Task[];
-      // Update overdue statuses
-      const today = todayISO();
-      return parsed.map((t) => {
-        if (t.status === "pending" && t.dueDate && dayDiff(today, t.dueDate) < 0) {
-          return { ...t, status: "overdue" as TaskStatus };
-        }
-        return t;
-      });
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const tasks = parsed.map(toTask).filter((t): t is Task => t !== null);
+        // Update overdue statuses
+        const today = todayISO();
+        return tasks.map((t) => {
+          if (t.status === "pending" && t.dueDate && dayDiff(today, t.dueDate) < 0) {
+            return { ...t, status: "overdue" as TaskStatus };
+          }
+          return t;
+        });
+      }
     }
   } catch {
     /* ignore */
@@ -297,17 +354,62 @@ export function saveTasks(scope: string, tasks: Task[]) {
   }
 }
 
+/**
+ * Merge a stored profile over the defaults, field by field.
+ *
+ * A shallow spread is not enough here: `{ ...defaultProfile(), ...parsed }`
+ * lets a stored `factors: null` *replace* the default factor table, and every
+ * screen that reads `profile.factors.knowledge` then throws. Nested objects
+ * are merged and every number is coerced, so a partially-written record
+ * degrades to defaults instead of taking the character sheet with it.
+ */
+function repairProfile(parsed: unknown): Profile {
+  const d = defaultProfile();
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return d;
+  const r = parsed as Record<string, unknown>;
+
+  const factors = { ...d.factors };
+  if (r.factors && typeof r.factors === "object" && !Array.isArray(r.factors)) {
+    for (const k of FACTOR_KEYS) {
+      const v = (r.factors as Record<string, unknown>)[k];
+      if (typeof v === "number" && Number.isFinite(v)) factors[k] = Math.max(0, Math.round(v));
+    }
+  }
+
+  const rank = GROWTH_RANKS.includes(str(r.growthRank)) ? str(r.growthRank) : d.growthRank;
+
+  return {
+    ...d,
+    handle: str(r.handle, d.handle).slice(0, 32),
+    lifeLevel: Math.max(1, Math.round(num(r.lifeLevel, d.lifeLevel))),
+    totalProgress: Math.max(0, Math.round(num(r.totalProgress, 0))),
+    levelProgress: Math.max(0, Math.round(num(r.levelProgress, 0))),
+    progressToNext: Math.max(1, Math.round(num(r.progressToNext, d.progressToNext))),
+    growthRank: rank,
+    rewardPoints: Math.max(0, Math.round(num(r.rewardPoints, 0))),
+    energy: num(r.energy, d.energy),
+    energyMax: Math.max(1, num(r.energyMax, d.energyMax)),
+    streak: Math.max(0, Math.round(num(r.streak, 0))),
+    longestStreak: Math.max(0, Math.round(num(r.longestStreak, 0))),
+    factors,
+    skills: Array.isArray(r.skills)
+      ? (r.skills as unknown[]).filter((s): s is string => typeof s === "string").slice(0, 64)
+      : d.skills,
+    focusArea: str(r.focusArea, d.focusArea).slice(0, 64),
+    tasksCompleted: Math.max(0, Math.round(num(r.tasksCompleted, 0))),
+    todayCompleted: Math.max(0, Math.round(num(r.todayCompleted, 0))),
+    lastActiveDate: str(r.lastActiveDate) || undefined,
+  };
+}
+
 export function loadProfile(scope: string): Profile {
   try {
     const raw = localStorage.getItem(profileKey(scope));
     if (raw) {
-      const parsed = JSON.parse(raw) as Profile;
+      const p = repairProfile(JSON.parse(raw));
       // Reset today count if date changed
-      const today = todayISO();
-      if (parsed.lastActiveDate !== today) {
-        parsed.todayCompleted = 0;
-      }
-      return { ...defaultProfile(), ...parsed };
+      if (p.lastActiveDate !== todayISO()) p.todayCompleted = 0;
+      return p;
     }
   } catch {
     /* ignore */

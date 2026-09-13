@@ -41,7 +41,10 @@ export function SessionRing({
 }) {
   const dir = countsUp ? "up" : "down";
   const arc = C * OPEN;
-  const offset = arc * (1 - fraction);
+  // The arc is geometry: a non-finite or out-of-range fraction would write a
+  // NaN `stroke-dashoffset` and the ensō would simply stop being drawn.
+  const f = Number.isFinite(fraction) ? Math.min(1, Math.max(0, fraction)) : 0;
+  const offset = arc * (1 - f);
 
   return (
     <div

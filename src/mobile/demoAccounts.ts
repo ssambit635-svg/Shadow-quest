@@ -67,9 +67,18 @@ export function readProvider(): AuthProvider | null {
   try {
     const raw = localStorage.getItem(PROVIDER_KEY);
     if (!raw) return null;
-    const p = JSON.parse(raw) as AuthProvider;
-    if (!p || (p.kind !== "google" && p.kind !== "local")) return null;
-    return p;
+    const p = JSON.parse(raw) as Partial<AuthProvider> | null;
+    if (!p || typeof p !== "object") return null;
+    if (p.kind !== "google" && p.kind !== "local") return null;
+    // Only the fields this app wrote, and only in the shapes it expects. A
+    // marker written by an older build or edited by hand must not smuggle
+    // anything into Profile, which renders `at` as a date.
+    return {
+      kind: p.kind,
+      accountId: typeof p.accountId === "string" ? p.accountId.slice(0, 64) : undefined,
+      at:
+        typeof p.at === "number" && Number.isFinite(p.at) && p.at > 0 ? p.at : Date.now(),
+    };
   } catch {
     return null;
   }

@@ -97,17 +97,93 @@ function load(): FocusSessionState | null {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
-    const s = JSON.parse(raw) as FocusSessionState;
-    if (!s || typeof s.techniqueId !== "string" || !s.phase) return null;
-    return s;
+    return toSession(JSON.parse(raw));
   } catch {
     return null;
   }
 }
 
+const PHASES: SessionPhase[] = ["focus", "rest", "done"];
+const LOG_KINDS: SessionLogLine["kind"][] = ["focus", "rest", "system", "task"];
+
+const n = (v: unknown, fallback: number): number =>
+  typeof v === "number" && Number.isFinite(v) ? v : fallback;
+const nullable = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v) ? v : null;
+
+/**
+ * Rebuild a stored session, repairing every field.
+ *
+ * This record is written on every mutation and read on every mount, and the
+ * room renders straight off it. A half-written or hand-edited copy used to
+ * reach the ensō intact — `log` as a string took the whole room down with
+ * `log.filter is not a function`, and a null `phaseLenMs` put `NaN:NaN` on the
+ * clock face. Anything unusable is replaced with the technique's own default
+ * rather than dropped, so a damaged session resumes instead of vanishing.
+ */
+function toSession(raw: unknown): FocusSessionState | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.techniqueId !== "string") return null;
+
+  const t = techniqueOf(r.techniqueId);
+  const phase = PHASES.includes(r.phase as SessionPhase) ? (r.phase as SessionPhase) : "focus";
+  const cycles = Math.max(1, Math.round(n(r.cycle, 1)));
+  // A flow block has no scheduled length, so its default is the cap.
+  const defaultLen = (t.focusMin ?? t.capMin ?? FLOW_CAP_MIN) * MIN;
+  const lenMs = Math.max(MIN, Math.round(n(r.phaseLenMs, defaultLen)));
+  const log = Array.isArray(r.log)
+    ? (r.log.slice(-200) as unknown[])
+        .map((l): SessionLogLine | null => {
+          if (!l || typeof l !== "object") return null;
+          const e = l as Record<string, unknown>;
+          return {
+            id: typeof e.id === "string" ? e.id : makeId(),
+            at: n(e.at, Date.now()),
+            kind: LOG_KINDS.includes(e.kind as SessionLogLine["kind"])
+              ? (e.kind as SessionLogLine["kind"])
+              : "system",
+            text: typeof e.text === "string" ? e.text.slice(0, 400) : "",
+          };
+        })
+        .filter((l): l is SessionLogLine => l !== null)
+    : [];
+
+  // A record that claims to be running but has lost the instant its phase
+  // ends cannot be settled honestly — there is no way to know how much of the
+  // block actually passed. Sit the operator down at a full, paused block
+  // rather than letting the clock resolve to zero and skip the phase.
+  const endsAt = nullable(r.phaseEndsAt);
+  const pausedMs = nullable(r.pausedMs);
+  const running = r.running === true && (endsAt !== null || pausedMs !== null);
+
+  return {
+    techniqueId: t.id,
+    phase,
+    cycle: cycles,
+    cyclesDone: Math.max(0, Math.round(n(r.cyclesDone, 0))),
+    running,
+    phaseLenMs: lenMs,
+    phaseEndsAt: running ? endsAt : null,
+    pausedMs: running ? pausedMs : pausedMs ?? lenMs,
+    flowBankMs: Math.max(0, n(r.flowBankMs, 0)),
+    flowStartedAt: running ? nullable(r.flowStartedAt) : null,
+    focusMs: Math.max(0, n(r.focusMs, 0)),
+    restMs: Math.max(0, n(r.restMs, 0)),
+    taskId: typeof r.taskId === "string" ? r.taskId : null,
+    sealed: Math.max(0, Math.round(n(r.sealed, 0))),
+    log,
+    startedAt: n(r.startedAt, Date.now()),
+  };
+}
+
 function save(s: FocusSessionState | null) {
-  if (s) localStorage.setItem(KEY, JSON.stringify(s));
-  else localStorage.removeItem(KEY);
+  try {
+    if (s) localStorage.setItem(KEY, JSON.stringify(s));
+    else localStorage.removeItem(KEY);
+  } catch {
+    /* storage refused: the room keeps working, it just will not wait */
+  }
 }
 
 function line(kind: SessionLogLine["kind"], text: string): SessionLogLine {
@@ -124,7 +200,8 @@ function line(kind: SessionLogLine["kind"], text: string): SessionLogLine {
  * classic "the writing doesn't match the timing" bug.
  */
 export function mmss(ms: number, dir: "down" | "up" = "down"): string {
-  const safe = Math.max(0, ms);
+  // Non-finite input must read as zero, never "NaN:NaN" on the clock face.
+  const safe = Math.max(0, Number.isFinite(ms) ? ms : 0);
   const total = dir === "up" ? Math.floor(safe / 1000) : Math.ceil(safe / 1000);
   const m = Math.floor(total / 60);
   const s = total % 60;

@@ -80,15 +80,37 @@ deletes a ledger.
 ## Design system
 
 `styles/mobile-ui.css`. Every selector is scoped under `.m-app` or `.m-login`
-and it references no desktop token, so it cannot reach the other face. Deep
-ink over navy, one blue→violet accent pair, gold reserved for reward, hairline
+and it references no desktop token, so it cannot reach the other face. It is a
+separate *layout* language, not a separate palette: warm sumi ink, bone light,
+vermilion as the one action colour and aged brass as the one data colour, with
+gold reserved for reward — the same four colours the desktop uses. Hairline
 borders, glow as punctuation. Reduced motion is honoured throughout.
+
+`--m-vio` keeps its historical name so the tone attributes already in the
+markup (`data-tone="violet"`, `.fx__line--factor`) do not have to move; the
+value it holds is brass.
+
+## Hardening
+
+Everything this face reads out of `localStorage` is treated as untrusted.
+Storage is shared with any script on the origin and outlives every release, so
+a record can be stale, half-written or hand-edited — and one bad field used to
+be enough to white-screen the app with no way back to the gate. Each reader
+(`lib/auth`, `mobile/squad`, `lib/todo`, `hooks/useFocusSession`,
+`mobile/demoAccounts`) validates and repairs instead of casting.
+
+Sign-in additionally caps and strips what it accepts: an address is capped at
+RFC 5321's 254 octets and lowercased *before* the data scope is derived from
+it, and a display name has control characters, bidi overrides and angle
+brackets removed. A browser that refuses storage still signs the operator in
+for the session instead of throwing.
 
 ## Verifying it
 
 ```
 npm run smoke          # the desktop face, unchanged
 npm run smoke:mobile   # the phone face, end to end
+node scripts/audit.mjs # crash + hardening probes against the built bundle
 ```
 
 `smoke-mobile.mjs` boots the built bundle at 420×860 in happy-dom and walks
@@ -96,3 +118,13 @@ the real thing: the demo Google gate, the ledger, a task completion and the
 reward beat it produces, the character sheet, rewards, the squad formation,
 and the dock. It asserts against `localStorage`, so a number that fails to
 persist fails the test.
+
+`audit.mjs` is the adversarial half. It boots the same bundle in a fresh
+window per scenario, seeds `localStorage` with hostile or corrupt state, and
+reports whether the app survived: a 20k-character address, markup in a display
+name, a hand-edited identity record, `A@B.com` against `a@b.com`, a browser
+that refuses storage, four shapes of broken squad data, a broken persisted
+Deep Work session under the ensō, and a zeroed profile under the character
+sheet's radar. It also measures what idle actually costs — rAF callbacks per
+frame, in an isolated process so GSAP's shared ticker is not credited with
+tweens from earlier boots. Run one group with `node scripts/audit.mjs circle`.

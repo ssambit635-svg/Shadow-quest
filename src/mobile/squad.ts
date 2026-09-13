@@ -11,8 +11,8 @@
  * so whoever you sign in as, the friends already in your squad are people
  * you have seen on the account chooser.
  */
-import { scopeOf, type User } from "../lib/auth";
-import { GROWTH_RANKS, type LifeFactor } from "../lib/todo";
+import { scopeOf, normalizeHandle, type User } from "../lib/auth";
+import { GROWTH_RANKS, LIFE_FACTOR_META, type LifeFactor } from "../lib/todo";
 
 export type SquadRole = "captain" | "vanguard" | "support" | "scout";
 
@@ -194,7 +194,7 @@ function seedSquad(user: User): Squad {
     nameJa: "己",
     handle: user.handle.toLowerCase().replace(/\s+/g, ""),
     email: user.email,
-    hue: 232,
+    hue: 6,
     level: 1,
     rank: GROWTH_RANKS[0],
     streak: 0,
@@ -216,13 +216,96 @@ function seedSquad(user: User): Squad {
   };
 }
 
+/** One Life Factor, or the default when the stored value is not one. Derived
+ *  from the engine's own table so the two lists cannot drift apart. */
+const FACTORS = Object.keys(LIFE_FACTOR_META) as LifeFactor[];
+
+const num = (v: unknown, fallback = 0): number =>
+  typeof v === "number" && Number.isFinite(v) ? v : fallback;
+
+const str = (v: unknown, fallback = ""): string => (typeof v === "string" ? v : fallback);
+
+/**
+ * Repair one stored member row.
+ *
+ * Storage here is shared with every script on the origin and outlives every
+ * release, so a row can arrive missing, half-typed or as a bare number. The
+ * old guard only checked that `members` was a non-empty array, which let
+ * `[1,2,3]` through and took the screen down on the first `m.name.trim()`.
+ * Anything that cannot be repaired is dropped rather than rendered.
+ */
+function toMember(raw: unknown): SquadMember | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const name = str(r.name).trim();
+  const id = str(r.id).trim();
+  if (!name || !id) return null;
+  const role = FORMATION_ORDER.includes(r.role as SquadRole) ? (r.role as SquadRole) : null;
+  const strength = FACTORS.includes(r.strength as LifeFactor)
+    ? (r.strength as LifeFactor)
+    : "discipline";
+  return {
+    id: id.slice(0, 64),
+    name: name.slice(0, 64),
+    nameJa: str(r.nameJa).slice(0, 32),
+    handle: str(r.handle).slice(0, 64),
+    email: str(r.email).slice(0, 254),
+    hue: num(r.hue, 232) % 360,
+    level: Math.max(0, Math.round(num(r.level, 1))),
+    rank: str(r.rank, GROWTH_RANKS[0]).slice(0, 8),
+    streak: Math.max(0, Math.round(num(r.streak))),
+    focusArea: str(r.focusArea, "General Development").slice(0, 64),
+    strength,
+    weeklyPoints: Math.max(0, Math.round(num(r.weeklyPoints))),
+    online: r.online !== false,
+    self: r.self === true,
+    role,
+    joinedAt: num(r.joinedAt, Date.now()),
+  };
+}
+
+/**
+ * Validate a whole squad, keeping whatever is salvageable. Slot collisions are
+ * resolved in favour of the first holder so the formation can never render two
+ * members in one seat.
+ */
+function toSquad(raw: unknown): Squad | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  if (!Array.isArray(r.members)) return null;
+
+  const seen = new Set<string>();
+  const taken = new Set<SquadRole>();
+  const members: SquadMember[] = [];
+  for (const row of r.members) {
+    const m = toMember(row);
+    if (!m || seen.has(m.id)) continue;
+    if (m.role && taken.has(m.role)) m.role = null;
+    if (m.role) taken.add(m.role);
+    seen.add(m.id);
+    members.push(m);
+  }
+  if (!members.length) return null;
+
+  return {
+    name: str(r.name, "Kage Unit").slice(0, 28),
+    nameJa: str(r.nameJa, "影部隊").slice(0, 16),
+    motto: str(r.motto).slice(0, 64),
+    createdAt: num(r.createdAt, Date.now()),
+    members,
+    invites: Array.isArray(r.invites)
+      ? r.invites.filter((i): i is string => typeof i === "string").slice(0, 32)
+      : [],
+  };
+}
+
 export function loadSquad(user: User): Squad {
   const scope = scopeOf(user);
   try {
     const raw = localStorage.getItem(key(scope));
     if (raw) {
-      const s = JSON.parse(raw) as Squad;
-      if (s && Array.isArray(s.members) && s.members.length) return syncSelf(s, user);
+      const s = toSquad(JSON.parse(raw));
+      if (s) return syncSelf(s, user);
     }
   } catch {
     /* fall through to a seed */
@@ -235,15 +318,48 @@ export function loadSquad(user: User): Squad {
 /**
  * The operator's own row is always rebuilt from their live profile rather
  * than trusted from storage — otherwise the squad would show a stale level
- * the moment they levelled up.
+ * the moment they levelled up. A record that has lost the operator's row
+ * entirely (hand-edited storage, an older seed) gets one back: a squad the
+ * owner is not standing in is not their squad.
  */
 export function syncSelf(s: Squad, user: User): Squad {
-  return {
-    ...s,
-    members: s.members.map((m) =>
-      m.self ? { ...m, name: user.handle, handle: user.handle.toLowerCase().replace(/\s+/g, ""), email: user.email } : m,
-    ),
-  };
+  const handle = normalizeHandle(user.handle, user.email);
+  let found = false;
+  const members = s.members.map((m) => {
+    if (m.id === "self" || m.self) {
+      found = true;
+      return {
+        ...m,
+        id: "self",
+        self: true,
+        name: handle,
+        handle: handle.toLowerCase().replace(/\s+/g, ""),
+        email: user.email,
+      };
+    }
+    return { ...m, self: false };
+  });
+  if (!found) {
+    members.unshift({
+      id: "self",
+      name: handle,
+      nameJa: "己",
+      handle: handle.toLowerCase().replace(/\s+/g, ""),
+      email: user.email,
+      hue: 6,
+      level: 1,
+      rank: GROWTH_RANKS[0],
+      streak: 0,
+      focusArea: "General Development",
+      strength: "discipline",
+      weeklyPoints: 0,
+      online: true,
+      self: true,
+      role: null,
+      joinedAt: Date.now(),
+    });
+  }
+  return { ...s, members };
 }
 
 export function saveSquad(user: User, s: Squad): void {

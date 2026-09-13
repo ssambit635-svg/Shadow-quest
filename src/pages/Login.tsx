@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Sigil } from "../components/Sigil";
-import { login } from "../lib/auth";
+import { login, normalizeEmail, normalizeHandle } from "../lib/auth";
 import {
   brushReveal,
   gsap,
@@ -26,6 +26,11 @@ const STAGES = {
   granted: "gate open",
   refused: "signal refused — check your details",
 };
+
+/** RFC 5321's ceiling for an address; the design gives a name 32 characters. */
+const MAX_EMAIL = 254;
+const MAX_HANDLE = 32;
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function Login({ onDone }: { onDone: () => void }) {
   const root = useRef<HTMLElement>(null);
@@ -118,7 +123,10 @@ export function Login({ onDone }: { onDone: () => void }) {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (phase === "verifying") return;
-    const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    // Normalise once, here: what is validated is exactly what gets written.
+    const cleanEmail = normalizeEmail(email);
+    const cleanName = normalizeHandle(name, cleanEmail);
+    const okEmail = EMAIL_SHAPE.test(cleanEmail);
     if (!name.trim() || !okEmail) {
       setRefused(true);
       setStatus(STAGES.refused);
@@ -147,7 +155,7 @@ export function Login({ onDone }: { onDone: () => void }) {
     const finish = () => {
       setPhase("granted");
       setStatus(STAGES.granted);
-      login(name, email);
+      login(cleanName, cleanEmail);
       // A beat for the word to land before the wipe swallows the page.
       window.setTimeout(onDone, REDUCED ? 60 : 420);
     };
@@ -241,9 +249,9 @@ export function Login({ onDone }: { onDone: () => void }) {
               <span className="label">Designation</span>
               <input
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.slice(0, MAX_HANDLE))}
                 placeholder="How the ledger calls you"
-                maxLength={32}
+                maxLength={MAX_HANDLE}
                 autoComplete="name"
                 spellCheck={false}
                 disabled={phase !== "idle"}
@@ -255,10 +263,14 @@ export function Login({ onDone }: { onDone: () => void }) {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value.slice(0, MAX_EMAIL))}
                 placeholder="you@domain"
+                maxLength={MAX_EMAIL}
                 autoComplete="email"
+                inputMode="email"
                 spellCheck={false}
+                autoCapitalize="none"
+                autoCorrect="off"
                 disabled={phase !== "idle"}
               />
             </label>
