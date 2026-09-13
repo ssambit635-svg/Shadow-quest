@@ -37,14 +37,17 @@ export function Boot({ onDone }: { onDone: () => void }) {
   const fillRef = useRef<HTMLSpanElement>(null);
   const ringsRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(
-    () => !sessionStorage.getItem(SEEN_KEY) && !REDUCED,
+    () => {
+      try { return !sessionStorage.getItem(SEEN_KEY) && !REDUCED; }
+      catch { return !REDUCED; }
+    },
   );
   const doneRef = useRef(false);
 
   const finish = () => {
     if (doneRef.current) return;
     doneRef.current = true;
-    sessionStorage.setItem(SEEN_KEY, "1");
+    try { sessionStorage.setItem(SEEN_KEY, "1"); } catch { /* Storage is optional. */ }
     setVisible(false);
     // The curtain locks the document for the length of its own run. Every way
     // out of it — the last frame, a skip, an unmount — has to hand the scroll
@@ -62,14 +65,22 @@ export function Boot({ onDone }: { onDone: () => void }) {
     }
 
     const counter = { v: 0 };
+    let displayedPercent = -1;
+    const setProgress = gsap.quickSetter(fillRef.current, "scaleX");
+    const setRingRotation = gsap.quickSetter(ringsRef.current, "rotation", "deg");
     const tl = gsap.timeline({
       defaults: { ease: "brush" },
       onComplete: finish,
     });
 
     // Stage line decodes in, then swaps words on the counter's way up.
+    let currentStage = "";
+    let stageTween: gsap.core.Tween | undefined;
     const setStage = (s: string) => {
-      if (stageRef.current) scrambleTo(stageRef.current, s, { duration: 0.4 });
+      if (s === currentStage) return;
+      currentStage = s;
+      stageTween?.kill();
+      if (stageRef.current) stageTween = scrambleTo(stageRef.current, s, { duration: 0.18 });
     };
 
     const ctx = gsap.context(() => {
@@ -88,18 +99,8 @@ export function Boot({ onDone }: { onDone: () => void }) {
           { autoAlpha: 1, duration: 0.6 },
           0,
         )
-        .fromTo(
-          "[data-boot-glyph]",
-          { autoAlpha: 0, y: 26, rotate: () => gsap.utils.random(-14, 14) },
-          { autoAlpha: 0.34, y: 0, rotate: 0, duration: 1.1, stagger: 0.05, ease: "power2.out" },
-          0.05,
-        )
-        .fromTo(
-          "[data-boot-ink]",
-          { autoAlpha: 0, scale: 0.4 },
-          { autoAlpha: 0.6, scale: 1, duration: 0.9, stagger: 0.05, ease: "power2.out" },
-          0.1,
-        )
+        // CSS alone owns particle transforms/opacity; GSAP only reveals them.
+        .set("[data-boot-glyph], [data-boot-ink]", { visibility: "visible" }, 0.05)
         // 1 — the ensō pulls itself in one breath, and a halo echoes out.
         .add(
           drawIn(ensoRef.current?.querySelector("path") ?? "", {
@@ -119,23 +120,22 @@ export function Boot({ onDone }: { onDone: () => void }) {
           {
             v: 100,
             duration: 1.55,
-            ease: "power1.in",
+            ease: "sine.inOut",
             onUpdate: () => {
               const p = Math.round(counter.v);
-              if (numRef.current) {
+              if (numRef.current && displayedPercent !== p) {
                 numRef.current.textContent = String(p).padStart(3, "0");
+                displayedPercent = p;
               }
-              if (fillRef.current) gsap.set(fillRef.current, { scaleX: p / 100 });
-              if (ringsRef.current) {
-                gsap.set(ringsRef.current, {
-                  rotate: (p / 100) * 240,
-                });
-              }
+              // Smooth sub-percent movement without allocating two tweens per frame.
+              setProgress(counter.v / 100);
+              setRingRotation((counter.v / 100) * 240);
               // The warm-up has five beats, announced by the decode line.
               if (p >= 84) setStage(STAGES[4]);
               else if (p >= 64) setStage(STAGES[3]);
               else if (p >= 44) setStage(STAGES[2]);
               else if (p >= 22) setStage(STAGES[1]);
+              else setStage(STAGES[0]);
             },
           },
           0.1,
@@ -153,13 +153,11 @@ export function Boot({ onDone }: { onDone: () => void }) {
             clipPath: "inset(0 0 100% 0)",
             autoAlpha: 0,
             scale: 2.1,
-            filter: "blur(14px)",
           },
           {
             clipPath: "inset(0 0 0% 0)",
             autoAlpha: 1,
             scale: 1,
-            filter: "blur(0px)",
             duration: 0.75,
             ease: "snap",
           },
@@ -210,16 +208,17 @@ export function Boot({ onDone }: { onDone: () => void }) {
           { opacity: 0, yPercent: -26, duration: 0.5, ease: "power2.in" },
           2.0,
         )
-        .to(rootRef.current, { pointerEvents: "none", duration: 0.01 }, 2.0)
+        .to("[data-boot-sky], .boot__glyphs, .boot__ink, [data-boot-blade]",
+          { opacity: 0, duration: 0.55, ease: "power2.out" }, 2.0)
         .add(() => {
           document.documentElement.style.overflow = "";
         }, 2.0);
     }, rootRef);
 
     // The stage line's first word + the brand decode in with the kanji.
-    gsap.delayedCall(0.5, () => setStage(STAGES[0]));
     const brand = rootRef.current?.querySelector<HTMLElement>("[data-boot-brand]");
-    if (brand) scrambleTo(brand, "SHADOWQUEST OS", { duration: 0.7 });
+    const brandTween = brand ? scrambleTo(brand, "SHADOWQUEST OS", { duration: 0.7 }) : undefined;
+    const safetyTimer = window.setTimeout(finish, 4500);
 
     // Any input dismisses it. A curtain that can't be skipped is a captive audience.
     const skip = () => {
@@ -231,6 +230,9 @@ export function Boot({ onDone }: { onDone: () => void }) {
     return () => {
       window.removeEventListener("pointerdown", skip);
       window.removeEventListener("keydown", skip);
+      window.clearTimeout(safetyTimer);
+      stageTween?.kill();
+      brandTween?.kill();
       ctx.revert();
       tl.kill();
       document.documentElement.style.overflow = "";
@@ -254,7 +256,7 @@ export function Boot({ onDone }: { onDone: () => void }) {
       {/* stray kanji, drifting like embers */}
       <div className="boot__glyphs" aria-hidden="true">
         {GLYPHS.map((g, i) => (
-          <span key={g} data-boot-glyph style={{ ["--gx" as string]: `${(i % 5) * 19 + 2}%`, ["--gd" as string]: `${(i * 1.7).toFixed(1)}s` }}>
+          <span key={g} data-boot-glyph style={{ ["--gx" as string]: `${(i % 5) * 19 + 2}%`, ["--gd" as string]: `${(7 + i * 0.7).toFixed(1)}s` }}>
             {g}
           </span>
         ))}

@@ -31,9 +31,7 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background:
-    radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--vermilion) 16%, transparent), transparent 60%),
-    var(--ink-900);
+  background: transparent;
   overflow: hidden;
   isolation: isolate;
 }
@@ -41,6 +39,8 @@
 /* — the atmosphere — */
 
 .boot__sky {
+  z-index: 1;
+  background: radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--vermilion) 16%, transparent), transparent 60%);
   position: absolute;
   inset: 0;
   visibility: hidden;
@@ -114,18 +114,20 @@
     transparent 100%
   );
   background-size: 100% 46vh;
+  will-change: transform;
   background-repeat: no-repeat;
   animation: boot-scan 4.6s ease-in-out infinite;
 }
 
 @keyframes boot-scan {
-  from { background-position: 0 -60vh; }
-  to { background-position: 0 130vh; }
+  from { transform: translateY(-60vh); }
+  to { transform: translateY(130vh); }
 }
 
 /* — stray kanji, drifting like embers — */
 
 .boot__glyphs {
+  z-index: 1;
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -154,6 +156,7 @@
 /* — rising ink — */
 
 .boot__ink {
+  z-index: 1;
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -350,7 +353,8 @@
   top: 0;
   bottom: 0;
   width: 20.2%;
-  z-index: 5;
+  z-index: 0;
+  will-change: transform;
   background: var(--ink-900);
   border-right: 1px solid color-mix(in srgb, var(--vermilion) 34%, transparent);
 }
@@ -667,7 +671,8 @@
   color: var(--bone-300);
 }
 
-.hero__title .rv-line {
+.hero__headline-line {
+  display: block;
   padding-block: 0.03em;
 }
 

@@ -24,9 +24,11 @@ export const prefs = {
   },
   /** Which shadow the landing roster is holding open (marketing page only). */
   shadow(): string | null {
-    return sessionStorage.getItem(KEY_SHADOW);
+    try { return sessionStorage.getItem(KEY_SHADOW); }
+    catch { return null; }
   },
   setShadow(id: string) {
-    sessionStorage.setItem(KEY_SHADOW, id);
+    try { sessionStorage.setItem(KEY_SHADOW, id); }
+    catch { /* A blocked preference store must not take down the homepage. */ }
   },
 };

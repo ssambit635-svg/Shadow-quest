@@ -10,13 +10,11 @@
 import { useEffect, useRef } from "react";
 import {
   attachWash,
-  brushReveal,
   CAN_HOVER,
   gsap,
   isNarrow,
   magnetic,
   REDUCED,
-  splitTo,
   wipeIn,
 } from "../lib/motion";
 import { useReady } from "../lib/ready";
@@ -26,20 +24,15 @@ const DUST = 14;
 
 export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void }) {
   const root = useRef<HTMLElement>(null);
-  const line1 = useRef<HTMLSpanElement>(null);
-  const line2 = useRef<HTMLSpanElement>(null);
   const plate = useRef<HTMLDivElement>(null);
   const strokeRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLButtonElement>(null);
   const ready = useReady();
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || REDUCED) return;
     const self = root.current;
     if (!self) return;
-
-    const s1 = splitTo(line1.current);
-    const s2 = splitTo(line2.current);
 
     let detachParallax: (() => void) | undefined;
     let detachMagnet: (() => void) | undefined;
@@ -55,8 +48,6 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
           { opacity: 1, y: 0, duration: 0.8, stagger: 0.08 },
           0,
         )
-        .add(brushReveal(s1, { stagger: 0.03 }), 0.15)
-        .add(brushReveal(s2, { stagger: 0.03 }), 0.3)
         // The vermilion slash draws itself under the title as the second
         // line lands — the cut that punctuates the statement.
         .fromTo(
@@ -155,13 +146,7 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
         ease: "none",
         scrollTrigger: { trigger: self, start: "top top", end: "bottom top", scrub: 0.8 },
       });
-      // Title lifts and fades as the section leaves — the argument exits up.
-      gsap.to("[data-hero-title]", {
-        yPercent: -18,
-        autoAlpha: 0.25,
-        ease: "none",
-        scrollTrigger: { trigger: self, start: "top top", end: "70% top", scrub: 0.5 },
-      });
+      // The headline is ordinary text: never split, hidden, or scroll-scrubbed.
       // The brush rule under the hero draws itself as the section leaves.
       gsap.fromTo(
         strokeRef.current,
@@ -226,8 +211,6 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
       detachMagnet?.();
       detachWash?.();
       ctx.revert();
-      s1?.revert();
-      s2?.revert();
     };
   }, [ready]);
 
@@ -258,11 +241,11 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
           </p>
 
           <h1 className="hero__title" data-hero-title>
-            <span className="rv-line">
-              <span ref={line1}>Real action.</span>
+            <span className="hero__headline-line">
+              <span>Real action.</span>
             </span>
-            <span className="rv-line hero__title-em">
-              <span ref={line2}>Real growth.</span>
+            <span className="hero__headline-line hero__title-em">
+              <span>Real growth.</span>
             </span>
             <span className="hero__slash" data-hero-slash aria-hidden="true" />
           </h1>
