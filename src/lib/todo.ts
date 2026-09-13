@@ -194,80 +194,7 @@ export function defaultProfile(): Profile {
   };
 }
 
-/** Seed with a few example tasks so the dashboard is never empty. */
-export function seedTasks(): Task[] {
-  const today = todayISO();
-  return [
-    {
-      id: makeId(),
-      title: "Complete Assignment / Project",
-      description: "Finish today's most important deep work task.",
-      priority: "high",
-      difficulty: "hard",
-      dueDate: today,
-      daily: false,
-      factors: [
-        { factor: "knowledge", amount: 4 },
-        { factor: "discipline", amount: 2 },
-      ],
-      progress: 100,
-      rewardPoints: 30,
-      status: "pending",
-      createdAt: Date.now() - 3600_000,
-      category: "Deep Work",
-    },
-    {
-      id: makeId(),
-      title: "30 Minute Workout",
-      description: "Strength or cardio — move the body.",
-      priority: "medium",
-      difficulty: "normal",
-      dueDate: today,
-      daily: true,
-      factors: [
-        { factor: "strength", amount: 4 },
-        { factor: "energy", amount: 2 },
-      ],
-      progress: 80,
-      rewardPoints: 20,
-      status: "pending",
-      createdAt: Date.now() - 7200_000,
-      category: "Health",
-    },
-    {
-      id: makeId(),
-      title: "Read for 30 Minutes",
-      description: "Book, article, or course material.",
-      priority: "medium",
-      difficulty: "easy",
-      dueDate: today,
-      daily: true,
-      factors: [
-        { factor: "knowledge", amount: 3 },
-        { factor: "focus", amount: 2 },
-      ],
-      progress: 60,
-      rewardPoints: 15,
-      status: "pending",
-      createdAt: Date.now() - 7200_000,
-      category: "Learning",
-    },
-    {
-      id: makeId(),
-      title: "Plan Tomorrow",
-      description: "Review today and set tomorrow's priorities.",
-      priority: "low",
-      difficulty: "trivial",
-      daily: true,
-      factors: [{ factor: "discipline", amount: 1 }],
-      progress: 30,
-      rewardPoints: 8,
-      status: "pending",
-      createdAt: Date.now() - 3600_000,
-      category: "Planning",
-    },
-  ];
-}
+
 
 const num = (v: unknown, fallback: number): number =>
   typeof v === "number" && Number.isFinite(v) ? v : fallback;
@@ -323,27 +250,33 @@ function toTask(raw: unknown): Task | null {
   };
 }
 
+/**
+ * Repair + overdue-sweep an arbitrary task array. Shared by the localStorage
+ * loader and the backend client, so wire data and stored data pass through
+ * exactly the same validation.
+ */
+export function sanitizeTasks(parsed: unknown): Task[] {
+  if (!Array.isArray(parsed)) return [];
+  const tasks = parsed.map(toTask).filter((t): t is Task => t !== null);
+  const today = todayISO();
+  return tasks.map((t) => {
+    if (t.status === "pending" && t.dueDate && dayDiff(today, t.dueDate) < 0) {
+      return { ...t, status: "overdue" as TaskStatus };
+    }
+    return t;
+  });
+}
+
 export function loadTasks(scope: string): Task[] {
   try {
     const raw = localStorage.getItem(tasksKey(scope));
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        const tasks = parsed.map(toTask).filter((t): t is Task => t !== null);
-        // Update overdue statuses
-        const today = todayISO();
-        return tasks.map((t) => {
-          if (t.status === "pending" && t.dueDate && dayDiff(today, t.dueDate) < 0) {
-            return { ...t, status: "overdue" as TaskStatus };
-          }
-          return t;
-        });
-      }
-    }
+    if (raw) return sanitizeTasks(JSON.parse(raw));
   } catch {
     /* ignore */
   }
-  return seedTasks();
+  // No seed data: a fresh ledger starts empty and fills with the
+  // operator's own goals — nothing hardcoded stands in for real work.
+  return [];
 }
 
 export function saveTasks(scope: string, tasks: Task[]) {
@@ -363,7 +296,7 @@ export function saveTasks(scope: string, tasks: Task[]) {
  * are merged and every number is coerced, so a partially-written record
  * degrades to defaults instead of taking the character sheet with it.
  */
-function repairProfile(parsed: unknown): Profile {
+export function repairProfile(parsed: unknown): Profile {
   const d = defaultProfile();
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return d;
   const r = parsed as Record<string, unknown>;

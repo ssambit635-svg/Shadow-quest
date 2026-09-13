@@ -1,0 +1,20 @@
+{
+  "name": "shadowquest-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "description": "ShadowQuest backend — Express + MongoDB. Persists real operator ledgers (profile, tasks, habits), serves the live leaderboard, per-operator stats and the people roster.",
+  "main": "src/index.mjs",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "dev": "node --watch src/index.mjs"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "mongodb": "^6.9.0"
+  }
+}

@@ -54,28 +54,42 @@ Squad is reached from Home and Profile rather than given a sixth tab.
 
 ## Data
 
-Nothing new is stored except the squad, and nothing calls a backend.
+The ledger is still device-local first, and it now also **syncs with the
+backend** (`server/`): `lib/sync.ts` pulls the stored ledger on load (the
+server copy wins when it is newer) and pushes a debounced write after every
+mutation. With no backend reachable, nothing throws — the face simply runs
+on the device copy.
 
 | Concern | Source |
 | --- | --- |
-| Tasks, profile, factors, streaks | `lib/todo` — unchanged, same storage keys |
+| Tasks, profile, factors, streaks | `lib/todo` — same storage keys, synced by `lib/sync.ts` |
 | Identity | `lib/auth` — unchanged |
 | Character sheet numbers | `mobile/stats.ts`, derived from `Profile` |
-| Squad and friends | `mobile/squad.ts`, `localStorage` `sq.squad.<scope>` |
+| Stats screen aggregates | `GET /v1/stats` when live, `lib/statsCalc.ts` otherwise |
+| Squad and friends | `mobile/squad.ts` local; people roster from `GET /v1/people` (real registrations, no seeded pool) |
 | Which provider signed you in | `sq.auth.provider.v1` |
 
 The character sheet is derived, never stored, so it cannot disagree with the
 ledger.
+
+### The Stats screen
+
+`#/app/stats` (tab id `stats`, reached from Home's **Go** grid and from
+Profile) is the phone face of the stats dashboard: rolling counters, the
+84-day activity field, weekly momentum, factor growth and where the points
+came from. It prefers the backend and labels its source in the header —
+*live from the ShadowQuest backend* or *device copy*.
 
 ## Sign-in
 
 Sign-in is local-first, so a Google sign-in needs no client id and no server:
 it is the same `login(handle, email)` call with the name and address an
 account chooser would have handed over. The three demo identities live in
-`mobile/demoAccounts.ts`, and whichever you do not pick is still in the pool
-the squad draws from. The provider is remembered separately so Profile can
-show it and offer to detach — detaching clears the marker only and never
-deletes a ledger.
+`mobile/demoAccounts.ts` and stay as they are — they are the sign-in's
+mock data, kept on purpose. The provider is remembered separately so Profile
+can show it and offer to detach — detaching clears the marker only and never
+deletes a ledger. After sign-in the sync layer registers the operator with
+the backend, so their ledger follows them between devices.
 
 ## Design system
 

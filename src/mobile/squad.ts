@@ -1,17 +1,17 @@
 /**
  * squad.ts — formation and friends.
  *
- * Frontend only, by design: ShadowQuest's ledger is local-first and there is
- * no social API behind it, so the squad is seeded, kept in localStorage next
- * to the rest of the operator's data, and shaped so a real endpoint can be
- * dropped in later without moving the UI. Every field the screens read is
- * declared on `SquadMember`; nothing reaches for a network.
+ * The squad holds REAL people only: the operator's own row plus whoever is
+ * actually registered on the backend (see fetchPeople in api/ledger and the
+ * SquadScreen that feeds it in). Nothing here is seeded — a fresh operator
+ * starts alone in their formation and adds real operators as they appear.
  *
- * The pool below is deliberately the same cast as the Google demo accounts,
- * so whoever you sign in as, the friends already in your squad are people
- * you have seen on the account chooser.
+ * Formation shape and storage stay local (it is the operator's own
+ * arrangement of people), but every person in it comes from the live
+ * roster, never from a hardcoded pool.
  */
 import { scopeOf, normalizeHandle, type User } from "../lib/auth";
+import type { Person } from "../api/ledger";
 import { GROWTH_RANKS, LIFE_FACTOR_META, type LifeFactor } from "../lib/todo";
 
 export type SquadRole = "captain" | "vanguard" | "support" | "scout";
@@ -55,137 +55,50 @@ export interface Squad {
   motto: string;
   createdAt: number;
   members: SquadMember[];
-  /** Invited but not yet accepted. */
-  invites: string[];
 }
 
 /* ------------------------------------------------------------------ *
- * The pool
+ * People → members
  * ------------------------------------------------------------------ */
 
-const POOL: Omit<SquadMember, "role" | "self" | "joinedAt">[] = [
-  {
-    id: "g_aarav",
-    name: "Aarav Sharma",
-    nameJa: "アーラヴ",
-    handle: "aarav",
-    email: "aarav.sharma1998@gmail.com",
-    hue: 222,
-    level: 18,
-    rank: "B+",
-    streak: 26,
-    focusArea: "Systems Engineering",
-    strength: "knowledge",
-    weeklyPoints: 640,
-    online: true,
-  },
-  {
-    id: "g_mei",
-    name: "Mei Tanaka",
-    nameJa: "メイ",
-    handle: "mei",
-    email: "mei.tanaka.dev@gmail.com",
-    hue: 268,
-    level: 24,
-    rank: "A",
-    streak: 41,
-    focusArea: "Design & Craft",
-    strength: "focus",
-    weeklyPoints: 815,
-    online: true,
-  },
-  {
-    id: "g_rohan",
-    name: "Rohan Mehta",
-    nameJa: "ローハン",
-    handle: "rohan",
-    email: "rohan.mehta.rm@gmail.com",
-    hue: 196,
-    level: 12,
-    rank: "B",
-    streak: 9,
-    focusArea: "Strength Training",
-    strength: "strength",
-    weeklyPoints: 402,
-    online: false,
-  },
-  {
-    id: "m_kaede",
-    name: "Kaede Ishida",
-    nameJa: "楓",
-    handle: "kaede",
-    email: "kaede.ishida@gmail.com",
-    hue: 330,
-    level: 31,
-    rank: "A+",
-    streak: 63,
-    focusArea: "Marathon Running",
-    strength: "discipline",
-    weeklyPoints: 1120,
-    online: true,
-  },
-  {
-    id: "m_dev",
-    name: "Devika Nair",
-    nameJa: "デヴィカ",
-    handle: "devika",
-    email: "devika.nair@gmail.com",
-    hue: 158,
-    level: 15,
-    rank: "B+",
-    streak: 18,
-    focusArea: "Research & Writing",
-    strength: "wellness",
-    weeklyPoints: 528,
-    online: false,
-  },
-  {
-    id: "m_sora",
-    name: "Sora Kimura",
-    nameJa: "空",
-    handle: "sora",
-    email: "sora.kimura@gmail.com",
-    hue: 46,
-    level: 9,
-    rank: "C+",
-    streak: 4,
-    focusArea: "Music Practice",
-    strength: "skills",
-    weeklyPoints: 236,
-    online: true,
-  },
-  {
-    id: "m_tara",
-    name: "Tara Bose",
-    nameJa: "ターラ",
-    handle: "tara",
-    email: "tara.bose@gmail.com",
-    hue: 288,
-    level: 21,
-    rank: "A",
-    streak: 34,
-    focusArea: "Recovery & Mobility",
-    strength: "energy",
-    weeklyPoints: 690,
-    online: false,
-  },
-];
+const FACTORS = Object.keys(LIFE_FACTOR_META) as LifeFactor[];
 
-const key = (scope: string) => `sq.squad.${scope}`;
-const friendsKey = (scope: string) => `sq.friends.${scope}`;
-
-function memberOf(
-  p: Omit<SquadMember, "role" | "self" | "joinedAt">,
-  role: SquadRole | null,
-  i: number,
-): SquadMember {
-  return { ...p, role, self: false, joinedAt: Date.now() - i * 86_400_000 };
+/** Stable hue from a name, so a person keeps their colour everywhere. */
+export function hueOf(name: string): number {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return h;
 }
 
+/** Map one real registered operator into a squad member row. */
+export function personToMember(p: Person): SquadMember {
+  return {
+    id: p.id,
+    name: p.name,
+    nameJa: "",
+    handle: p.handle,
+    email: "",
+    hue: hueOf(p.name),
+    level: p.level,
+    rank: p.rank,
+    streak: p.streak,
+    focusArea: p.focusArea,
+    strength: FACTORS.includes(p.strength as LifeFactor)
+      ? (p.strength as LifeFactor)
+      : "discipline",
+    weeklyPoints: p.weeklyPoints,
+    online: p.online,
+    self: false,
+    role: null,
+    joinedAt: p.joinedAt,
+  };
+}
+
+const key = (scope: string) => `sq.squad.${scope}`;
+
 /**
- * A squad that already has shape: four slots filled, the rest of the pool
- * sitting in the friends list. Seeded on first open so the screen is never
- * an empty state asking you to build something from nothing.
+ * A fresh squad is just the operator. No formation is pre-filled and no
+ * friends are pre-added: the first real person in it is whoever signs in.
  */
 function seedSquad(user: User): Squad {
   const self: SquadMember = {
@@ -210,15 +123,10 @@ function seedSquad(user: User): Squad {
     name: "Kage Unit",
     nameJa: "影部隊",
     motto: "Quiet work, compounding daily.",
-    createdAt: Date.now() - 21 * 86_400_000,
-    members: [self, memberOf(POOL[3], "captain", 3), memberOf(POOL[1], "support", 1)],
-    invites: [POOL[2].id],
+    createdAt: Date.now(),
+    members: [self],
   };
 }
-
-/** One Life Factor, or the default when the stored value is not one. Derived
- *  from the engine's own table so the two lists cannot drift apart. */
-const FACTORS = Object.keys(LIFE_FACTOR_META) as LifeFactor[];
 
 const num = (v: unknown, fallback = 0): number =>
   typeof v === "number" && Number.isFinite(v) ? v : fallback;
@@ -229,9 +137,7 @@ const str = (v: unknown, fallback = ""): string => (typeof v === "string" ? v : 
  * Repair one stored member row.
  *
  * Storage here is shared with every script on the origin and outlives every
- * release, so a row can arrive missing, half-typed or as a bare number. The
- * old guard only checked that `members` was a non-empty array, which let
- * `[1,2,3]` through and took the screen down on the first `m.name.trim()`.
+ * release, so a row can arrive missing, half-typed or as a bare number.
  * Anything that cannot be repaired is dropped rather than rendered.
  */
 function toMember(raw: unknown): SquadMember | null {
@@ -265,9 +171,11 @@ function toMember(raw: unknown): SquadMember | null {
 }
 
 /**
- * Validate a whole squad, keeping whatever is salvageable. Slot collisions are
- * resolved in favour of the first holder so the formation can never render two
- * members in one seat.
+ * Validate a whole squad, keeping whatever is salvageable. Slot collisions
+ * are resolved in favour of the first holder so the formation can never
+ * render two members in one seat. Stored rows that were seeded people from
+ * older builds are dropped: only the operator's own row and rows whose ids
+ * match live backend operators survive (the screen prunes the rest).
  */
 function toSquad(raw: unknown): Squad | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -293,9 +201,6 @@ function toSquad(raw: unknown): Squad | null {
     motto: str(r.motto).slice(0, 64),
     createdAt: num(r.createdAt, Date.now()),
     members,
-    invites: Array.isArray(r.invites)
-      ? r.invites.filter((i): i is string => typeof i === "string").slice(0, 32)
-      : [],
   };
 }
 
@@ -319,8 +224,8 @@ export function loadSquad(user: User): Squad {
  * The operator's own row is always rebuilt from their live profile rather
  * than trusted from storage — otherwise the squad would show a stale level
  * the moment they levelled up. A record that has lost the operator's row
- * entirely (hand-edited storage, an older seed) gets one back: a squad the
- * owner is not standing in is not their squad.
+ * entirely gets one back: a squad the owner is not standing in is not their
+ * squad.
  */
 export function syncSelf(s: Squad, user: User): Squad {
   const handle = normalizeHandle(user.handle, user.email);
@@ -362,18 +267,23 @@ export function syncSelf(s: Squad, user: User): Squad {
   return { ...s, members };
 }
 
+/**
+ * Drop stored rows that no longer exist on the backend (old demo people from
+ * previous builds, or operators that were removed). The operator's own row
+ * always survives.
+ */
+export function pruneSquad(s: Squad, liveIds: Set<string>): Squad {
+  const members = s.members.filter((m) => m.self || liveIds.has(m.id));
+  if (members.length === s.members.length) return s;
+  return { ...s, members };
+}
+
 export function saveSquad(user: User, s: Squad): void {
   try {
     localStorage.setItem(key(scopeOf(user)), JSON.stringify(s));
   } catch {
     /* private mode */
   }
-}
-
-/** Everyone in the pool who is not already in the squad. */
-export function availableFriends(s: Squad): SquadMember[] {
-  const taken = new Set(s.members.map((m) => m.id));
-  return POOL.filter((p) => !taken.has(p.id)).map((p) => memberOf(p, null, 0));
 }
 
 /** The formation, slot order, with empty slots left visible. */
@@ -402,34 +312,13 @@ export function assignRole(s: Squad, memberId: string, role: SquadRole | null): 
 
 export function addFriend(s: Squad, m: SquadMember): Squad {
   if (s.members.some((x) => x.id === m.id)) return s;
-  return {
-    ...s,
-    members: [...s.members, { ...m, role: null, joinedAt: Date.now() }],
-    invites: s.invites.filter((i) => i !== m.id),
-  };
+  return { ...s, members: [...s.members, { ...m, role: null, joinedAt: Date.now() }] };
 }
 
 export function removeMember(s: Squad, id: string): Squad {
   // The operator cannot remove themselves from their own squad.
   if (id === "self") return s;
   return { ...s, members: s.members.filter((m) => m.id !== id) };
-}
-
-export function invite(s: Squad, id: string): Squad {
-  if (s.invites.includes(id) || s.members.some((m) => m.id === id)) return s;
-  return { ...s, invites: [...s.invites, id] };
-}
-
-/** Accepting an invitation is what puts a friend into the squad. */
-export function acceptInvite(s: Squad, id: string): Squad {
-  const pending = availableFriends(s).find((f) => f.id === id);
-  if (!pending) return { ...s, invites: s.invites.filter((i) => i !== id) };
-  return addFriend(s, pending);
-}
-
-export function poolById(id: string): SquadMember | null {
-  const p = POOL.find((x) => x.id === id);
-  return p ? memberOf(p, null, 0) : null;
 }
 
 /** Combined weekly output — the number the squad header leads with. */
@@ -444,31 +333,4 @@ export function squadTopLevel(s: Squad): number {
 
 export function onlineCount(s: Squad): number {
   return s.members.filter((m) => m.online).length;
-}
-
-/* ------------------------------------------------------------------ *
- * Friends (independent of any squad)
- * ------------------------------------------------------------------ */
-
-export function loadFriends(user: User): string[] {
-  try {
-    const raw = localStorage.getItem(friendsKey(scopeOf(user)));
-    if (raw) {
-      const list = JSON.parse(raw) as string[];
-      if (Array.isArray(list)) return list;
-    }
-  } catch {
-    /* ignore */
-  }
-  const seed = POOL.slice(0, 4).map((p) => p.id);
-  saveFriends(user, seed);
-  return seed;
-}
-
-export function saveFriends(user: User, ids: string[]): void {
-  try {
-    localStorage.setItem(friendsKey(scopeOf(user)), JSON.stringify(ids));
-  } catch {
-    /* ignore */
-  }
 }

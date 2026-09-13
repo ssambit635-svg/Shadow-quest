@@ -1,10 +1,9 @@
 /**
- * SquadScreen.tsx — formation and friends.
+ * SquadScreen.tsx — formation and friends, built from REAL operators.
  *
- * Frontend only: ShadowQuest has no social endpoint, so the squad is seeded
- * and kept in localStorage beside the rest of the operator's data (see
- * mobile/squad.ts). The shape is what a real API would return, so wiring one
- * up later means changing the loader, not this screen.
+ * The people this screen can add come from `GET /v1/people` — whoever has
+ * actually registered on the backend. There is no seeded pool: when nobody
+ * else is registered yet, the friends list says exactly that.
  *
  * Two ideas, kept separate on purpose:
  *   Formation — four named slots. One member each. Your own row cannot be
@@ -12,17 +11,17 @@
  *   Friends   — everyone else you have added. Not slotted, still counted.
  */
 import { useEffect, useMemo, useState } from "react";
-import { type User } from "../../lib/auth";
+import { scopeOf, type User } from "../../lib/auth";
+import { fetchPeople } from "../../api/ledger";
 import { LIFE_FACTOR_META } from "../../lib/todo";
 import {
-  acceptInvite,
-  availableFriends,
+  addFriend,
   assignRole,
   formationOf,
-  invite,
   loadSquad,
   onlineCount,
-  poolById,
+  personToMember,
+  pruneSquad,
   removeMember,
   saveSquad,
   squadTopLevel,
@@ -46,12 +45,14 @@ export function SquadScreen({ user, profile }: { user: User; profile: Profile })
    * Two ways into the same sheet, and they must not be confused:
    *   `assigning`  — a member is picked and we are choosing their slot.
    *   `targetRole` — a slot is picked and we are choosing who fills it.
-   * Opening from an empty slot used to offer four disabled role buttons,
-   * which was a dead end; it now offers the roster instead.
    */
   const [assigning, setAssigning] = useState<SquadMember | null>(null);
   const [targetRole, setTargetRole] = useState<SquadRole | null>(null);
   const [manage, setManage] = useState(false);
+
+  // Real operators, fetched from the backend. Empty list = nobody else has
+  // registered yet; loading = null.
+  const [people, setPeople] = useState<SquadMember[] | null>(null);
 
   // Re-load when a different operator signs in.
   useEffect(() => {
@@ -59,6 +60,26 @@ export function SquadScreen({ user, profile }: { user: User; profile: Profile })
     setSquad(s);
     setName(s.name);
     setMotto(s.motto);
+    setPeople(null);
+  }, [user]);
+
+  // Fetch the live roster; prune any rows that are not real operators.
+  useEffect(() => {
+    let alive = true;
+    void fetchPeople(scopeOf(user)).then((list) => {
+      if (!alive) return;
+      const members = list.map(personToMember);
+      setPeople(members);
+      setSquad((s) => {
+        const liveIds = new Set(members.map((m) => m.id));
+        const pruned = pruneSquad(s, liveIds);
+        if (pruned !== s) saveSquad(user, pruned);
+        return pruned;
+      });
+    });
+    return () => {
+      alive = false;
+    };
   }, [user]);
 
   // The operator's own row always reflects their live profile, never a
@@ -97,9 +118,7 @@ export function SquadScreen({ user, profile }: { user: User; profile: Profile })
 
   /**
    * Candidates for an empty slot: anyone not already standing in it, bench
-   * first. Putting the unplaced members at the top matters because picking a
-   * slotted member is a *move* — it vacates their old slot — so the choices
-   * that actually fill the gap should come first.
+   * first.
    */
   const candidates = squad.members
     .filter((m) => m.role !== targetRole)
@@ -108,17 +127,17 @@ export function SquadScreen({ user, profile }: { user: User; profile: Profile })
       return b.level - a.level;
     });
 
-  const friends = useMemo(() => availableFriends(squad), [squad]);
+  const friends = useMemo(() => {
+    if (!people) return [];
+    const taken = new Set(squad.members.map((m) => m.id));
+    return people.filter((m) => !taken.has(m.id));
+  }, [people, squad]);
+
   const roster = useMemo(
     () => [...squad.members].sort((a, b) => b.level - a.level),
     [squad.members],
   );
   const slots = useMemo(() => formationOf(squad), [squad]);
-
-  const invitePool = useMemo(() => {
-    const ids = squad.invites;
-    return ids.map((id) => poolById(id)).filter((m): m is SquadMember => Boolean(m));
-  }, [squad.invites]);
 
   const saveRename = () => {
     const clean = name.trim() || squad.name;
@@ -204,28 +223,6 @@ export function SquadScreen({ user, profile }: { user: User; profile: Profile })
         ))}
       </div>
 
-      {/* — invites — */}
-      {invitePool.length ? (
-        <>
-          <Caption>Invites</Caption>
-          <Panel className="m-inv">
-            {invitePool.map((m) => (
-              <div className="m-inv__r" key={m.id}>
-                <Avatar initials={initialsOf(m.name)} hue={m.hue} size={36} />
-                <span className="m-inv__n">{m.name}</span>
-                <button
-                  type="button"
-                  className="m-btn m-btn--sm"
-                  onClick={() => commit(acceptInvite(squad, m.id))}
-                >
-                  Accept
-                </button>
-              </div>
-            ))}
-          </Panel>
-        </>
-      ) : null}
-
       {/* — roster — */}
       <Caption>
         Roster <span className="num">{roster.length}</span>
@@ -238,7 +235,7 @@ export function SquadScreen({ user, profile }: { user: User; profile: Profile })
               <span className="m-mem__n">
                 {m.name}
                 {m.self ? <i className="m-mem__you">you</i> : null}
-                <i className="m-mem__ja">{m.nameJa}</i>
+                {m.nameJa ? <i className="m-mem__ja">{m.nameJa}</i> : null}
               </span>
               <span className="m-mem__s">
                 {m.focusArea} · {LIFE_FACTOR_META[m.strength].label}
@@ -260,15 +257,19 @@ export function SquadScreen({ user, profile }: { user: User; profile: Profile })
         ))}
       </div>
 
-      {/* — friends not yet added — */}
+      {/* — real people on the platform, ready to add — */}
       <Caption>
-        Friends <span className="num">{friends.length}</span>
+        People on ShadowQuest <span className="num">{people?.length ?? 0}</span>
       </Caption>
-      {friends.length ? (
+      {people === null ? (
+        <Panel className="m-pad">
+          <p className="m-note">Looking for other operators…</p>
+        </Panel>
+      ) : friends.length ? (
         <Panel className="m-inv">
           {friends.map((m) => (
             <div className="m-inv__r" key={m.id}>
-              <Avatar initials={initialsOf(m.name)} hue={m.hue} size={36} />
+              <Avatar initials={initialsOf(m.name)} hue={m.hue} size={36} online={m.online} />
               <span className="m-inv__n">
                 {m.name}
                 <i className="m-inv__s">Lv.{m.level}</i>
@@ -276,15 +277,18 @@ export function SquadScreen({ user, profile }: { user: User; profile: Profile })
               <button
                 type="button"
                 className="m-btn m-btn--sm"
-                onClick={() => commit(invite(squad, m.id))}
+                onClick={() => commit(addFriend(squad, m))}
               >
-                Invite
+                Add
               </button>
             </div>
           ))}
         </Panel>
       ) : (
-        <Empty title="No one left to add" hint="Everyone in the pool is already with you." />
+        <Empty
+          title="No other operators yet"
+          hint="Everyone who registers on ShadowQuest appears here — invite them from the live roster, not from a list we invented."
+        />
       )}
 
       {/* — rename — */}

@@ -23,11 +23,14 @@ import {
   removeHabit,
   requestNotificationPermission,
   runReminderPass,
+  saveHabits,
   setRemindersArmed,
   streakOf,
   toggleToday,
 } from "../../lib/habits";
+import { currentUser } from "../../lib/auth";
 import { gsap, REDUCED } from "../../lib/motion";
+import { fetchSnapshot, localSyncTs, schedulePush } from "../../lib/sync";
 
 export function HabitsPanel({ scope }: { scope: string }) {
   const [habits, setHabits] = useState<Habit[]>(() => loadHabits(scope));
@@ -45,6 +48,24 @@ export function HabitsPanel({ scope }: { scope: string }) {
   useEffect(() => {
     setHabits(loadHabits(scope));
     setArmed(remindersArmed(scope));
+  }, [scope]);
+
+  // Backend sync: when the stored ledger is newer than what this device
+  // had at mount time, adopt its habits. The snapshot is shared with the
+  // dashboard, so this costs nothing extra.
+  useEffect(() => {
+    let alive = true;
+    const user = currentUser();
+    if (!user) return;
+    const startTs = localSyncTs(scope);
+    void fetchSnapshot(scope, user).then((snap) => {
+      if (!alive || !snap || snap.updatedAt <= startTs) return;
+      saveHabits(scope, snap.habits);
+      setHabits(snap.habits);
+    });
+    return () => {
+      alive = false;
+    };
   }, [scope]);
 
   // A slow clock: drives the "past its time" glow and the reminder pass.
@@ -95,6 +116,7 @@ export function HabitsPanel({ scope }: { scope: string }) {
     const was = habitsRef.current.find((h) => h.id === id);
     const next = toggleToday(scope, habitsRef.current, id);
     setHabits(next);
+    schedulePush(scope);
     if (!REDUCED && was && !isDoneToday(was)) {
       const node = rootRef.current?.querySelector<HTMLElement>(`[data-habit="${id}"] .habit__seal`);
       if (node) {
@@ -162,9 +184,10 @@ export function HabitsPanel({ scope }: { scope: string }) {
                   <input
                     type="time"
                     value={h.time}
-                    onChange={(e) =>
-                      setHabits(patchHabit(scope, habitsRef.current, h.id, { time: e.target.value }))
-                    }
+                    onChange={(e) => {
+                      setHabits(patchHabit(scope, habitsRef.current, h.id, { time: e.target.value }));
+                      schedulePush(scope);
+                    }}
                   />
                 </label>
                 <button
@@ -172,9 +195,10 @@ export function HabitsPanel({ scope }: { scope: string }) {
                   className="habit__bell label"
                   data-on={h.remind || undefined}
                   title="remind me daily"
-                  onClick={() =>
-                    setHabits(patchHabit(scope, habitsRef.current, h.id, { remind: !h.remind }))
-                  }
+                  onClick={() => {
+                    setHabits(patchHabit(scope, habitsRef.current, h.id, { remind: !h.remind }));
+                    schedulePush(scope);
+                  }}
                 >
                   {h.remind ? "on" : "off"}
                 </button>
@@ -200,7 +224,10 @@ export function HabitsPanel({ scope }: { scope: string }) {
                   type="button"
                   className="habit__rm label"
                   aria-label={`remove ${h.title}`}
-                  onClick={() => setHabits(removeHabit(scope, habitsRef.current, h.id))}
+                  onClick={() => {
+                    setHabits(removeHabit(scope, habitsRef.current, h.id));
+                    schedulePush(scope);
+                  }}
                 >
                   ×
                 </button>
@@ -231,10 +258,11 @@ export function HabitsPanel({ scope }: { scope: string }) {
           type="button"
           className="habits__add-go label"
           disabled={!title.trim()}
-          onClick={() => {
-            setHabits(addHabit(scope, habitsRef.current, title, time));
-            setTitle("");
-          }}
+            onClick={() => {
+              setHabits(addHabit(scope, habitsRef.current, title, time));
+              setTitle("");
+              schedulePush(scope);
+            }}
         >
           add
         </button>

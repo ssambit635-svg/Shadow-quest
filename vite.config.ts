@@ -73,6 +73,19 @@ function csp(): Plugin {
   };
 }
 
+/**
+ * The ShadowQuest backend (server/) listens on 8788. The browser only ever
+ * calls the same-origin /api prefix and the dev/preview servers forward it,
+ * so the page never needs to know the backend's real origin — and the APK /
+ * production builds can point VITE_API_BASE_URL at the deployed API instead.
+ */
+const BACKEND = process.env.SQ_BACKEND_URL ?? "http://127.0.0.1:8788";
+const apiProxy = {
+  target: BACKEND,
+  changeOrigin: true,
+  rewrite: (p: string) => p.replace(/^\/api/, ""),
+};
+
 // Preview-safe: bind every interface, allow the Arena proxy host, and let the
 // dev server talk to a real Shadow Quest API via VITE_API_ORIGIN without
 // exposing that origin to the browser.
@@ -84,10 +97,12 @@ export default defineConfig({
     strictPort: false,
     allowedHosts: [".e2b.app", "localhost"],
     cors: true,
+    proxy: { "/api": apiProxy },
   },
   preview: {
     host: "0.0.0.0",
     allowedHosts: [".e2b.app", "localhost"],
+    proxy: { "/api": apiProxy },
   },
   build: {
     target: "es2022",

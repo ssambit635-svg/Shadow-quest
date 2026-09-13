@@ -181,6 +181,17 @@ export function HomeScreen({
         <button
           type="button"
           className="m-go__b"
+          onClick={() => goToTab("stats")}
+        >
+          <span className="m-go__ja" aria-hidden="true">
+            統計
+          </span>
+          <span className="m-go__t">Stats</span>
+          <span className="m-go__s">Your telemetry</span>
+        </button>
+        <button
+          type="button"
+          className="m-go__b"
           onClick={() => {
             window.location.hash = "#/app/field";
           }}

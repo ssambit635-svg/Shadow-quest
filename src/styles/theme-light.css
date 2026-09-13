@@ -1,0 +1,63 @@
+/* ============================================================
+   SHADOW QUEST — paper mode (the light theme, site face only)
+   ------------------------------------------------------------
+   The toggle lives in the desktop nav; the phone face keeps its
+   own `--m-*` tokens and never reads anything below, so the APK
+   and the mobile shell stay in ink whatever the site does.
+
+   The trick: instead of rewriting a hundred rules, the two raw
+   scales swap roles. Ink becomes the paper ground, bone becomes
+   the ink on it. Every `var(--ink-*)` surface lightens and every
+   `var(--bone-*)` text darkens in one move, exactly the way the
+   art direction describes it — the page becomes the paper the
+   sumi was painted on.
+   ============================================================ */
+
+html[data-theme="light"] {
+  /* ground: warm paper, never pure white */
+  --ink-900: #f2efe8;
+  --ink-800: #eae5da;
+  --ink-700: #e0dacb;
+  --ink-600: #d1c9b6;
+  --ink-500: #b9ae97;
+
+  /* light: ink on paper */
+  --bone-100: #191611;
+  --bone-200: #38342b;
+  --bone-300: #5e5849;
+  --bone-400: #7f7867;
+  --bone-500: #a39b88;
+
+  /* the accents hold, but deepen a touch to bite on paper */
+  --vermilion: #b83227;
+  --vermilion-lit: #d84437;
+  --brass: #96793f;
+
+  color-scheme: light;
+}
+
+/* The vignette and the grain are drawn for a dark ground; on paper
+   they soften instead of disappearing. */
+html[data-theme="light"] .vignette {
+  opacity: 0.5;
+}
+
+html[data-theme="light"] .grain {
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+}
+
+/* Shadows that were tuned to vanish on ink need a little more body here. */
+html[data-theme="light"] .stat-card,
+html[data-theme="light"] .task,
+html[data-theme="light"] .stats__panel,
+html[data-theme="light"] .sbcount,
+html[data-theme="light"] .add-form,
+html[data-theme="light"] .habits {
+  box-shadow: 0 10px 28px -18px rgba(25, 22, 17, 0.45);
+}
+
+/* Selection and focus marks follow the page. */
+html[data-theme="light"] ::selection {
+  background: color-mix(in srgb, var(--vermilion) 26%, transparent);
+}

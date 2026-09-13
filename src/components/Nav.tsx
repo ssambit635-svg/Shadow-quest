@@ -15,6 +15,7 @@
  */
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "../lib/motion";
+import { toggleTheme, useTheme } from "../lib/theme";
 import { Sigil } from "./Sigil";
 import type { User } from "../lib/auth";
 import type { Route } from "../App";
@@ -27,9 +28,13 @@ const PITCH_LINKS = [
 
 const APP_TABS: { label: string; route: Route; id: string; ja: string }[] = [
   { label: "Today", route: "app", id: "today", ja: "今日" },
+  { label: "Stats", route: "stats", id: "stats", ja: "統計" },
   { label: "Deep Work", route: "field", id: "field", ja: "集中" },
   { label: "Milestones", route: "ladder", id: "ladder", ja: "道" },
 ];
+
+const hrefOf = (r: Route) =>
+  r === "app" ? "#/app" : r === "field" ? "#/app/field" : r === "stats" ? "#/app/stats" : "#/app/ladder";
 
 export function Nav({
   route,
@@ -47,7 +52,8 @@ export function Nav({
   const bloomRef = useRef<HTMLSpanElement>(null);
   const headRef = useRef<HTMLSpanElement>(null);
   const lastProgressRef = useRef(0);
-  const inApp = route === "app" || route === "field" || route === "ladder";
+  const inApp = route === "app" || route === "field" || route === "ladder" || route === "stats";
+  const theme = useTheme();
 
   // Hide/reveal + blooming ink progress — no scroll listeners.
   useEffect(() => {
@@ -168,7 +174,7 @@ export function Nav({
             <a
               key={t.id}
               className={`nav__link nav__tab ${route === t.route ? "is-active" : ""}`}
-              href={`#/${t.route === "app" ? "app" : t.route === "field" ? "app/field" : "app/ladder"}`}
+              href={hrefOf(t.route)}
               onMouseEnter={hoverLift}
               onClick={(e) => {
                 e.preventDefault();
@@ -198,6 +204,22 @@ export function Nav({
       )}
 
       <div className="nav__end">
+        {/* Dark / light lives on the site face only — the phone face keeps
+            its own ink theme on purpose. */}
+        <button
+          className="nav__theme"
+          type="button"
+          onClick={() => toggleTheme()}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title={theme === "dark" ? "Light mode" : "Dark mode"}
+        >
+          <span className="nav__theme-orb" data-theme={theme} aria-hidden="true">
+            <i />
+          </span>
+          <span className="label nav__theme-word">
+            {theme === "dark" ? "ink" : "paper"}
+          </span>
+        </button>
         {inApp && user && (
           <span className="nav__handle label" title="signed in">
             <i className="nav__pip" aria-hidden="true" />
@@ -245,8 +267,7 @@ export function Nav({
     {inApp && (
       <nav className="tabbar" aria-label="app sections">
         {APP_TABS.map((t) => {
-          const href =
-            t.route === "app" ? "#/app" : t.route === "field" ? "#/app/field" : "#/app/ladder";
+          const href = hrefOf(t.route);
           return (
             <a
               key={t.id}

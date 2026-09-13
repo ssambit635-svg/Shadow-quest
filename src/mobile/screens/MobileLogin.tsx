@@ -101,8 +101,8 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
 
       <h1 className="m-login__t">Open your ledger</h1>
       <p className="m-login__s">
-        Tasks, progress and streaks are scoped to whoever signs in, and stay
-        on this device.
+        Tasks, progress and streaks are scoped to whoever signs in — kept on
+        this device, and synced with the ShadowQuest backend when it answers.
       </p>
 
       <button
@@ -165,7 +165,8 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
       </form>
 
       <p className="m-login__foot">
-        No password, no cloud. Sign-in lives on this device.
+        No password. Sign-in lives on this device; your ledger syncs when a
+        backend is reachable.
       </p>
 
       {phase !== "idle" && who ? (
