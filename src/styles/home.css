@@ -89,7 +89,27 @@
 .boot__line {
   width: min(320px, 62vw);
   height: 1px;
-  background: linear-gradient(90deg, var(--vermilion), transparent 78%);
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.boot__line > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--vermilion), var(--vermilion-lit));
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.boot__stage {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bone-500);
+  min-height: 1em;
 }
 
 .boot__copy {
@@ -136,7 +156,10 @@
   will-change: transform;
 }
 
-.nav[data-route="field"] {
+.nav[data-route="field"],
+.nav[data-route="app"],
+.nav[data-route="ladder"],
+.nav[data-route="login"] {
   background: color-mix(in srgb, var(--ink-900) 94%, transparent);
 }
 
@@ -273,20 +296,74 @@
 }
 
 @media (max-width: 900px) {
-  .nav__links,
+  /* the landing pitch links fold away, but the in-app tabs survive —
+     on a phone the tabs ARE the navigation */
+  .nav__links:not(.nav__tabs),
   .nav__handle {
     display: none;
   }
 }
 
-/* ---------------------------------------------------------- hero */
+/* ---------------------------------------------------------- hero
+   The one rule that keeps the hero honest: everything the argument needs
+   (eyebrow, title, lede, CTA) must fit in 100svh on a laptop — 1366×768 —
+   with nothing pushed below the fold. Short-viewport media queries shed the
+   foot stats and the art before they force a scroll. */
 .hero {
   position: relative;
   min-height: 100svh;
   display: grid;
   align-content: center;
-  padding-block: 8.5rem 3rem;
+  padding-block: 7rem 2.5rem;
   overflow: clip;
+}
+
+/* Short laptops (1366×768 class): drop the foot, tighten the stack. */
+@media (max-height: 900px) {
+  .hero {
+    padding-block: 6.25rem 2rem;
+  }
+  .hero__foot {
+    display: none;
+  }
+  .hero__title {
+    font-size: clamp(2.4rem, 5.6vw, 4.6rem);
+  }
+  .hero__lede {
+    margin-top: 1.15rem;
+    font-size: 0.98rem;
+    line-height: 1.62;
+  }
+  .hero__actions {
+    margin-top: 1.5rem;
+    gap: 1.2rem;
+  }
+  .hero__eyebrow {
+    margin-bottom: 1.1rem;
+  }
+  .hero__caption {
+    display: none;
+  }
+}
+
+/* Very short (laptop with browser chrome / dock): the art goes, the text
+   stays the whole story. */
+@media (max-height: 700px) {
+  .hero {
+    padding-block: 5.5rem 1.75rem;
+  }
+  .hero__art {
+    display: none;
+  }
+  .hero__grid {
+    grid-template-columns: 1fr;
+  }
+  .hero__title {
+    font-size: clamp(2.2rem, 5vw, 3.9rem);
+  }
+  .hero__lede {
+    max-width: 52ch;
+  }
 }
 
 .hero__ghost {

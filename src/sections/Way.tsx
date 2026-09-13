@@ -6,7 +6,7 @@
  * travels the spine so the fill has a head, not just a tail.
  */
 import { useEffect, useRef } from "react";
-import { gsap, REDUCED, ScrollTrigger } from "../lib/motion";
+import { attachWash, gsap, REDUCED, ScrollTrigger } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
 
 const PRINCIPLES = [
@@ -40,6 +40,9 @@ export function Way() {
 
   useEffect(() => {
     if (REDUCED || !spine.current) return;
+    // The paper plate listens: a soft light follows the pointer across it.
+    const plateEl = root.current?.querySelector<HTMLElement>(".way__plate");
+    const wash = plateEl ? attachWash(plateEl) : undefined;
     const tween = gsap.fromTo(
       spine.current,
       { scaleY: 0 },
@@ -82,6 +85,7 @@ export function Way() {
       },
     });
     return () => {
+      wash?.();
       tween.scrollTrigger?.kill();
       tween.kill();
       ride.scrollTrigger?.kill();
@@ -100,7 +104,7 @@ export function Way() {
           <h2 className="way__title" data-rv="brush">
             Four principles of real growth.
           </h2>
-          <figure className="way__plate" data-way-plate data-rv="bleed">
+          <figure className="way__plate wash" data-way-plate data-rv="bleed">
             <img
               src="/img/duel-wide.jpg"
               alt="Focused workspace with warm cinematic light"
@@ -125,7 +129,7 @@ export function Way() {
           {PRINCIPLES.map((p) => (
             <li className="way__item" key={p.n} data-rv="rise" data-rv-group="way">
               <span className="way__num num">{p.n}</span>
-              <div className="way__body">
+              <div className="way__body" data-vel>
                 <h3 className="way__h">
                   <span className="way__glyph num" aria-hidden="true">
                     {p.n}

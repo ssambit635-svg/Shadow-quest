@@ -34,13 +34,6 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
-  cursor: none;
-}
-
-@media (hover: none) {
-  body {
-    cursor: auto;
-  }
 }
 
 img,
@@ -60,7 +53,7 @@ select {
 }
 
 button {
-  cursor: none;
+  cursor: pointer;
 }
 
 a {
@@ -191,55 +184,6 @@ body[data-booted="true"] .frame::after {
   );
 }
 
-/* ---------- custom cursor: blade tip ---------- */
-.cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 90;
-  pointer-events: none;
-  will-change: transform;
-}
-
-.cursor__dot {
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  margin: -2.5px 0 0 -2.5px;
-  background: var(--vermilion);
-  border-radius: 50%;
-}
-
-.cursor__ring {
-  position: absolute;
-  width: 34px;
-  height: 34px;
-  margin: -17px 0 0 -17px;
-  border: 1px solid color-mix(in srgb, var(--bone-200) 55%, transparent);
-  border-radius: 50%;
-  transition: width var(--t-2) var(--e-snap), height var(--t-2) var(--e-snap),
-    border-color var(--t-2) var(--e-snap), transform var(--t-2) var(--e-snap);
-}
-
-body[data-cursor="press"] .cursor__ring {
-  width: 22px;
-  height: 22px;
-  margin: -11px 0 0 -11px;
-  border-color: var(--vermilion-lit);
-  background: color-mix(in srgb, var(--vermilion) 28%, transparent);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--vermilion-lit) 55%, transparent);
-}
-
-body[data-cursor="hide"] {
-  opacity: 0.001;
-}
-
-@media (hover: none) {
-  .cursor {
-    display: none;
-  }
-}
-
 /* ---------- vertical side rails ---------- */
 .rail {
   position: fixed;
@@ -357,21 +301,70 @@ body[data-cursor="hide"] {
 }
 
 .entry input {
-  /* Keep a real caret: hiding the text cursor for the sake of a custom one is
-     a bad trade the moment someone has to type a room code. */
-  cursor: text;
   width: 100%;
   background: none;
   font-family: var(--font-label);
   font-size: 1.15rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  cursor: none;
+  cursor: text;
 }
 
 .field input::placeholder {
   color: color-mix(in srgb, var(--fg-dim) 70%, transparent);
   letter-spacing: 0.2em;
+}
+
+/* ---------- ink ripple (the click answer) ----------
+   One vermilion ring blooms at the pointer on a deliberate click, then
+   dissolves. Created and pooled by initInkRipple in lib/motion.ts. */
+.ink-ripple {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 79;
+  pointer-events: none;
+  border: 1.5px solid var(--vermilion-lit);
+  border-radius: 50%;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vermilion) 45%, transparent);
+  will-change: transform, opacity;
+}
+
+/* ---------- pointer wash ----------
+   A plate that listens for the cursor: a soft light follows it across the
+   surface. `attachWash(el)` writes --wx/--wy; this is the visible half. */
+.wash {
+  position: relative;
+  isolation: isolate;
+}
+
+.wash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    46% 42% at var(--wx, 50%) var(--wy, 36%),
+    color-mix(in srgb, var(--bone-100) 16%, transparent),
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity var(--t-3) var(--e-brush);
+}
+
+.wash:hover::after {
+  opacity: 1;
+}
+
+/* On dark grounds the wash runs a little hotter. */
+.wash--hot::after {
+  background: radial-gradient(
+    46% 42% at var(--wx, 50%) var(--wy, 36%),
+    color-mix(in srgb, var(--bone-100) 22%, transparent),
+    transparent 72%
+  );
 }
 
 /* ---------- reveal primitives (GSAP targets) ---------- */
@@ -400,20 +393,4 @@ body[data-cursor="hide"] {
     transform: none !important;
     clip-path: none !important;
   }
-}
-
-/* hot = hovering anything actionable: ring grows smoothly, no horizontal/rotational distortion */
-body[data-cursor="hot"] .cursor__ring {
-  width: 46px;
-  height: 46px;
-  margin: -23px 0 0 -23px;
-  border-color: var(--vermilion-lit);
-  background: color-mix(in srgb, var(--vermilion) 12%, transparent);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--vermilion-lit) 45%, transparent),
-              inset 0 0 10px color-mix(in srgb, var(--vermilion-lit) 25%, transparent);
-}
-
-body[data-cursor="hot"] .cursor__dot {
-  background: var(--vermilion-lit);
-  transform: scale(1.2);
 }

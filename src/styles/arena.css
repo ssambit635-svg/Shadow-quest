@@ -576,7 +576,7 @@
 
 .dock__btn:disabled {
   color: var(--bone-500);
-  cursor: none;
+  cursor: not-allowed;
 }
 
 .dock__btn[data-unaffordable="true"] {

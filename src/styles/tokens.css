@@ -1,8 +1,8 @@
 /* ============================================================
    SHADOW QUEST — tokens
    Futuristic Personal OS palette. Base is deep ink-black on bone;
-   the primary accent is vermilion/crimson progress. Secondary cyan
-   for system accents.
+   the primary accent is vermilion/crimson progress. Brass carries
+   data. Nothing else — the palette is the design.
    ============================================================ */
 
 :root {
@@ -20,20 +20,19 @@
   --bone-400: #6d7482;
   --bone-500: #4a515e;
 
-  /* --- accents (vermilion progress, cyan system) --- */
+  /* --- accents: ONE accent, one support.
+     Vermilion = the only action colour (blade, active, progress).
+     Brass = the only data colour (rewards, factors, readouts).
+     Everything else is ink or bone. No cyan, no rainbow. */
   --vermilion: #d43d31;
   --vermilion-lit: #ff5a4a;
   --vermilion-deep: #8a241d;
-  --cyan: #4ac8e0;
-  --cyan-lit: #7ae4f5;
-  --cyan-deep: #2a7a8a;
   --brass: #c7a46a;
   --steel: #7a8591;
   --ki: #c4b168;
 
   --danger: #d43d31;
-  --warn: #d4a33d;
-  --ok: #5cc28a;
+  --ok: var(--bone-300);
 
   /* --- semantic --- */
   --bg: var(--ink-900);
@@ -42,8 +41,6 @@
   --line: color-mix(in srgb, var(--bone-200) 12%, transparent);
   --line-strong: color-mix(in srgb, var(--bone-200) 22%, transparent);
   --panel: color-mix(in srgb, var(--ink-800) 94%, var(--bone-100) 6%);
-  --glow-vermilion: 0 0 20px color-mix(in srgb, var(--vermilion-lit) 55%, transparent);
-  --glow-cyan: 0 0 14px color-mix(in srgb, var(--cyan) 45%, transparent);
 
   /* --- type: Eurostile-flavored futuristic stack. Orbitron + Rajdhani 
      are used as faithful web equivalents of Eurostile Extended / Bold.

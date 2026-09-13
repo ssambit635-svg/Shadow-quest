@@ -4,22 +4,30 @@
  * Sections declare intent with a `data-rv` attribute and this hook turns it
  * into a ScrollTrigger. The reason it's centralised: five different reveal
  * styles on one site reads as indecision, so everything is forced through the
- * same four verbs (rise / wipe / draw / brush / bleed) and the same two curves.
+ * same verbs (rise / wipe / draw / brush / bleed) and the same curves.
+ *
+ * SplitText instances are tracked per-effect (not in a shared module array),
+ * so a section that re-runs its effect when async data lands (roster,
+ * leaderboard) reverts *its own* splits before re-splitting — no double
+ * nesting, no leaked character spans.
  *
  * Usage:
  *   <p data-rv="rise">                      → single element
  *   <article data-rv="rise" data-rv-group="cards"> → siblings sweep in order
  */
 import { useEffect, type RefObject } from "react";
-import { brushReveal, gsap, REDUCED, ScrollTrigger, splitTo } from "./motion";
+import { brushReveal, gsap, REDUCED, ScrollTrigger, splitTo, registerVelTargets } from "./motion";
 
 export type RevealKind = "rise" | "wipe" | "draw" | "brush" | "bleed";
 
 /**
- * `bleed` = an image arriving the way ink arrives on wet paper: the mask opens
- * downward while the picture settles out of a slight overscale.
+ * Build the entrance tween for one element. `sinks` collects any SplitText
+ * instances so the caller can revert exactly what this pass created.
  */
-function build(el: HTMLElement): gsap.core.Tween | gsap.core.Timeline {
+function build(
+  el: HTMLElement,
+  sinks: ReturnType<typeof splitTo>[],
+): gsap.core.Tween | gsap.core.Timeline {
   const kind = (el.dataset.rv as RevealKind) || "rise";
 
   switch (kind) {
@@ -43,9 +51,9 @@ function build(el: HTMLElement): gsap.core.Tween | gsap.core.Timeline {
     }
 
     case "brush": {
-      // Text is split once per mount and reverted on unmount, below.
+      // Text is split for this pass only, and reverted on cleanup.
       const split = splitTo(el);
-      splits.push(split);
+      sinks.push(split);
       return brushReveal(split, { duration: 1.05, stagger: 0.026 });
     }
 
@@ -71,15 +79,15 @@ function build(el: HTMLElement): gsap.core.Tween | gsap.core.Timeline {
   }
 }
 
-/** SplitText instances created during this pass, reverted on cleanup. */
-let splits: ReturnType<typeof splitTo>[] = [];
-
 export function useReveals(scope: RefObject<HTMLElement | null>, deps: unknown[] = []) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const root = scope.current;
     if (!root) return;
-    splits = [];
+    registerVelTargets(root);
+
+    // Everything this pass creates that must be undone on cleanup.
+    const sinks: ReturnType<typeof splitTo>[] = [];
 
     const ctx = gsap.context(() => {
       const items = gsap
@@ -104,10 +112,13 @@ export function useReveals(scope: RefObject<HTMLElement | null>, deps: unknown[]
       });
 
       const wire = (els: HTMLElement[], trigger: HTMLElement, offset = 0) => {
-        const tweens = els.map((el) => build(el).pause());
+        const tweens = els.map((el) => build(el, sinks).pause());
         ScrollTrigger.create({
           trigger,
-          start: `top ${84 - offset}%`,
+          // 72%, not 84%: on a short laptop viewport the element is already
+          // most of the way in when it would otherwise have to wait for a
+          // second scroll to reveal, which reads as the text "arriving late".
+          start: `top ${72 - offset}%`,
           once: true,
           onEnter: () => {
             gsap.set(els, { autoAlpha: 1 });
@@ -122,8 +133,7 @@ export function useReveals(scope: RefObject<HTMLElement | null>, deps: unknown[]
 
     return () => {
       ctx.revert();
-      splits.forEach((s) => s?.revert());
-      splits = [];
+      sinks.forEach((s) => s?.revert());
     };
   }, deps);
 }

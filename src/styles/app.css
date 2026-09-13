@@ -1,0 +1,98 @@
+/* ============================================================
+   app.css — the real interface, behind the gate
+   App-page entrance + the nav's in-app face (tabs, operator
+   chip, sign out).
+   ============================================================ */
+
+.app-page {
+  animation: app-in 0.55s var(--e-brush);
+}
+
+@keyframes app-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-page {
+    animation: none;
+  }
+}
+
+/* ---------- nav: in-app tabs ---------- */
+.nav__tabs {
+  gap: clamp(1rem, 2.4vw, 1.9rem);
+}
+
+.nav__tab {
+  position: relative;
+  padding-block: 0.35rem;
+}
+
+.nav__tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 2px;
+  background: var(--vermilion);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--t-3) var(--e-brush);
+}
+
+.nav__tab:hover::after {
+  transform: scaleX(0.4);
+}
+
+.nav__tab.is-active {
+  color: var(--bone-100);
+}
+
+.nav__tab.is-active::after {
+  transform: scaleX(1);
+}
+
+/* ---------- nav: operator chip + sign out ---------- */
+.nav__pip {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-inline-end: 0.35rem;
+  background: var(--vermilion);
+  border-radius: 50%;
+  animation: pip-breathe 2.6s var(--e-brush) infinite;
+}
+
+@keyframes pip-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav__pip {
+    animation: none;
+  }
+}
+
+.nav__login-note {
+  color: var(--bone-500);
+}
+
+.nav__signout {
+  letter-spacing: 0.18em;
+  color: var(--bone-500);
+  transition: color var(--t-2) var(--e-snap);
+}
+
+.nav__signout:hover {
+  color: var(--vermilion-lit);
+}

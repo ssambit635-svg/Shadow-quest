@@ -1,38 +1,52 @@
 /**
  * Nav.tsx — thin HUD bar. Hides on scroll-down, returns on scroll-up, and
- * carries a blooming ink progress line along its bottom edge. The ink blooms
- * as you progress — an expanding glow + ink-blur head that travels the spine.
+ * carries a blooming ink progress line along its bottom edge.
+ *
+ * Three faces:
+ *   landing  → pitch links + "Sign In" / "Open OS"
+ *   login    → brand + back, nothing else — the gate is its own screen
+ *   app      → the real interface tabs (Today / Deep Work / Milestones),
+ *              the operator's name, and sign out
  */
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "../lib/motion";
-import { useSession } from "../hooks/useApi";
-import { IS_MOCK } from "../api";
 import { Sigil } from "./Sigil";
+import type { User } from "../lib/auth";
+import type { Route } from "../App";
 
-const LINKS = [
-  { label: "Dashboard", href: "#dashboard", id: "dashboard" },
-  { label: "Growth", href: "#growth", id: "growth" },
-  { label: "Rewards", href: "#dashboard", id: "dashboard" },
-  { label: "Milestones", href: "#ladder", id: "ladder" },
+const PITCH_LINKS = [
+  { label: "The System", id: "way" },
+  { label: "Focus Areas", id: "growth" },
+  { label: "The Loop", id: "form" },
+];
+
+const APP_TABS: { label: string; route: Route; id: string }[] = [
+  { label: "Today", route: "app", id: "today" },
+  { label: "Deep Work", route: "field", id: "field" },
+  { label: "Milestones", route: "ladder", id: "ladder" },
 ];
 
 export function Nav({
   route,
+  user,
   onNavigate,
+  onSignOut,
 }: {
-  route: "home" | "field";
-  onNavigate: (r: "home" | "field") => void;
+  route: Route;
+  user: User | null;
+  onNavigate: (r: Route) => void;
+  onSignOut: () => void;
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
   const bloomRef = useRef<HTMLSpanElement>(null);
   const headRef = useRef<HTMLSpanElement>(null);
   const lastProgressRef = useRef(0);
-  const session = useSession();
+  const inApp = route === "app" || route === "field" || route === "ladder";
 
   // Hide/reveal + blooming ink progress — no scroll listeners.
   useEffect(() => {
-    if (route === "field") {
+    if (route === "field" || route === "login") {
       gsap.set(rootRef.current, { yPercent: 0 });
       return;
     }
@@ -54,7 +68,6 @@ export function Nav({
         // Ink bloom: when progress moves forward, the glow pulses and bleeds
         const delta = p - lastProgressRef.current;
         if (delta > 0.001 && bloomRef.current) {
-          // Bleed pulse — the ink bloom spreads slightly ahead
           gsap.fromTo(
             bloomRef.current,
             { scaleX: 1, opacity: 0.9, filter: "blur(6px)" },
@@ -67,7 +80,6 @@ export function Nav({
               overwrite: "auto",
             },
           );
-          // The head pulses like ink hitting paper
           if (headRef.current) {
             gsap.fromTo(
               headRef.current,
@@ -101,6 +113,14 @@ export function Nav({
     }, route !== "home" ? 620 : 0);
   };
 
+  const hoverLift = (e: React.MouseEvent<HTMLElement>) => {
+    gsap.fromTo(
+      e.currentTarget,
+      { y: 3, opacity: 0.55 },
+      { y: 0, opacity: 1, duration: 0.3, ease: "snap" },
+    );
+  };
+
   return (
     <header className="nav" ref={rootRef} data-route={route}>
       <a
@@ -119,41 +139,88 @@ export function Nav({
 
       {route === "home" && (
         <nav className="nav__links">
-          {LINKS.map((l) => {
-            return (
-              <a
-                key={l.id}
-                className="nav__link"
-                href={l.href}
-                onMouseEnter={(e) => {
-                  gsap.fromTo(
-                    e.currentTarget,
-                    { y: 3, opacity: 0.55 },
-                    { y: 0, opacity: 1, duration: 0.3, ease: "snap" },
-                  );
-                  void l;
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  jump(l.id);
-                }}
-              >
-                {l.label}
-              </a>
-            );
-          })}
+          {PITCH_LINKS.map((l) => (
+            <a
+              key={l.id}
+              className="nav__link"
+              href={`#${l.id}`}
+              onMouseEnter={hoverLift}
+              onClick={(e) => {
+                e.preventDefault();
+                jump(l.id);
+              }}
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
+      )}
+
+      {inApp && (
+        <nav className="nav__links nav__tabs">
+          {APP_TABS.map((t) => (
+            <a
+              key={t.id}
+              className={`nav__link nav__tab ${route === t.route ? "is-active" : ""}`}
+              href={`#/${t.route === "app" ? "app" : t.route === "field" ? "app/field" : "app/ladder"}`}
+              onMouseEnter={hoverLift}
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate(t.route);
+              }}
+            >
+              {t.label}
+            </a>
+          ))}
+        </nav>
+      )}
+
+      {route === "login" && (
+        <nav className="nav__links nav__tabs">
+          <a
+            className="nav__link"
+            href="#/"
+            onMouseEnter={hoverLift}
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigate("home");
+            }}
+          >
+            The System
+          </a>
         </nav>
       )}
 
       <div className="nav__end">
-        <span className="nav__handle label">
-          {session ? session.handle : "—"}
-          {IS_MOCK && <i className="nav__mock" title="local productivity engine">local</i>}
-        </span>
-        <button className="nav__cta btn" onClick={() => onNavigate("field")} type="button">
-          <span className="btn__slash" />
-          {route === "field" ? "Exit Challenge" : "Deep Work Session"}
-        </button>
+        {inApp && user && (
+          <span className="nav__handle label" title="signed in">
+            <i className="nav__pip" aria-hidden="true" />
+            {user.handle}
+          </span>
+        )}
+        {route === "home" && (
+          <button
+            className="nav__cta btn"
+            type="button"
+            onClick={() => onNavigate(user ? "app" : "login")}
+          >
+            <span className="btn__slash" />
+            {user ? "Open OS" : "Sign In"}
+          </button>
+        )}
+        {route === "login" && (
+          <span className="label nav__login-note">the gate</span>
+        )}
+        {inApp && (
+          <button
+            className="nav__signout label"
+            type="button"
+            onClick={onSignOut}
+            title="sign out"
+          >
+            sign out
+          </button>
+        )}
       </div>
 
       {/* Blooming ink progress: core line + bleed halo + travelling ink head */}

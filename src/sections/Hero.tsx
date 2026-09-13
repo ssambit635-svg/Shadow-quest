@@ -2,24 +2,33 @@
  * Hero.tsx — one screen, one argument.
  *
  * The painting sits on the paper it was painted on (a bone plate against the
- * ink page). No sketch overlays it anymore — instead the plate gets cinema:
- * a slow Ken Burns drift, a shine that sweeps it on entry, ember dust in the
- * air, and a vermilion slash that draws itself under the title. Pointer
- * parallax runs on lerped targets — never raw mousemove→transform.
+ * ink page). The plate gets cinema: a slow Ken Burns drift, a shine that
+ * sweeps it on entry, ember dust in the air, a pointer wash, and a vermilion
+ * slash that draws itself under the title. The CTA is the gate — sign in,
+ * or open the OS if you already are in.
  */
 import { useEffect, useRef } from "react";
-import { brushReveal, gsap, magnetic, REDUCED, splitTo, wipeIn } from "../lib/motion";
+import {
+  attachWash,
+  brushReveal,
+  gsap,
+  magnetic,
+  REDUCED,
+  splitTo,
+  wipeIn,
+} from "../lib/motion";
 import { useReady } from "../lib/ready";
+import type { User } from "../lib/auth";
 
 const DUST = 14;
 
-export function Hero({ onEnter }: { onEnter: () => void }) {
+export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void }) {
   const root = useRef<HTMLElement>(null);
   const line1 = useRef<HTMLSpanElement>(null);
   const line2 = useRef<HTMLSpanElement>(null);
   const plate = useRef<HTMLDivElement>(null);
   const strokeRef = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLAnchorElement>(null);
+  const ctaRef = useRef<HTMLButtonElement>(null);
   const ready = useReady();
 
   useEffect(() => {
@@ -32,6 +41,7 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
 
     let detachParallax: (() => void) | undefined;
     let detachMagnet: (() => void) | undefined;
+    let detachWash: (() => void) | undefined;
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: "brush" }, delay: 0.05 });
@@ -113,9 +123,12 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
             onRepeat: () => gsap.set(mote, { opacity: 0.5 }),
           });
         });
+        // The plate listens: a soft light follows the pointer across the
+        // paper while it sits there.
+        if (plate.current) detachWash = attachWash(plate.current);
       }
 
-      // Ghost kanji drifts up the page on scroll; the plate scales against it.
+      // Ghost mark drifts up the page on scroll; the plate scales against it.
       gsap.fromTo(
         "[data-hero-ghost]",
         { yPercent: 14, opacity: 0.16 },
@@ -202,16 +215,22 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
     return () => {
       detachParallax?.();
       detachMagnet?.();
+      detachWash?.();
       ctx.revert();
       s1?.revert();
       s2?.revert();
     };
   }, [ready]);
 
+  const goSystem = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById("way")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <section className="hero" ref={root} id="top">
       <div className="hero__ghost kanji" data-hero-ghost aria-hidden="true">
-        ◈
+        影
       </div>
       <div className="hero__dust" data-hero-dust aria-hidden="true">
         {Array.from({ length: DUST }).map((_, i) => (
@@ -231,7 +250,7 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
 
           <h1 className="hero__title" data-hero-title>
             <span className="rv-line">
-              <span ref={line1}>Real tasks.</span>
+              <span ref={line1}>Real action.</span>
             </span>
             <span className="rv-line hero__title-em">
               <span ref={line2}>Real growth.</span>
@@ -240,31 +259,27 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
           </h1>
 
           <p className="hero__lede" data-hero-meta>
-            A futuristic personal operating system that turns real-world action
-            into measurable progress. Complete your goals, grow real Life
-            Factors, earn Reward Points — no filler, no fake characters.
+            A personal operating system that turns real-world work into
+            measurable progress. Set real goals, spend real energy, hold real
+            streaks — and watch the numbers move only when you do.
           </p>
 
           <div className="hero__actions" data-hero-meta>
-            <a href="#dashboard" className="btn btn--primary" ref={ctaRef}>
+            <button type="button" className="btn btn--primary" ref={ctaRef} onClick={onEnter}>
               <span className="btn__slash" />
-              Open Dashboard
-            </a>
-            <button
-              type="button"
-              className="hero__quiet"
-              onClick={onEnter}
-            >
-              <span>Deep Work Session</span>
+              {user ? "Open Your OS" : "Sign In"}
+            </button>
+            <a className="hero__quiet" href="#way" onClick={goSystem}>
+              <span>See the System</span>
               <svg viewBox="0 0 24 24" width="14" aria-hidden="true">
                 <path d="M12 3v16M5 13l7 7 7-7" stroke="currentColor" strokeWidth="1.4" fill="none" />
               </svg>
-            </button>
+            </a>
           </div>
         </div>
 
         <div className="hero__art" data-depth="1">
-          <div className="hero__plate" data-hero-plate ref={plate}>
+          <div className="hero__plate wash" data-hero-plate ref={plate}>
             <img
               className="hero__painting"
               data-hero-painting

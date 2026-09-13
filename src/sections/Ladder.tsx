@@ -92,6 +92,7 @@ export function Ladder() {
             </button>
           </div>
         ) : (
+          <div className="ladder__wrap" data-vel>
           <table className="ladder__table">
             <caption className="sr-only">Achiever Milestones</caption>
             <thead>
@@ -142,6 +143,7 @@ export function Ladder() {
               )}
             </tbody>
           </table>
+          </div>
         )}
 
         <span className="ladder__rule" aria-hidden="true" />

@@ -18,7 +18,7 @@
 }
 
 .dash__tag {
-  color: var(--cyan);
+  color: var(--vermilion);
 }
 
 .dash__title {
@@ -81,8 +81,12 @@
 }
 
 .stat-card__icon {
-  font-size: 1.05rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   line-height: 1;
+  padding-top: 0.2rem;
 }
 
 .stat-card__label {
@@ -132,7 +136,7 @@
 }
 
 .dash__factors-label {
-  color: var(--cyan);
+  color: var(--brass);
   margin-bottom: 0.9rem;
 }
 
@@ -148,11 +152,15 @@
   gap: 0.7rem;
 }
 
-.factor__icon {
-  font-size: 1.3rem;
-  line-height: 1;
-  width: 28px;
+.factor__code {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--bone-500);
+  width: 22px;
   text-align: center;
+  line-height: 1.4;
 }
 
 .factor__body {
@@ -190,6 +198,7 @@
 .factor__fill {
   display: block;
   height: 100%;
+  background: var(--brass);
   transition: width 0.8s var(--e-brush);
 }
 
@@ -257,8 +266,9 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-left: 3px solid var(--line);
-  transition: border-color var(--t-2) var(--e-snap), background var(--t-2) var(--e-snap),
-    transform var(--t-2) var(--e-snap);
+  /* no transform transition: the scroll-velocity lean writes transform
+     through GSAP per-frame and a CSS transition would ghost it */
+  transition: border-color var(--t-2) var(--e-snap), background var(--t-2) var(--e-snap);
   position: relative;
 }
 
@@ -354,8 +364,8 @@
 }
 
 .task__flag--daily {
-  color: var(--cyan);
-  border-color: color-mix(in srgb, var(--cyan) 40%, transparent);
+  color: var(--bone-300);
+  border-color: color-mix(in srgb, var(--bone-300) 40%, transparent);
 }
 
 .task__flag--overdue {
@@ -417,7 +427,7 @@
 }
 
 .task__due {
-  color: var(--cyan);
+  color: var(--bone-400);
   font-size: 0.62rem;
   letter-spacing: 0.14em;
 }
@@ -439,7 +449,6 @@
   border: 1px solid var(--vermilion-deep);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 0 30px color-mix(in srgb, var(--vermilion) 10%, transparent);
 }
 
 .add-form__grid {
@@ -537,8 +546,8 @@
 }
 
 .add-form__check input:checked + .add-form__check-box {
-  background: var(--cyan);
-  border-color: var(--cyan);
+  background: var(--vermilion);
+  border-color: var(--vermilion);
 }
 
 .add-form__check input:checked + .add-form__check-box::after {
@@ -604,8 +613,16 @@
   background: color-mix(in srgb, currentColor 8%, transparent);
 }
 
-.factor-chip__icon {
-  font-size: 1rem;
+.factor-chip__code {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--bone-500);
+}
+
+.factor-chip.is-active .factor-chip__code {
+  color: var(--vermilion);
 }
 
 .factor-chip__name {
@@ -674,7 +691,6 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--bone-100);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--vermilion) 40%, transparent);
   animation: event-pop 2.6s var(--e-brush) forwards;
 }
 
@@ -685,26 +701,22 @@
 .dash__event--reward {
   border-color: var(--brass);
   color: var(--brass);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--brass) 40%, transparent);
 }
 .dash__event--factor {
-  border-color: var(--cyan);
-  color: var(--cyan-lit);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--cyan) 40%, transparent);
+  border-color: var(--bone-500);
+  color: var(--bone-300);
 }
 .dash__event--levelup,
 .dash__event--rankup {
-  border-color: var(--cyan-lit);
-  color: var(--cyan-lit);
-  background: color-mix(in srgb, var(--cyan) 15%, var(--panel));
-  box-shadow: 0 0 30px color-mix(in srgb, var(--cyan-lit) 60%, transparent);
+  border-color: var(--vermilion);
+  color: var(--vermilion-lit);
+  background: color-mix(in srgb, var(--vermilion) 10%, var(--panel));
   font-size: 1rem;
   padding: 0.9rem 1.4rem;
 }
 .dash__event--streak {
   border-color: var(--brass);
-  color: #ff9c4a;
-  box-shadow: 0 0 20px color-mix(in srgb, #ff9c4a 40%, transparent);
+  color: var(--brass);
 }
 
 @keyframes event-pop {

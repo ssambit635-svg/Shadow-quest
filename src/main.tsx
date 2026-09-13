@@ -6,6 +6,8 @@ import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/home.css";
 import "./styles/dashboard.css";
+import "./styles/login.css";
+import "./styles/app.css";
 import "./styles/arena.css";
 
 initMotion();
