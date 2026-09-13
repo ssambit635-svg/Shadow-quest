@@ -46,6 +46,36 @@ moves like a loaded brush.**
   a global `timeScale`), so no component can opt out of it, and reveals become
   plain content.
 
+## The session
+
+The Deep Work room (`#/app/field`) is not a duel. You pick a **technique** —
+a cycle shape, each with a kanji seal: Pomodoro 間 (25/5 ×4), Ultradian 波
+(90/20 ×2), 52/17 律, Flowmodoro 流 (count-up focus, earned rest), Zazen 座
+(20′ of stillness), Kaizen 改 (15/3 ×6) — and the room keeps the count:
+
+- The clock is an **ensō**: one open brushed circle (turbulence-displaced, so
+  the edge stays wet) that *fills* while focus is held and *drains* while rest
+  is taken. Cycle seals stamp themselves vermilion as rounds complete.
+- The clock is **wall-clock**: `phaseEndsAt` plus a persisted session record
+  mean a backgrounded tab, a closed lid or a full refresh never loses a
+  minute — the next tick settles whatever actually passed, and settling early
+  banks only elapsed minutes.
+- The rail keeps the **real ledger** in reach: today's open goals can be
+  linked as the current target, sealed from the seat (paying Progress and
+  Reward Points through the same `completeTask` path as the dashboard), or
+  quick-added without leaving the room.
+- Phase changes stamp ink on the ring and — opted in, permission granted —
+  raise one system notification each. The tab title carries the countdown.
+
+## The ritual
+
+The dashboard grows a **Habits** panel: one row per daily habit, a kanji seal
+per date, the streak as the only currency (no XP — habits are showing up,
+not work), and a seven-day dot row. Each habit carries a time of day; with
+the reminder armed, a habit still open past its time raises exactly one
+system notification per day from any open tab, and glows brass in the panel
+whether or not the browser allows notifications.
+
 ## Stack
 
 Vite · React 19 · TypeScript (strict) · GSAP 3.15 with the now-free
@@ -58,9 +88,11 @@ src/
   components/   Boot, Nav, Cursor, SamuraiMark, hud/*
   hooks/        useResource, useQuest, useSession, useReducedMotion
   lib/          motion.ts (eases/reveals/cursor/fx), reveal.ts, prefs.ts, ready.ts
-  pages/        Home (landing), Field (the game HUD)
+  pages/        Home (landing), Field (the Deep Work room)
   sections/     Hero, Ticker, Way, Roster, Form, Ladder, Outro
-  styles/       tokens, base, home, arena
+  components/   session/ (ensō ring), habits/ (daily ritual panel)
+  hooks/        useFocusSession (wall-clock session engine), useApi
+  styles/       tokens, base, home, arena, dashboard
 ```
 
 ## Run
@@ -69,6 +101,8 @@ src/
 npm install
 npm run dev        # http://localhost:5173
 npm run build
+npm run smoke      # boots the built bundle in happy-dom, clicks the whole
+                   # session + habits flow, asserts the ledger persists
 ```
 
 ## Backend

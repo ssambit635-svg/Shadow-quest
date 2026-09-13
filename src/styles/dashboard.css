@@ -737,3 +737,265 @@
     opacity: 0;
   }
 }
+
+/* ============================================================
+   habits — the daily ritual. Seals, streaks, seven-day dots,
+   and a reminder arm. Brass, never vermilion: habits are not
+   the work, they are the showing-up.
+   ============================================================ */
+
+.habits {
+  margin-top: 2.4rem;
+  padding: 1.5rem 1.5rem 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--ink-800) 74%, transparent);
+}
+
+.habits__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.habits__tag {
+  color: var(--brass);
+}
+
+.habits__title {
+  margin-top: 0.35rem;
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.habits__arm {
+  padding: 0.42rem 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  color: var(--bone-500);
+  transition: color var(--t-1) var(--e-snap), border-color var(--t-1) var(--e-snap);
+}
+
+.habits__arm[data-on] {
+  color: var(--brass);
+  border-color: color-mix(in srgb, var(--brass) 55%, transparent);
+}
+
+.habits__arm:hover {
+  color: var(--bone-200);
+}
+
+.habits__note {
+  margin: 0.8rem 0 1rem;
+  color: var(--bone-500);
+}
+
+.habits__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.habit {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 1.1rem;
+  align-items: center;
+  padding: 0.8rem 0.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.habit__seal {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  color: var(--fg-dim);
+  font-family: var(--font-jp);
+  font-size: 1.05rem;
+  line-height: 1;
+  transition: background var(--t-2) var(--e-snap), color var(--t-2) var(--e-snap),
+    border-color var(--t-2) var(--e-snap);
+}
+
+.habit__seal[data-done] {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+  color: var(--bone-100);
+}
+
+.habit__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.habit__title {
+  font-size: 0.98rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.habit[data-late] .habit__title {
+  color: var(--brass);
+}
+
+.habit__streak {
+  flex: none;
+  color: var(--brass);
+  font-size: 0.8rem;
+}
+
+.habit__days {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.habit__days i {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--line-strong);
+  transform: rotate(45deg);
+}
+
+.habit__days i[data-on] {
+  background: var(--bone-200);
+  border-color: var(--bone-200);
+}
+
+.habit__ctl {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.habit__time input,
+.habits__add-time {
+  padding: 0.28rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: none;
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color-scheme: dark;
+}
+
+.habit__bell {
+  padding: 0.26rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--bone-500);
+  transition: color var(--t-1) var(--e-snap), border-color var(--t-1) var(--e-snap);
+}
+
+.habit__bell[data-on] {
+  color: var(--brass);
+  border-color: color-mix(in srgb, var(--brass) 40%, transparent);
+}
+
+.habit__check {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  color: transparent;
+  transition: border-color var(--t-2) var(--e-snap), background var(--t-2) var(--e-snap),
+    color var(--t-2) var(--e-snap);
+}
+
+.habit__check-stroke {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset 0.45s var(--e-brush);
+}
+
+.habit__check.is-checked {
+  border-color: var(--vermilion);
+  background: color-mix(in srgb, var(--vermilion) 22%, transparent);
+  color: var(--bone-100);
+}
+
+.habit__check.is-checked .habit__check-stroke {
+  stroke-dashoffset: 0;
+}
+
+.habit__rm {
+  color: var(--bone-500);
+  opacity: 0.55;
+  font-size: 1rem;
+  transition: color var(--t-1) var(--e-snap), opacity var(--t-1) var(--e-snap);
+}
+
+.habit__rm:hover {
+  color: var(--vermilion);
+  opacity: 1;
+}
+
+.habits__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+.habits__add-entry {
+  flex: 1;
+  min-width: 180px;
+}
+
+.habits__add-entry input {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.92rem;
+}
+
+.habits__add-go {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  color: var(--fg-dim);
+  transition: color var(--t-1) var(--e-snap), border-color var(--t-1) var(--e-snap);
+}
+
+.habits__add-go:disabled {
+  opacity: 0.4;
+}
+
+.habits__add-go:hover:not(:disabled) {
+  color: var(--vermilion);
+  border-color: color-mix(in srgb, var(--vermilion) 45%, transparent);
+}
+
+.habits__perm {
+  width: 100%;
+  margin-top: 0.9rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px dashed color-mix(in srgb, var(--brass) 45%, transparent);
+  border-radius: 2px;
+  color: var(--brass);
+  text-align: left;
+}
+
+@media (max-width: 700px) {
+  .habit {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .habit__ctl {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
