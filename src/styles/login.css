@@ -1,0 +1,288 @@
+/* ============================================================
+   login.css — the gate
+   One argument, one form. Sealed plate on the left, ledger sign-in
+   on the right. Same ink, same bone, one vermilion slash.
+   ============================================================ */
+
+.login {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  padding-block: 7.5rem 4rem;
+  overflow: clip;
+}
+
+.login__ghost {
+  position: absolute;
+  left: -6vw;
+  bottom: -14vh;
+  font-size: min(58vw, 64rem);
+  line-height: 0.72;
+  color: var(--bone-100);
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.login__grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: clamp(2.5rem, 7vw, 6.5rem);
+  align-items: center;
+}
+
+/* ---------- aside: sealed plate + manifest + spec ---------- */
+.login__aside {
+  display: grid;
+  gap: clamp(1.4rem, 3vh, 2.2rem);
+}
+
+.login__plate {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 16 / 10;
+  max-height: 30rem;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background: var(--bone-100);
+}
+
+.login__plate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.login__plate-tag {
+  position: absolute;
+  left: 0.7rem;
+  bottom: 0.55rem;
+  color: var(--bone-200);
+  font-size: 0.58rem;
+  text-shadow: 0 1px 12px var(--ink-900);
+}
+
+.login__corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--vermilion);
+  z-index: 4;
+}
+.login__corner--tl { top: 9px; left: 9px; border-right: 0; border-bottom: 0; }
+.login__corner--tr { top: 9px; right: 9px; border-left: 0; border-bottom: 0; }
+.login__corner--bl { bottom: 9px; left: 9px; border-right: 0; border-top: 0; }
+.login__corner--br { bottom: 9px; right: 9px; border-left: 0; border-top: 0; }
+
+.login__manifest {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.login__line {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: clamp(1.05rem, 1.7vw, 1.4rem);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  color: var(--bone-100);
+  max-width: 30ch;
+}
+
+.login__line:last-child {
+  color: var(--bone-400);
+  font-size: clamp(0.85rem, 1.2vw, 1rem);
+  font-weight: 500;
+}
+
+.login__spec {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.login__spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.65rem 0.1rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.85rem;
+  color: var(--bone-300);
+}
+
+.login__spec-row .label {
+  color: var(--vermilion);
+}
+
+/* ---------- main: the form ---------- */
+.login__main {
+  display: grid;
+  justify-items: start;
+  gap: clamp(1.1rem, 2.4vh, 1.7rem);
+}
+
+.login__tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--bone-500);
+}
+
+.login__tag-k {
+  color: var(--vermilion);
+}
+
+.login__title {
+  font-size: clamp(2.6rem, 6.2vw, 5.2rem);
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: 0.01em;
+  color: var(--bone-300);
+}
+
+.login__title-em {
+  color: var(--bone-100);
+}
+
+.login__slash {
+  display: block;
+  height: 3px;
+  width: min(100%, 15rem);
+  margin-top: 1rem;
+  background: linear-gradient(90deg, var(--vermilion) 0%, var(--vermilion-lit) 55%, transparent 100%);
+  transform-origin: left center;
+}
+
+.login__sub {
+  max-width: 44ch;
+  font-size: 0.95rem;
+  font-weight: 300;
+  line-height: 1.7;
+  color: color-mix(in srgb, var(--bone-200) 70%, transparent);
+}
+
+.login__form {
+  width: 100%;
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 0.4rem;
+}
+
+.login__entry {
+  gap: 1rem;
+}
+
+.login__entry .label {
+  min-width: 6.2rem;
+  color: var(--bone-400);
+}
+
+.login__entry input {
+  letter-spacing: 0.08em;
+  font-size: 1rem;
+}
+
+.login__entry input:disabled {
+  opacity: 0.5;
+}
+
+.login__submit {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+.login__btn {
+  min-width: 12.5rem;
+  justify-content: center;
+}
+
+.login__btn.is-granted {
+  background: var(--bone-100);
+  border-color: var(--bone-100);
+  color: var(--ink-900);
+}
+
+.login__status {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: var(--bone-500);
+  min-height: 1em;
+}
+
+.login__status[data-refused] {
+  color: var(--vermilion-lit);
+}
+
+.login__progress {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.login__progress > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--vermilion-deep), var(--vermilion-lit));
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.login__foot {
+  color: var(--bone-500);
+  margin-top: 0.6rem;
+}
+
+/* ---------- the mark, bottom right ---------- */
+.login__mark-wrap {
+  position: absolute;
+  right: calc(var(--gutter) + var(--rail));
+  bottom: 2.2rem;
+  color: var(--bone-500);
+  opacity: 0.7;
+}
+
+/* ---------- compact heights: the gate must fit one screen ---------- */
+@media (max-height: 800px) {
+  .login {
+    padding-block: 6rem 2.5rem;
+  }
+  .login__plate {
+    max-height: 21rem;
+  }
+  .login__manifest,
+  .login__spec {
+    display: none;
+  }
+  .login__title {
+    font-size: clamp(2.2rem, 5.4vw, 4rem);
+  }
+  .login__mark-wrap {
+    bottom: 1.2rem;
+  }
+}
+
+@media (max-width: 940px) {
+  .login__grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .login__plate {
+    max-height: 16rem;
+  }
+  .login__mark-wrap {
+    display: none;
+  }
+}

@@ -1,12 +1,10 @@
 /**
- * Home.tsx — the ShadowQuest Personal OS.
+ * Home.tsx — the business page.
  *
- * Ordered flow:
- * Hero → Dashboard (core to-do) → Way (principles) → Roster (focus areas) →
- * ticker → Form (growth system) → Ladder (milestones) → Outro (CTA).
- *
- * Sections are siblings with no shared state; localStorage-backed dashboard
- * is the primary interface and anchors the productivity promise.
+ * The landing sells the system; it shows none of the data. Ordered flow:
+ * Hero → Way (principles) → Roster (focus areas) → ticker → Form (loop)
+ * → Outro (the gate). Everything that is actually *yours* — tasks, streaks,
+ * points — lives behind the sign-in, in the real interface.
  */
 import { useEffect, useRef } from "react";
 import { Hero } from "../sections/Hero";
@@ -14,13 +12,22 @@ import { Ticker } from "../sections/Ticker";
 import { Way } from "../sections/Way";
 import { Roster } from "../sections/Roster";
 import { Form } from "../sections/Form";
-import { Ladder } from "../sections/Ladder";
 import { Outro } from "../sections/Outro";
-import { Dashboard } from "../sections/Dashboard";
 import { ScrollTrigger } from "../lib/motion";
 import { prefs } from "../lib/prefs";
+import type { User } from "../lib/auth";
 
-export function Home({ onEnter }: { onEnter: () => void }) {
+export function Home({
+  user,
+  onEnter,
+  onDeepWork,
+}: {
+  user: User | null;
+  /** CTA: the gate, or straight into the OS when already in. */
+  onEnter: () => void;
+  /** "Begin Deep Work" from the roster: the HUD, gated. */
+  onDeepWork: () => void;
+}) {
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,19 +45,17 @@ export function Home({ onEnter }: { onEnter: () => void }) {
 
   return (
     <div ref={root} className="home">
-      <Hero onEnter={onEnter} />
-      <Dashboard />
+      <Hero user={user} onEnter={onEnter} />
       <Ticker />
       <Way />
       <Roster
         onPick={(id) => {
           prefs.setShadow(id);
-          onEnter();
+          onDeepWork();
         }}
       />
       <Ticker tone="bone" />
       <Form />
-      <Ladder />
       <Outro onEnter={onEnter} />
     </div>
   );

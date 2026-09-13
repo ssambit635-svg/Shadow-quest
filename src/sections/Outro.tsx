@@ -2,16 +2,17 @@
  * Outro.tsx — the closing stroke.
  */
 import { useEffect, useRef } from "react";
-import { gsap, magnetic, REDUCED, ScrollTrigger, wipeIn } from "../lib/motion";
+import { attachWash, gsap, magnetic, REDUCED, ScrollTrigger, wipeIn } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
 
 export function Outro({ onEnter }: { onEnter: () => void }) {
   const root = useRef<HTMLElement>(null);
-  const ctaRef = useRef<HTMLAnchorElement>(null);
+  const ctaRef = useRef<HTMLButtonElement>(null);
   useReveals(root);
 
   useEffect(() => {
     if (REDUCED) return;
+    let wash: (() => void) | undefined;
     const ctx = gsap.context(() => {
       gsap.fromTo(
         ".outro__word",
@@ -24,6 +25,9 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
           scrollTrigger: { trigger: root.current, start: "top 62%", once: true },
         },
       );
+      // The closing plate listens for the pointer too.
+      const plateEl = root.current?.querySelector<HTMLElement>(".outro__plate");
+      if (plateEl) wash = attachWash(plateEl);
       const plateTl = gsap.timeline({
         scrollTrigger: { trigger: root.current, start: "top 62%", once: true },
       });
@@ -55,6 +59,7 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
     const release = ctaRef.current ? magnetic(ctaRef.current, 0.22, 160) : undefined;
     return () => {
       release?.();
+      wash?.();
       ctx.revert();
       ScrollTrigger.refresh();
     };
@@ -63,7 +68,7 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
   return (
     <section className="outro section" ref={root}>
       <div className="shell outro__grid">
-        <figure className="outro__plate" aria-hidden="true">
+        <figure className="outro__plate wash" aria-hidden="true">
           <img
             src="/img/ink-wash.jpg"
             alt=""
@@ -83,16 +88,21 @@ export function Outro({ onEnter }: { onEnter: () => void }) {
         </h2>
 
         <div className="outro__actions" data-rv="rise">
-          <a href="#dashboard" className="btn btn--primary" ref={ctaRef}>
+          <button
+            type="button"
+            className="btn btn--primary"
+            ref={ctaRef}
+            onClick={onEnter}
+          >
             <span className="btn__slash" />
-            Open Your Dashboard
-          </a>
+            Enter the System
+          </button>
           <button
             className="btn"
             type="button"
-            onClick={onEnter}
+            onClick={() => document.getElementById("form")?.scrollIntoView({ behavior: "smooth", block: "start" })}
           >
-            Start Deep Work Session
+            See the Loop
           </button>
         </div>
       </div>

@@ -80,27 +80,33 @@ export interface Profile {
   lastActiveDate?: string;
 }
 
+/**
+ * Factor readouts use two-letter codes, not icons: one mono typeface, one
+ * colour discipline (the bar is brass, the value is bone). No emoji, no
+ * rainbow — the ledger reads like an instrument panel.
+ */
 export const LIFE_FACTOR_META: Record<
   LifeFactor,
-  { label: string; icon: string; color: string }
+  { label: string; code: string }
 > = {
-  knowledge: { label: "Knowledge", icon: "🧠", color: "#6ba8ff" },
-  focus: { label: "Focus", icon: "🎯", color: "#c77aff" },
-  discipline: { label: "Discipline", icon: "🔥", color: "#ff6b4a" },
-  strength: { label: "Strength", icon: "💪", color: "#ff9c4a" },
-  energy: { label: "Energy", icon: "⚡", color: "#ffe14a" },
-  wellness: { label: "Wellness", icon: "🧘", color: "#4affb8" },
-  skills: { label: "Skills", icon: "💻", color: "#4ac8e0" },
+  knowledge: { label: "Knowledge", code: "KN" },
+  focus: { label: "Focus", code: "FO" },
+  discipline: { label: "Discipline", code: "DI" },
+  strength: { label: "Strength", code: "ST" },
+  energy: { label: "Energy", code: "EN" },
+  wellness: { label: "Wellness", code: "WE" },
+  skills: { label: "Skills", code: "SK" },
 };
 
+/** Priority is a single accent ramp: dim bone → brass → vermilion. */
 export const PRIORITY_META: Record<
   TaskPriority,
   { label: string; weight: number; color: string }
 > = {
-  low: { label: "Low", weight: 1, color: "#6d7482" },
-  medium: { label: "Medium", weight: 2, color: "#c7a46a" },
-  high: { label: "High", weight: 3, color: "#d43d31" },
-  critical: { label: "Critical", weight: 4, color: "#ff5a4a" },
+  low: { label: "Low", weight: 1, color: "var(--bone-400)" },
+  medium: { label: "Medium", weight: 2, color: "var(--brass)" },
+  high: { label: "High", weight: 3, color: "var(--vermilion)" },
+  critical: { label: "Critical", weight: 4, color: "var(--vermilion-lit)" },
 };
 
 export const DIFFICULTY_META: Record<
@@ -136,8 +142,13 @@ export function rankForLevel(level: number): string {
   return GROWTH_RANKS[idx];
 }
 
-const STORAGE_KEY = "shadowquest_todos_v1";
-const PROFILE_KEY = "shadowquest_profile_v1";
+/**
+ * The ledger is sealed per user: everything hangs off a scope key (the
+ * normalised email) so each operator keeps their own tasks and profile.
+ * `scopeOf(user)` from lib/auth produces the fragment.
+ */
+const tasksKey = (scope: string) => `sq.tasks.${scope}`;
+const profileKey = (scope: string) => `sq.profile.${scope}`;
 
 export function todayISO(): string {
   const d = new Date();
@@ -258,9 +269,9 @@ export function seedTasks(): Task[] {
   ];
 }
 
-export function loadTasks(): Task[] {
+export function loadTasks(scope: string): Task[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(tasksKey(scope));
     if (raw) {
       const parsed = JSON.parse(raw) as Task[];
       // Update overdue statuses
@@ -278,17 +289,17 @@ export function loadTasks(): Task[] {
   return seedTasks();
 }
 
-export function saveTasks(tasks: Task[]) {
+export function saveTasks(scope: string, tasks: Task[]) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    localStorage.setItem(tasksKey(scope), JSON.stringify(tasks));
   } catch {
     /* ignore */
   }
 }
 
-export function loadProfile(): Profile {
+export function loadProfile(scope: string): Profile {
   try {
-    const raw = localStorage.getItem(PROFILE_KEY);
+    const raw = localStorage.getItem(profileKey(scope));
     if (raw) {
       const parsed = JSON.parse(raw) as Profile;
       // Reset today count if date changed
@@ -304,9 +315,9 @@ export function loadProfile(): Profile {
   return defaultProfile();
 }
 
-export function saveProfile(p: Profile) {
+export function saveProfile(scope: string, p: Profile) {
   try {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+    localStorage.setItem(profileKey(scope), JSON.stringify(p));
   } catch {
     /* ignore */
   }
@@ -351,7 +362,7 @@ export function completeTask(
     newFactors[g.factor] = Math.min(100, newFactors[g.factor] + g.amount);
     events.push({
       type: "factor",
-      message: `${LIFE_FACTOR_META[g.factor].icon} ${LIFE_FACTOR_META[g.factor].label} +${g.amount}`,
+      message: `${LIFE_FACTOR_META[g.factor].label.toUpperCase()} +${g.amount}`,
       amount: g.amount,
       factor: g.factor,
     });
@@ -382,7 +393,7 @@ export function completeTask(
   if (p.lastActiveDate !== today) {
     if (p.lastActiveDate && dayDiff(p.lastActiveDate, today) === 1) {
       p.streak += 1;
-      events.push({ type: "streak", message: `🔥 CONSISTENCY: ${p.streak} day${p.streak === 1 ? "" : "s"}` });
+      events.push({ type: "streak", message: `CONSISTENCY: ${p.streak} DAY${p.streak === 1 ? "" : "S"}` });
     } else if (p.lastActiveDate && dayDiff(p.lastActiveDate, today) > 1) {
       p.streak = 1;
     } else {

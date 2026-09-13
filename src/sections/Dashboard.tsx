@@ -6,7 +6,9 @@
  * rewards, streaks and life factor growth — all at a glance.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { gsap, REDUCED } from "../lib/motion";
+import { gsap, REDUCED, registerVelTargets } from "../lib/motion";
+import { useReveals } from "../lib/reveal";
+import type { User } from "../lib/auth";
 import {
   type Task,
   type Profile,
@@ -33,17 +35,35 @@ import {
 
 type Filter = "all" | "today" | "upcoming" | "completed" | "overdue";
 
-export function Dashboard() {
-  const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
-  const [profile, setProfile] = useState<Profile>(() => loadProfile());
+/**
+ * Dashboard — today's ledger. The real interface: the To-Do at its core,
+ * with the growth readouts around it. Everything is scoped to the signed-in
+ * operator — their tasks, their points, their streaks, their name.
+ */
+export function Dashboard({ scope, user }: { scope: string; user: User }) {
+  const [tasks, setTasks] = useState<Task[]>(() => loadTasks(scope));
+  const [profile, setProfile] = useState<Profile>(() => loadProfile(scope));
   const [filter, setFilter] = useState<Filter>("today");
   const [showAdd, setShowAdd] = useState(false);
   const [events, setEvents] = useState<(CompleteEvent & { eid: string; born: number })[]>([]);
   const listRef = useRef<HTMLUListElement>(null);
   const rootRef = useRef<HTMLElement>(null);
 
-  useEffect(() => saveTasks(tasks), [tasks]);
-  useEffect(() => saveProfile(profile), [profile]);
+  // Re-load when the operator changes (sign out → someone else signs in).
+  useEffect(() => {
+    setTasks(loadTasks(scope));
+    setProfile(loadProfile(scope));
+  }, [scope]);
+
+  useEffect(() => saveTasks(scope, tasks), [scope, tasks]);
+  useEffect(() => saveProfile(scope, profile), [scope, profile]);
+
+  // The section header reveals once on entry; rows added later get the
+  // scroll-lean registration as they mount.
+  useReveals(rootRef);
+  useEffect(() => {
+    registerVelTargets(rootRef.current);
+  }, [tasks.length]);
 
   const today = useMemo(() => tasksForToday(tasks), [tasks]);
   const overdue = useMemo(() => overdueTasks(tasks), [tasks]);
@@ -149,12 +169,13 @@ export function Dashboard() {
       <div className="shell">
         <header className="dash__head">
           <div>
-            <p className="label dash__tag">01 — personal operating system</p>
+            <p className="label dash__tag">01 — the ledger of {user.handle}</p>
             <h2 className="dash__title" data-rv="brush">
               Today&apos;s Goals
             </h2>
             <p className="dash__sub">
-              Complete real tasks. Grow real areas of your life.
+              Complete real tasks. Grow real areas of your life. This ledger
+              is yours — sealed to your signal.
             </p>
           </div>
           <button
@@ -167,7 +188,7 @@ export function Dashboard() {
           </button>
         </header>
 
-        {/* Top stats row */}
+        {/* Top stats row — two accents only: vermilion acts, brass pays. */}
         <div className="dash__stats">
           <StatCard
             label="Life Level"
@@ -175,7 +196,7 @@ export function Dashboard() {
             sub={`Rank ${profile.growthRank}`}
             progress={levelPct}
             color="var(--vermilion)"
-            icon="◆"
+            icon="LV"
             mono
           />
           <StatCard
@@ -183,16 +204,17 @@ export function Dashboard() {
             value={`${todayDone}/${todayTotal}`}
             sub={`${todayPct}% complete`}
             progress={todayPct}
-            color="var(--cyan)"
-            icon="◈"
+            color="var(--vermilion)"
+            icon="TD"
           />
           <StatCard
             label="Consistency"
             value={`${profile.streak}`}
             sub={`${profile.longestStreak} best`}
             progress={Math.min(100, profile.streak * 5)}
-            color="#ff9c4a"
-            icon="🔥"
+            color="var(--brass)"
+            icon="ST"
+            mono
           />
           <StatCard
             label="Reward Points"
@@ -200,7 +222,7 @@ export function Dashboard() {
             sub={`${profile.tasksCompleted} goals done`}
             progress={Math.min(100, profile.rewardPoints / 5)}
             color="var(--brass)"
-            icon="⬢"
+            icon="RP"
             mono
           />
           <StatCard
@@ -208,8 +230,8 @@ export function Dashboard() {
             value={`${profile.energy}`}
             sub={`of ${profile.energyMax}`}
             progress={(profile.energy / profile.energyMax) * 100}
-            color="#ffe14a"
-            icon="⚡"
+            color="var(--bone-300)"
+            icon="EN"
             mono
           />
         </div>
@@ -222,22 +244,15 @@ export function Dashboard() {
               const meta = LIFE_FACTOR_META[f];
               const val = Math.round(profile.factors[f]);
               return (
-                <div key={f} className="factor">
-                  <span className="factor__icon">{meta.icon}</span>
+                <div key={f} className="factor" data-vel>
+                  <span className="factor__code num" aria-hidden="true">{meta.code}</span>
                   <div className="factor__body">
                     <div className="factor__row">
                       <span className="factor__label">{meta.label}</span>
                       <span className="factor__val num">{val}</span>
                     </div>
                     <div className="factor__bar">
-                      <span
-                        className="factor__fill"
-                        style={{
-                          width: `${val}%`,
-                          background: meta.color,
-                          boxShadow: `0 0 10px ${meta.color}80`,
-                        }}
-                      />
+                      <span className="factor__fill" style={{ width: `${val}%` }} />
                     </div>
                   </div>
                 </div>
@@ -323,15 +338,15 @@ function StatCard({
     );
   }, [progress]);
   return (
-    <div className="stat-card" data-dash-stat>
+    <div className="stat-card" data-dash-stat data-vel>
       <div className="stat-card__head">
-        <span className="stat-card__icon" style={{ color }}>{icon}</span>
+        <span className="stat-card__icon num" style={{ color }}>{icon}</span>
         <span className="stat-card__label label">{label}</span>
       </div>
       <div className={`stat-card__value ${mono ? "num" : ""}`}>{value}</div>
       <div className="stat-card__sub">{sub}</div>
       <div className="stat-card__bar">
-        <span ref={barRef} style={{ background: color, boxShadow: `0 0 8px ${color}90` }} />
+        <span ref={barRef} style={{ background: color }} />
       </div>
     </div>
   );
@@ -353,6 +368,7 @@ function TaskRow({
     <li
       className={`task ${done ? "is-done" : ""} ${task.status === "overdue" ? "is-overdue" : ""}`}
       data-task-id={task.id}
+      data-vel
     >
       <button
         type="button"
@@ -390,8 +406,12 @@ function TaskRow({
         <div className="task__meta">
           <div className="task__factors">
             {task.factors.map((g) => (
-              <span key={g.factor} className="task__factor" title={`${LIFE_FACTOR_META[g.factor].label} +${g.amount}`}>
-                {LIFE_FACTOR_META[g.factor].icon}+{g.amount}
+              <span
+                key={g.factor}
+                className="task__factor"
+                title={`${LIFE_FACTOR_META[g.factor].label} +${g.amount}`}
+              >
+                {LIFE_FACTOR_META[g.factor].code}+{g.amount}
               </span>
             ))}
           </div>
@@ -556,9 +576,8 @@ function AddTaskForm({
                   key={f}
                   className={`factor-chip ${v > 0 ? "is-active" : ""}`}
                   onClick={() => toggleFactor(f)}
-                  style={v > 0 ? { borderColor: m.color, color: m.color } : undefined}
                 >
-                  <span className="factor-chip__icon">{m.icon}</span>
+                  <span className="factor-chip__code num" aria-hidden="true">{m.code}</span>
                   <span className="factor-chip__name">{m.label}</span>
                   {v > 0 && <span className="factor-chip__v num">+{v}</span>}
                 </button>

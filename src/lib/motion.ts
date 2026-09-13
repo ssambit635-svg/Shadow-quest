@@ -46,6 +46,11 @@ export function initMotion() {
 
   gsap.defaults({ ease: "brush", duration: 1 });
   if (REDUCED) gsap.globalTimeline.timeScale(100);
+
+  // The scroll-velocity lean listens from the first frame.
+  initVelocity();
+  // And the click answer: one ink ring, no following.
+  initInkRipple();
 }
 
 /**
@@ -77,9 +82,12 @@ export function brushReveal(
 ) {
   const chars = split?.chars ?? [];
   if (!chars.length) return gsap.timeline();
-  gsap.set(chars, { yPercent: 118, opacity: 1 });
+  // Each glyph arrives from below with a whisper of rotation and settles
+  // level — the line lands as one loaded stroke, not a typewriter.
+  gsap.set(chars, { yPercent: 118, opacity: 1, rotate: 2 });
   return gsap.to(chars, {
     yPercent: 0,
+    rotate: 0,
     duration: opts.duration ?? 1.05,
     ease: "brush",
     delay: opts.delay ?? 0,
@@ -148,62 +156,130 @@ export function scrambleTo(
       speed: 0.28,
     },
     ease: "none",
+    // A second decode of the same readout (stage swaps) must take over,
+    // not fight the first for the text node.
+    overwrite: "auto",
   });
 }
 
 /**
- * Pointer lag for the blade cursor. One lerp on GSAP's shared ticker for the
- * whole app — no component spawns its own rAF, and nothing leaks on unmount.
+ * Scroll-velocity lean. One damped value, one rAF, transform-only.
+ *
+ * Elements tagged `data-vel` shear into a fast scroll and settle back — the
+ * page leans the way a runner does, then straightens. It only runs while
+ * velocity is above a hair's breadth, so at rest it costs nothing. Because
+ * it writes `x`/`skewY` through GSAP's own transform store, it composes with
+ * every reveal and tilt on the same element without fighting them.
  */
-export function attachCursorRing(ring: HTMLElement, dot: HTMLElement) {
-  const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-  const current = { ...target };
-  const LERP = 0.17;
+let velAttached = false;
+const velState = { v: 0, last: 0 };
+const velTargets = new Set<HTMLElement>();
+let velRaf = 0;
 
-  const moveDot = gsap.quickTo(dot, "y", { duration: 0.07, ease: "power3.out" });
-  const moveDotX = gsap.quickTo(dot, "x", { duration: 0.07, ease: "power3.out" });
+/**
+ * Collect `data-vel` elements into the shared lean set. Self-cleaning: on a
+ * route swap the new page's root is registered and every node that is no
+ * longer inside it is dropped, so detached targets never linger.
+ */
+export function registerVelTargets(root: ParentNode | null) {
+  if (!root) return;
+  velTargets.forEach((el) => {
+    if (!root.contains(el)) velTargets.delete(el);
+  });
+  gsap.utils.toArray<HTMLElement>("[data-vel]", root).forEach((el) => {
+    velTargets.add(el);
+  });
+  if (velAttached) nudgeVelocity();
+}
 
-  const onMove = (e: PointerEvent) => {
-    target.x = e.clientX;
-    target.y = e.clientY;
-    moveDotX(e.clientX);
-    moveDot(e.clientY);
+/** Kick the loop back to life after targets are added late. */
+function nudgeVelocity() {
+  if (velRaf) return;
+  velRaf = requestAnimationFrame(velTick);
+}
+
+function velTick() {
+  velRaf = 0;
+  const y = window.scrollY;
+  const dy = y - velState.last;
+  velState.last = y;
+  velState.v = velState.v * 0.86 + dy * 0.14;
+
+  if (Math.abs(velState.v) < 0.08) {
+    // Settled: straighten once and stop the loop.
+    if (velTargets.size) gsap.set(Array.from(velTargets), { x: 0, skewY: 0 });
+    return;
+  }
+  const shear = gsap.utils.clamp(-4.5, 4.5, velState.v * -0.055);
+  const drift = gsap.utils.clamp(-12, 12, velState.v * -0.2);
+  gsap.set(Array.from(velTargets), { skewY: shear, x: drift });
+  velRaf = requestAnimationFrame(velTick);
+}
+
+export function initVelocity() {
+  if (velAttached || typeof window === "undefined" || REDUCED) return;
+  velAttached = true;
+  velState.last = window.scrollY;
+  window.addEventListener("scroll", nudgeVelocity, { passive: true });
+}
+
+/**
+ * Ink ripple — the site's click answer. A single vermilion ring blooms once
+ * at the pointer and is gone; nothing follows the cursor around (that was
+ * the ring the user asked to kill). One node at a time, pooled and recycled,
+ * transform + opacity only.
+ */
+let rippleAttached = false;
+let rippleNode: HTMLDivElement | null = null;
+let rippleBusy = false;
+
+export function initInkRipple() {
+  if (rippleAttached || typeof window === "undefined" || REDUCED) return;
+  rippleAttached = true;
+
+  const make = () => {
+    const el = document.createElement("div");
+    el.className = "ink-ripple";
+    el.setAttribute("aria-hidden", "true");
+    document.body.appendChild(el);
+    return el;
   };
 
-  // Ring trails the pointer; snapped straight to it before the first paint so
-  // it never streaks in from the top-left corner.
-  const tick = () => {
-    current.x += (target.x - current.x) * LERP;
-    current.y += (target.y - current.y) * LERP;
-    gsap.set(ring, { x: current.x, y: current.y });
-  };
-  gsap.set(ring, { x: target.x, y: target.y });
-  gsap.ticker.add(tick);
+  const onDown = (e: PointerEvent) => {
+    // Only react to real, deliberate clicks on the page surface — not
+    // presses held on a control that will fire its own feedback.
+    if (e.button !== 0) return;
+    if (rippleBusy) return;
+    rippleBusy = true;
 
-  const set = (state: string) => () => {
-    document.body.dataset.cursor = state;
-  };
-  const down = set("press");
-  const up = set("idle");
-  const over = (e: PointerEvent) => {
-    const interactive = (e.target as HTMLElement)?.closest(
-      "a,button,[data-cursor='hot']",
-    );
-    document.body.dataset.cursor = interactive ? "hot" : "idle";
+    if (!rippleNode) rippleNode = make();
+    const el = rippleNode;
+    const x = e.clientX;
+    const y = e.clientY;
+
+    gsap.killTweensOf(el);
+    gsap.set(el, {
+      left: x,
+      top: y,
+      xPercent: -50,
+      yPercent: -50,
+      scale: 0.2,
+      autoAlpha: 0.85,
+      width: 64,
+      height: 64,
+      rotate: 0,
+    });
+
+    gsap.to(el, {
+      scale: 1.7,
+      autoAlpha: 0,
+      duration: 0.62,
+      ease: "power2.out",
+      onComplete: () => (rippleBusy = false),
+    });
   };
 
-  window.addEventListener("pointermove", onMove, { passive: true });
-  window.addEventListener("pointerdown", down, { passive: true });
-  window.addEventListener("pointerup", up, { passive: true });
-  window.addEventListener("pointerover", over, { passive: true });
-
-  return () => {
-    gsap.ticker.remove(tick);
-    window.removeEventListener("pointermove", onMove);
-    window.removeEventListener("pointerdown", down);
-    window.removeEventListener("pointerup", up);
-    window.removeEventListener("pointerover", over);
-  };
+  window.addEventListener("pointerdown", onDown, { passive: true });
 }
 
 /**
@@ -241,6 +317,25 @@ export function magnetic(el: HTMLElement, strength = 0.28, radius = 140) {
     el.removeEventListener("pointerleave", onLeave);
     gsap.set(el, { x: 0, y: 0 });
   };
+}
+
+/**
+ * Pointer wash: a soft light follows the cursor across a plate (paper,
+ * painting, dark field). Writes two CSS vars (`--wx/--wy`) on one lerp'd
+ * tween; the visible wash is pure CSS, so nothing renders until hover.
+ */
+export function attachWash(el: HTMLElement) {
+  if (REDUCED) return () => undefined;
+  const xTo = gsap.quickTo(el, "--wx", { duration: 0.45, ease: "brush" });
+  const yTo = gsap.quickTo(el, "--wy", { duration: 0.45, ease: "brush" });
+  const onMove = (e: PointerEvent) => {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    xTo(((e.clientX - r.left) / r.width) * 100);
+    yTo(((e.clientY - r.top) / r.height) * 100);
+  };
+  el.addEventListener("pointermove", onMove, { passive: true });
+  return () => el.removeEventListener("pointermove", onMove);
 }
 
 /**
