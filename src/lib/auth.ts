@@ -23,6 +23,8 @@ export interface User {
   email: string;
   /** First sign-in on this device, epoch ms. */
   joinedAt: number;
+  /** Server-assigned role: "admin" only when the backend says so. */
+  role?: "operator" | "admin";
 }
 
 const KEY = "sq.user.v1";
@@ -91,7 +93,10 @@ function toUser(raw: unknown): User | null {
     typeof r.joinedAt === "number" && Number.isFinite(r.joinedAt) && r.joinedAt > 0
       ? r.joinedAt
       : Date.now();
-  return { handle: normalizeHandle(r.handle, email), email, joinedAt: joined };
+  // A locally-tampered role is cosmetic only: every admin action still
+  // requires the server's PIN-gated token. But never trust it silently.
+  const role = r.role === "admin" ? ("admin" as const) : ("operator" as const);
+  return { handle: normalizeHandle(r.handle, email), email, joinedAt: joined, role };
 }
 
 /**
@@ -132,7 +137,7 @@ export function currentUser(): User | null {
   return memoryUser;
 }
 
-export function login(handle: string, email: string): User {
+export function login(handle: string, email: string, role: User["role"] = "operator"): User {
   const cleanEmail = normalizeEmail(email);
   const cleanHandle = normalizeHandle(handle, cleanEmail);
   const existing = currentUser();
@@ -140,6 +145,7 @@ export function login(handle: string, email: string): User {
     handle: cleanHandle,
     email: cleanEmail,
     joinedAt: existing && existing.email === cleanEmail ? existing.joinedAt : Date.now(),
+    role,
   };
   memoryUser = user;
   try {

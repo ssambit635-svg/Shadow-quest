@@ -191,6 +191,83 @@
   opacity: 0.5;
 }
 
+/* — the passphrase entry: field + strength meter + policy line — */
+
+.login__entry--pw {
+  align-items: flex-start;
+}
+
+.login__pwbox {
+  flex: 1;
+  display: grid;
+  gap: 0.34rem;
+  min-width: 0;
+}
+
+.login__pw {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.login__pw input {
+  letter-spacing: 0.06em;
+  font-size: 1rem;
+  text-transform: none;
+}
+
+.login__pw-eye {
+  background: none;
+  color: var(--bone-500);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+}
+
+.login__pw-eye:hover {
+  color: var(--bone-200);
+  border-color: var(--vermilion);
+}
+
+.login__meter {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+}
+
+.login__meter > i {
+  height: 2px;
+  background: var(--line-strong);
+  transition: background 0.25s var(--e-snap), box-shadow 0.25s var(--e-snap);
+}
+
+.login__meter[data-level="weak"] > i:nth-child(-n + 1),
+.login__meter[data-level="fair"] > i:nth-child(-n + 3),
+.login__meter[data-level="almost"] > i:nth-child(-n + 4),
+.login__meter[data-level="hard"] > i {
+  background: var(--vermilion-lit);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--vermilion) 60%, transparent);
+}
+
+.login__meter[data-level="hard"] > i {
+  background: var(--brass);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--brass) 60%, transparent);
+}
+
+.login__policy {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--bone-500);
+}
+
+.login__policy[data-ok] {
+  color: var(--brass);
+}
+
 .login__submit {
   display: flex;
   align-items: center;

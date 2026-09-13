@@ -359,6 +359,19 @@ export function saveProfile(scope: string, p: Profile) {
 }
 
 /**
+ * Streak milestones — a chain this long pays a one-time bonus of reward
+ * points. Kept here, in the engine, so the pay-out and the display agree.
+ */
+export const STREAK_MILESTONES = [
+  { days: 7, label: "first week", points: 25 },
+  { days: 30, label: "one month", points: 150 },
+  { days: 60, label: "sixty days", points: 350 },
+  { days: 100, label: "one hundred days", points: 750 },
+  { days: 180, label: "half a year", points: 1500 },
+  { days: 365, label: "one year", points: 5000 },
+] as const;
+
+/**
  * Complete a task: award progress, reward points, factor gains, and handle
  * level-ups + streak. Returns the updated profile plus a list of "events"
  * the UI can animate (progress gains, level up, etc).
@@ -429,6 +442,16 @@ export function completeTask(
     if (p.lastActiveDate && dayDiff(p.lastActiveDate, today) === 1) {
       p.streak += 1;
       events.push({ type: "streak", message: `CONSISTENCY: ${p.streak} DAY${p.streak === 1 ? "" : "S"}` });
+      // A milestone day pays once: the chain itself is the achievement.
+      const hit = STREAK_MILESTONES.find((m) => m.days === p.streak);
+      if (hit) {
+        p.rewardPoints += hit.points;
+        events.push({
+          type: "streak",
+          message: `STREAK ${p.streak} DAYS — ${hit.label} · +${hit.points} REWARD`,
+          amount: hit.points,
+        });
+      }
     } else if (p.lastActiveDate && dayDiff(p.lastActiveDate, today) > 1) {
       p.streak = 1;
     } else {

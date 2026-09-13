@@ -1016,3 +1016,206 @@
     justify-content: center;
   }
 }
+
+/* ============================================================
+   streak — the chain: ember, heat grid, milestone track
+   ============================================================ */
+
+.streak {
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.4rem 1.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.streak__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.streak__status {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--bone-400);
+  margin-top: 0.3rem;
+}
+
+.streak__status[data-tone="hold"] { color: var(--brass); }
+.streak__status[data-tone="open"] { color: var(--bone-300); }
+.streak__status[data-tone="broken"] { color: var(--vermilion-lit); }
+
+.streak__now {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.streak__ember {
+  font-family: var(--font-jp);
+  font-size: 1.5rem;
+  color: var(--vermilion-lit);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--vermilion) 70%, transparent);
+  animation: streak-ember 2.2s ease-in-out infinite;
+}
+
+.streak__ember[data-alive="false"] {
+  color: var(--bone-500);
+  text-shadow: none;
+  animation: none;
+}
+
+@keyframes streak-ember {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+.streak__n {
+  font-size: 2.4rem;
+  color: var(--bone-100);
+  line-height: 1;
+}
+
+.streak__n-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: var(--bone-500);
+}
+
+.streak__body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+}
+
+.streak__grid {
+  display: flex;
+  gap: 3px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.streak__week {
+  display: grid;
+  grid-template-rows: repeat(7, 10px);
+  gap: 3px;
+}
+
+.streak__week i {
+  width: 10px;
+  height: 10px;
+  background: color-mix(in srgb, var(--bone-300) 10%, transparent);
+  border-radius: 2px;
+}
+
+.streak__week i[data-level="1"] { background: color-mix(in srgb, var(--vermilion) 28%, transparent); }
+.streak__week i[data-level="2"] { background: color-mix(in srgb, var(--vermilion) 52%, transparent); }
+.streak__week i[data-level="3"] { background: color-mix(in srgb, var(--vermilion) 74%, transparent); }
+.streak__week i[data-level="4"] {
+  background: var(--vermilion-lit);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--vermilion) 70%, transparent);
+}
+
+.streak__week-strip {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.streak__dot {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+}
+
+.streak__dot i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.streak__dot i[data-level="1"] { background: color-mix(in srgb, var(--vermilion) 45%, transparent); }
+.streak__dot i[data-level="2"] { background: color-mix(in srgb, var(--vermilion) 70%, transparent); }
+.streak__dot i[data-level="3"],
+.streak__dot i[data-level="4"] {
+  background: var(--vermilion-lit);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--vermilion) 70%, transparent);
+}
+
+.streak__dot em {
+  font-size: 0.56rem;
+  font-style: normal;
+  color: var(--bone-500);
+}
+
+.streak__track {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+
+.streak__mile {
+  flex: 1;
+  display: grid;
+  gap: 0.2rem;
+  justify-items: center;
+  position: relative;
+}
+
+.streak__mile i {
+  font-style: normal;
+  font-size: 0.9rem;
+  color: var(--bone-500);
+}
+
+.streak__mile b {
+  font-size: 0.8rem;
+  color: var(--bone-300);
+}
+
+.streak__mile em {
+  font-style: normal;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bone-500);
+}
+
+.streak__mile span {
+  font-size: 0.62rem;
+  color: var(--brass);
+}
+
+.streak__mile[data-earned] i { color: var(--brass); }
+.streak__mile[data-earned] b { color: var(--bone-100); }
+
+.streak__mile[data-next] i {
+  color: var(--vermilion-lit);
+  animation: streak-ember 2.2s ease-in-out infinite;
+}
+
+.streak__next {
+  color: var(--bone-500);
+}
+
+@media (max-width: 700px) {
+  .streak {
+    padding: 1rem;
+  }
+  .streak__week {
+    grid-template-rows: repeat(7, 8px);
+  }
+  .streak__week i {
+    width: 8px;
+    height: 8px;
+  }
+}

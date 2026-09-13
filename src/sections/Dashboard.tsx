@@ -9,6 +9,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap, REDUCED, registerVelTargets } from "../lib/motion";
 import { useReveals } from "../lib/reveal";
 import { HabitsPanel } from "../components/habits/HabitsPanel";
+import { StreakBoard } from "./StreakBoard";
+import { streakSnapshot, useHabitsLive } from "../lib/streaks";
 import { ApkLink } from "../components/ApkLink";
 import type { User } from "../lib/auth";
 import { adoptSnapshot, fetchSnapshot, schedulePush, shouldAdopt } from "../lib/sync";
@@ -51,6 +53,10 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
   const [events, setEvents] = useState<(CompleteEvent & { eid: string; born: number })[]>([]);
   const listRef = useRef<HTMLUListElement>(null);
   const rootRef = useRef<HTMLElement>(null);
+  // The chain reads every source of evidence: tasks, habits, the engine's
+  // last-active record. Habits stay owned by the panel; this view follows.
+  const habits = useHabitsLive(scope);
+  const snap = useMemo(() => streakSnapshot(profile, tasks, habits), [profile, tasks, habits]);
 
   // Re-load when the operator changes (sign out → someone else signs in).
   useEffect(() => {
@@ -234,9 +240,9 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
           />
           <StatCard
             label="Consistency"
-            value={`${profile.streak}`}
-            sub={`${profile.longestStreak} best`}
-            progress={Math.min(100, profile.streak * 5)}
+            value={`${snap.current}`}
+            sub={`${snap.longest} best`}
+            progress={Math.min(100, snap.current * 5)}
             color="var(--brass)"
             icon="ST"
             mono
@@ -289,6 +295,9 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
 
         {/* Habits — the daily ritual, with its own reminders. */}
         <HabitsPanel scope={scope} />
+
+        {/* The chain — every day of evidence, the heat, the milestones. */}
+        <StreakBoard profile={profile} tasks={tasks} habits={habits} />
 
         {showAdd && <AddTaskForm onAdd={addTask} onCancel={() => setShowAdd(false)} />}
 

@@ -50,6 +50,11 @@ moves like a loaded brush.**
 - `prefers-reduced-motion` is handled at the registration layer (`REDUCED` +
   a global `timeScale`), so no component can opt out of it, and reveals become
   plain content.
+- The boot curtain (`src/components/Boot.tsx`) is the one place allowed to go
+  loud: ink aurora, drifting grid, kanji embers, rising ink, counter-rotating
+  rings, the 影 slam and a blade-line exit. Every loop in it is **CSS**, so it
+  dies with the curtain — the boot leaves no rAF chains behind (measured by
+  the `motion` probes in the audit).
 
 ## The session
 
@@ -157,9 +162,13 @@ npm run dev:web    # just the site       (proxies /api → :8788)
 # with MongoDB:  MONGODB_URI='mongodb+srv://…' npm run dev:api
 
 npm run build
+node scripts/audit.mjs      # security/crash probe suite (23 probes)
 npm run smoke         # desktop: session + habits flow, ledger persists
 npm run smoke:mobile  # phone face: gate → ledger → stats → squad → profile
 npm run smoke:ladder  # milestones: renders live AND with the API down
+
+# owner's control panel (both must be set for #/app/admin to exist):
+#   ADMIN_EMAILS='you@your-domain.com' ADMIN_PIN='a-long-pin' npm run dev
 
 node scripts/pwa-icons.mjs      # regenerate the PWA / install icon set
 node scripts/android-assets.mjs # regenerate Android launcher + splash art
@@ -215,6 +224,50 @@ Since the backend landed, nothing on the data surfaces is invented:
 - **Kept, on purpose**: the Google *demo accounts* on the sign-in screen
   (local-first sign-in needs identities to choose from), and the Deep Work
   duel/focus engine, which is a self-contained game rather than operator data.
+
+## The gate — a real hard password
+
+Sign-in now requires a **hard passphrase** — min 12 characters, at least one
+uppercase, one lowercase, one digit and one symbol. The form (desktop and
+phone) shows a live strength meter and refuses a weak one before it leaves
+the device.
+
+- **Online**: the backend stores only a scrypt hash and verifies in constant
+  time. Wrong passwords are rate-limited; new sign-ups are rate-limited and
+  capped (`SQ_MAX_USERS`).
+- **Offline**: this device's own PBKDF2-SHA-256 record (210k iterations,
+  per-user salt) gates the ledger, so the same key opens both worlds.
+- Accounts that predate passwords are **sealed** by the first valid
+  password presented — a one-time migration, first-set-wins.
+
+Full details, the personal data flow audit and every control:
+[`docs/SECURITY.md`](docs/SECURITY.md).
+
+## The chain — streaks
+
+The Consistency stat, a heat-map panel on the desktop dashboard and a card
+on the phone profile are all driven by one honest computation
+(`src/lib/streaks.ts`): every sealed task, every habit mark and the engine's
+last-active record become the live chain, an 84-day heat grid, a week strip
+and a milestone track — **7 / 30 / 60 / 100 / 180 / 365 days**, each paying
+a one-time reward-point bonus when the chain reaches it.
+
+## The control panel — owner only
+
+`#/app/admin` is the owner's console. It exists only for emails listed in
+`ADMIN_EMAILS`, opens only with `ADMIN_PIN`, and every call is re-verified
+by the backend (a locally edited role is cosmetic). From it the owner sees
+the real numbers — operators, activity, sign-ups — can search the directory
+(the only surface that shows emails), remove an operator, and revoke every
+session at once. See `docs/BACKEND.md` for the endpoints.
+
+## If the app ever crashes
+
+`src/components/FaultLine.tsx` is the error boundary around the whole app:
+a sealed, in-world recovery screen with a reload — never a stack trace,
+never an error message. The API answers every unexpected failure with a
+generic body, and the audit suite (`node scripts/audit.mjs`) boots the real
+bundle with hostile and corrupt storage to prove the app survives it.
 
 ## Backend
 

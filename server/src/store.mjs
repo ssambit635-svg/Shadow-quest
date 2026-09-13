@@ -21,7 +21,7 @@ export const newId = () => `u_${randomBytes(9).toString("base64url")}`;
 
 /** Strip private fields before a document leaves the server. */
 export function publicUser(u) {
-  const { token, _id, ...rest } = u;
+  const { token, _id, passwordHash, ...rest } = u;
   return rest;
 }
 
@@ -49,6 +49,36 @@ async function mongoStore(uri, dbName) {
       return await users.findOne({ email });
     },
 
+    async setPassword(email, hash) {
+      await users.updateOne({ email }, { $set: { passwordHash: hash } });
+    },
+
+    async deleteUser(email) {
+      const r = await users.deleteOne({ email });
+      return r.deletedCount > 0;
+    },
+
+    async countUsers() {
+      return await users.countDocuments({});
+    },
+
+    async adminList(limit) {
+      return await users
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .toArray();
+    },
+
+    async invalidateAllTokens() {
+      // One pass: every stored token is replaced, every active session dies.
+      const docs = await users.find({}).project({ email: 1 }).toArray();
+      for (const d of docs) {
+        await users.updateOne({ email: d.email }, { $set: { token: newToken() } });
+      }
+      return docs.length;
+    },
+
     async byToken(token) {
       if (!token) return null;
       return await users.findOne({ token });
@@ -60,7 +90,7 @@ async function mongoStore(uri, dbName) {
       const filter = { email };
       const update = {
         $set: { handle, token, lastSeenAt: now },
-        $setOnInsert: { id: newId(), email, createdAt: now, profile: null, tasks: [], habits: [], updatedAt: 0 },
+        $setOnInsert: { id: newId(), email, createdAt: now, profile: null, tasks: [], habits: [], updatedAt: 0, passwordHash: null },
       };
       await users.updateOne(filter, update, { upsert: true });
       return await users.findOne({ email });
@@ -132,6 +162,38 @@ async function fileStore(filePath) {
       return find((u) => u.email === email);
     },
 
+    async setPassword(email, hash) {
+      const u = find((x) => x.email === email);
+      if (!u) throw new Error("unknown operator");
+      u.passwordHash = hash;
+      flush();
+    },
+
+    async deleteUser(email) {
+      const i = data.users.findIndex((x) => x.email === email);
+      if (i < 0) return false;
+      data.users.splice(i, 1);
+      flush();
+      return true;
+    },
+
+    async countUsers() {
+      return data.users.length;
+    },
+
+    async adminList(limit) {
+      return data.users
+        .slice()
+        .sort((a, b) => Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0))
+        .slice(0, limit);
+    },
+
+    async invalidateAllTokens() {
+      for (const u of data.users) u.token = newToken();
+      flush();
+      return data.users.length;
+    },
+
     async byToken(token) {
       return token ? find((u) => u.token === token) : null;
     },
@@ -151,6 +213,7 @@ async function fileStore(filePath) {
           tasks: [],
           habits: [],
           updatedAt: 0,
+          passwordHash: null,
         };
         data.users.push(u);
       } else {

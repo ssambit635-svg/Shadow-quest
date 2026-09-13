@@ -114,7 +114,24 @@ ok(
 );
 
 accounts[0].click();
-await sleep(1400); // verify beat + the gate's navigation to #/app
+await sleep(150);
+
+/* the chooser fills the form; the passphrase is the key in — a demo account
+   signs in exactly like any other */
+const fields = qa(".m-login__form .m-field input");
+if (fields.length !== 3) fail(`expected 3 sign-in fields, got ${fields.length}`);
+const putVal = (el, v) => {
+  const set = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, "value").set;
+  set.call(el, v);
+  el.dispatchEvent(new win.Event("input", { bubbles: true }));
+};
+if (fields[0].value !== "Aarav Sharma") fail(`chooser did not fill the name: ${fields[0].value}`);
+if (fields[1].value !== "aarav.sharma1998@gmail.com")
+  fail(`chooser did not fill the email: ${fields[1].value}`);
+putVal(fields[2], "SmokePass123!");
+await sleep(80);
+q('.m-login__form button[type="submit"]').click();
+await sleep(2200); // PBKDF2 device seal + the gate's navigation to #/app
 
 const rawUser = win.localStorage.getItem("sq.user.v1");
 if (!rawUser) fail("sign-in did not write an identity");

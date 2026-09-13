@@ -22,6 +22,7 @@ import { achievementsOf, powerIndex } from "../stats";
 import type { Ledger } from "../useLedger";
 import { Avatar, Caption, Panel, Sheet, initialsOf } from "../parts";
 import { squadWeekly, loadSquad } from "../squad";
+import { StreakCard } from "../StreakCard";
 
 export function ProfileScreen({
   user,
@@ -108,6 +109,9 @@ export function ProfileScreen({
           <span className="m-mini__v num">{marks}</span>
         </div>
       </div>
+
+      {/* — the chain — */}
+      <StreakCard profile={profile} tasks={tasks} />
 
       {/* — Google — */}
       <Caption>Sign-in</Caption>
@@ -210,6 +214,22 @@ export function ProfileScreen({
           </span>
           <span className="m-rowbtn__a" aria-hidden="true">›</span>
         </button>
+        {user.role === "admin" && (
+          <button
+            type="button"
+            className="m-rowbtn"
+            onClick={() => {
+              window.location.hash = "#/app/admin";
+            }}
+          >
+            <span className="m-rowbtn__ja" aria-hidden="true">御</span>
+            <span className="m-rowbtn__b">
+              <span className="m-rowbtn__t">Control panel</span>
+              <span className="m-rowbtn__s">Owner-only console</span>
+            </span>
+            <span className="m-rowbtn__a" aria-hidden="true">›</span>
+          </button>
+        )}
       </div>
 
       <Caption>Skills</Caption>
