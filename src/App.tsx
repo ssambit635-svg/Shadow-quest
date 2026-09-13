@@ -257,7 +257,9 @@ export default function App() {
         )}
         {route === "ladder" && user && (
           <div className="app-page">
-            <Ladder />
+            {/* The ladder degrades to this operator's own device ledger when
+                the backend is away, so it needs their scope to do it. */}
+            <Ladder scope={scopeOf(user)} handle={user.handle} />
           </div>
         )}
         {/* while the gate decides where an unauthenticated app-route goes,
