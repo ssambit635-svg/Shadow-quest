@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, type Plugin, type ProxyOptions } from "vite";
 import react from "@vitejs/plugin-react";
 
 /**
@@ -78,12 +78,49 @@ function csp(): Plugin {
  * calls the same-origin /api prefix and the dev/preview servers forward it,
  * so the page never needs to know the backend's real origin — and the APK /
  * production builds can point VITE_API_BASE_URL at the deployed API instead.
+ *
+ * When the backend is NOT running, http-proxy answers with a bare 500 and no
+ * body — which is what used to reach the Milestones screen as an
+ * unexplainable failure. The `error` hook below replaces that with an honest
+ * JSON 503, so every screen can tell "the API is away" from "the API is
+ * broken" and degrade accordingly.
  */
 const BACKEND = process.env.SQ_BACKEND_URL ?? "http://127.0.0.1:8788";
-const apiProxy = {
+
+function proxyError(
+  err: Error & { code?: string },
+  res: { writeHead?: unknown; end?: unknown; headersSent?: boolean },
+) {
+  const away = err.code === "ECONNREFUSED" || err.code === "ENOTFOUND";
+  const body = JSON.stringify({
+    ok: false,
+    error: away ? "backend offline" : "proxy failure",
+    detail: away
+      ? `the ShadowQuest API is not listening on ${BACKEND} — run \`npm run dev\` (starts both halves) or \`npm run dev:api\` on its own`
+      : err.message,
+  });
+  if (typeof res?.writeHead !== "function" || typeof res.end !== "function") return;
+  if (res.headersSent) return;
+  try {
+    res.writeHead(503, {
+      "content-type": "application/json",
+      "content-length": String(Buffer.byteLength(body)),
+    });
+    res.end(body);
+  } catch {
+    /* socket already gone — nothing left to answer */
+  }
+}
+
+const apiProxy: ProxyOptions = {
   target: BACKEND,
   changeOrigin: true,
   rewrite: (p: string) => p.replace(/^\/api/, ""),
+  configure(proxy) {
+    proxy.on("error", (err: Error, _req: unknown, res: unknown) =>
+      proxyError(err, res as { writeHead?: unknown; end?: unknown; headersSent?: boolean }),
+    );
+  },
 };
 
 // Preview-safe: bind every interface, allow the Arena proxy host, and let the

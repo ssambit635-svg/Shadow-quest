@@ -1654,11 +1654,105 @@
   color: var(--vermilion-deep);
 }
 
+.ladder__mock code {
+  font-family: var(--font-label);
+  font-size: 0.86em;
+  letter-spacing: 0.04em;
+}
+
+/* Where the rows came from — the ladder never lets a number pass for
+   something it is not. Same three states the stats board carries. */
+.ladder__sync {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.ladder__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--ink-900) 22%, transparent);
+  border-radius: var(--radius);
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ink-900) 62%, transparent);
+}
+
+.ladder__badge i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink-900) 30%, transparent);
+}
+
+.ladder__badge.is-live {
+  color: var(--vermilion-deep);
+  border-color: color-mix(in srgb, var(--vermilion-deep) 42%, transparent);
+}
+
+.ladder__badge.is-live i {
+  background: var(--vermilion);
+  box-shadow: 0 0 9px color-mix(in srgb, var(--vermilion) 65%, transparent);
+  animation: ladder-pulse 2.2s ease-in-out infinite;
+}
+
+.ladder__badge.is-device {
+  border-style: dashed;
+  color: color-mix(in srgb, var(--ink-900) 70%, transparent);
+}
+
+.ladder__badge.is-loading i {
+  animation: ladder-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes ladder-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.72); }
+}
+
+.ladder__refresh {
+  background: none;
+  border: none;
+  padding: 0.4rem 0.2rem;
+  color: color-mix(in srgb, var(--ink-900) 55%, transparent);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--t-1) var(--e-snap);
+}
+
+.ladder__refresh:hover:not(:disabled) {
+  color: var(--vermilion-deep);
+}
+
+.ladder__refresh:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* The operator's own row, on either source. */
+.ladder__row--you td {
+  background: color-mix(in srgb, var(--vermilion) 7%, transparent);
+}
+
+.ladder__you {
+  margin-left: 0.55rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid color-mix(in srgb, var(--vermilion-deep) 40%, transparent);
+  border-radius: var(--radius);
+  color: var(--vermilion-deep);
+  text-transform: uppercase;
+  vertical-align: 0.12em;
+}
+
 .ladder__error {
   display: grid;
   gap: 0.7rem;
   justify-items: start;
   padding: 1.4rem;
+  margin-bottom: 1.4rem;
   border: 1px dashed color-mix(in srgb, var(--ink-900) 30%, transparent);
   color: var(--ink-700);
 }

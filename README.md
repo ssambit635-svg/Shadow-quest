@@ -150,14 +150,16 @@ docs/APK.md     the Android build / release / signing / install guide
 
 ```bash
 npm install
-npm run dev        # site → http://localhost:5173 (proxies /api to :8788)
+npm run dev        # BOTH halves: the data API (:8788) + the site (:5173)
 
-cd server && npm install && npm start   # the data API (port 8788)
-# with MongoDB:  MONGODB_URI='mongodb+srv://…' npm start
+npm run dev:api    # just the API        (cd server && npm install, once)
+npm run dev:web    # just the site       (proxies /api → :8788)
+# with MongoDB:  MONGODB_URI='mongodb+srv://…' npm run dev:api
 
 npm run build
 npm run smoke         # desktop: session + habits flow, ledger persists
 npm run smoke:mobile  # phone face: gate → ledger → stats → squad → profile
+npm run smoke:ladder  # milestones: renders live AND with the API down
 
 node scripts/pwa-icons.mjs      # regenerate the PWA / install icon set
 node scripts/android-assets.mjs # regenerate Android launcher + splash art
@@ -201,9 +203,12 @@ Since the backend landed, nothing on the data surfaces is invented:
 
 - **Tasks** — a fresh ledger is empty. Goals appear when a person adds them.
 - **Habits** — same: the ritual starts blank.
-- **Leaderboard** (`#/app/ladder`) — reads `GET /v1/leaderboard`: real
-  operators ranked by recorded progress. Unreachable backend → an honest
-  offline state, not fake rows.
+- **Leaderboard** (`#/app/ladder`, tab **Milestones**) — reads
+  `GET /v1/leaderboard`: real operators ranked by recorded progress, with the
+  signed-in operator's own row marked **you**. Unreachable backend → an honest
+  *device copy*: the operator's own milestones from this device's ledger and a
+  badge saying where they came from. Never fake rows, never a red error for
+  "the API isn't running" — that is a deployment state, not a data failure.
 - **Squad** — no seeded pool. The "People on ShadowQuest" list is the live
   roster of registered operators (`GET /v1/people`); when nobody else has
   registered, it says so.

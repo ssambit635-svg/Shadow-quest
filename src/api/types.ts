@@ -112,6 +112,8 @@ export interface LeaderRow {
   school: string;
   /** Life Level, when the backend supplies it (the live ladder does). */
   level?: number;
+  /** True on the signed-in operator's own row, so the ladder can mark it. */
+  you?: boolean;
 }
 
 export interface MoveIntent {

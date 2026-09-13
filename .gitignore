@@ -2,6 +2,12 @@ node_modules
 dist
 dist-ssr
 
+# --- the API's file store ---
+# Real operator ledgers (profile, tasks, habits) and their bearer tokens when
+# no MONGODB_URI is configured. Local persistence, never a repository artefact.
+.data/
+server/.data/
+
 # --- Android / Capacitor ---
 # The native project is committed (that is the Capacitor convention), but the
 # copied web bundle and every Gradle output are regenerable: `npx cap sync`

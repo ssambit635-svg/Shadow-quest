@@ -7,14 +7,18 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite --host 0.0.0.0",
+    "dev:api": "node server/src/index.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -b --noEmit",
     "smoke": "node scripts/smoke.mjs",
     "presmoke": "npm run build",
     "smoke:mobile": "node scripts/smoke-mobile.mjs",
-    "presmoke:mobile": "npm run build"
+    "presmoke:mobile": "npm run build",
+    "smoke:ladder": "node scripts/ladder-check.mjs http://localhost:5173 milestones",
+    "presmoke:ladder": "npm run build"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
