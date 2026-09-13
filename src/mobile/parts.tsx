@@ -182,8 +182,8 @@ export function Stat({
 
 /**
  * The one overlay in the phone face. Anchored to the thumb, dismissed by
- * backdrop or Escape, and it locks the page behind it so the sheet cannot
- * fight the scroll.
+ * backdrop, Escape, or BACK, and it locks the page behind it so the sheet
+ * cannot fight the scroll.
  */
 export function Sheet({
   open,
@@ -197,15 +197,53 @@ export function Sheet({
   children: ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // History bookkeeping for BACK-to-close (below). Refs, not locals: the
+  // effect re-runs whenever the parent re-renders with a fresh `onClose`
+  // while the sheet is open, but only the closed→open *transition* may
+  // push, and only the matching close may balance.
+  const wasOpenRef = useRef(false);
+  const pushedRef = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // Closed through the UI (X, veil, submit): balance the entry this
+      // sheet pushed when it opened, so BACK never lands on a dead slot.
+      // A close *by* BACK already cleared the flag in `onPop`, so this is
+      // a no-op on that path by construction.
+      if (pushedRef.current) {
+        pushedRef.current = false;
+        try {
+          history.back();
+        } catch {
+          /* non-browser shell — nothing to balance */
+        }
+      }
+      wasOpenRef.current = false;
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Opening pushes one history entry on the closed→open transition only,
+    // so the Android back button (and the browser's) closes the sheet
+    // instead of leaving the screen underneath it.
+    if (!wasOpenRef.current) {
+      wasOpenRef.current = true;
+      try {
+        history.pushState({ sqSheet: true }, "");
+        pushedRef.current = true;
+      } catch {
+        /* hardened shell: the sheet still opens, BACK just navigates */
+      }
+    }
+    const onPop = () => {
+      pushedRef.current = false;
+      onClose();
+    };
+    window.addEventListener("popstate", onPop);
     if (!REDUCED && panelRef.current) {
       gsap.fromTo(
         panelRef.current,
@@ -215,6 +253,7 @@ export function Sheet({
     }
     return () => {
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("popstate", onPop);
       document.body.style.overflow = prev;
     };
   }, [open, onClose]);

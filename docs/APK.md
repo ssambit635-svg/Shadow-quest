@@ -142,6 +142,14 @@ keytool -genkey -v -keystore release.keystore -alias shadowquest \
   five densities) both render from `public/icons/icon.svg`.
 - **Keyboard** — `windowSoftInputMode="adjustResize"` so the layout reflows
   instead of hiding behind the soft keyboard.
+- **No landing page** — a cold boot inside the shell (`App.tsx`, native-boot
+  effect) lands straight in the ledger for a signed-in operator, or at the
+  gate for a stranger. Sign-out returns to the gate, not the pitch page.
+- **Back button behaves like an app** — the WebView maps BACK to history, so
+  BACK walks tabs backwards; the bottom sheet pushes one history entry and
+  closes on BACK instead of leaving its screen; and every redirect (the
+  auth gate, the native boot, sign-out) *replaces* its history entry, so
+  BACK can never trap itself in a login↔app loop.
 
 ## 6 · Regenerating the copied web bundle
 
