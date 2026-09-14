@@ -150,6 +150,60 @@ new URL(evilcb.headers.get("location")).origin === "http://localhost:5173" ? ok(
 const cancel = new URLSearchParams(new URL(evilcb.headers.get("location")).hash.split("?")[1]);
 cancel.get("sq_auth") === "cancelled" ? ok("user cancellation reported as 'cancelled'") : bad("cancel: " + cancel.get("sq_auth"));
 
+/* the installed APK: its WebView serves the bundle from https://localhost, so
+ * that origin has to be an allowed return or the handoff code lands on the
+ * website and the app never sees it. */
+const apkStart = await realFetch(`${API}/v1/auth/google/start?return_to=${encodeURIComponent("https://localhost/")}`, { redirect: "manual" });
+const apkLoc = new URL(apkStart.headers.get("location"));
+const apkState = apkLoc.searchParams.get("state");
+nextClaims = { iss: "https://accounts.google.com", aud: CLIENT_ID, exp: Math.floor(Date.now()/1000)+3600, iat: Math.floor(Date.now()/1000), email_verified: true, nonce: apkLoc.searchParams.get("nonce"), sub: "apk-" + randomUUID().slice(0,6), email: `apk.user.${Date.now()}@gmail.com`, name: "APK Operator" };
+const apkCb = await realFetch(`${API}/v1/auth/google/callback?code=fake-auth-code&state=${encodeURIComponent(apkState)}`, { redirect: "manual" });
+const apkBack = new URL(apkCb.headers.get("location"));
+const apkParams = new URLSearchParams(apkBack.hash.slice(apkBack.hash.indexOf("?") + 1));
+apkBack.origin === "https://localhost" && apkParams.get("sq_auth") === "ok"
+  ? ok("APK shell origin (https://localhost) receives the handoff code")
+  : bad("APK bounce: " + apkCb.headers.get("location"));
+/* and that code is redeemable from the app, exactly like the website's */
+const apkEx = await realFetch(`${API}/v1/auth/google/exchange`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: apkParams.get("code") }) });
+const apkSession = await apkEx.json();
+apkSession.token && apkSession.user.email === nextClaims.email
+  ? ok("APK handoff redeems for a real session") : bad("APK exchange: " + JSON.stringify(apkSession));
+
+/* SQ_NATIVE_ORIGIN=off closes the shell origin again (website-only deploys) */
+const { resolveReturn, googleConfig } = await import(new URL("../server/src/google.mjs", import.meta.url).href);
+const offCfg = googleConfig({ GOOGLE_CLIENT_ID: "x", GOOGLE_CLIENT_SECRET: "y", GOOGLE_CALLBACK_URL: "https://api.x.test/v1/auth/google/callback", SQ_APP_ORIGIN: "https://app.x.test", SQ_NATIVE_ORIGIN: "off" });
+resolveReturn(offCfg, "https://localhost/") === "https://app.x.test"
+  ? ok("SQ_NATIVE_ORIGIN=off refuses the shell origin") : bad("off → " + resolveReturn(offCfg, "https://localhost/"));
+const onCfg = googleConfig({ GOOGLE_CLIENT_ID: "x", GOOGLE_CLIENT_SECRET: "y", GOOGLE_CALLBACK_URL: "https://api.x.test/v1/auth/google/callback", SQ_APP_ORIGIN: "https://app.x.test" });
+resolveReturn(onCfg, "https://localhost/") === "https://localhost"
+  ? ok("default config allows the Capacitor shell origin") : bad("on → " + resolveReturn(onCfg, "https://localhost/"));
+resolveReturn(onCfg, "https://evil.example.com") === "https://app.x.test"
+  ? ok("an arbitrary third-party origin is still refused") : bad("evil → " + resolveReturn(onCfg, "https://evil.example.com"));
+
+/* the `.env` loader, since a credentials file that nothing reads is how this
+ * flow silently stayed "not configured" */
+const { parseEnv } = await import(new URL("../server/src/env.mjs", import.meta.url).href);
+const parsed = parseEnv([
+  "# a comment",
+  "",
+  "PLAIN=value",
+  'QUOTED="with spaces"',
+  "SINGLE='also fine'",
+  "export EXPORTED=yes",
+  "  SPACED  =  trimmed  ",
+  "URL=https://x.test/a?b=c&d=e",
+  "BAD LINE NO EQUALS",
+  "9NOT_A_KEY=nope",
+].join("\n"));
+JSON.stringify(parsed) === JSON.stringify({
+  PLAIN: "value",
+  QUOTED: "with spaces",
+  SINGLE: "also fine",
+  EXPORTED: "yes",
+  SPACED: "trimmed",
+  URL: "https://x.test/a?b=c&d=e",
+}) ? ok(".env parser: keys, quotes, export, comments, junk lines") : bad("parseEnv: " + JSON.stringify(parsed));
+
 /* no secret ever leaves */
 const root = await (await realFetch(`${API}/`)).text();
 (!root.includes("test-secret") && !root.includes(CLIENT_ID)) ? ok("no client id/secret in any API response body") : bad("secret leaked");

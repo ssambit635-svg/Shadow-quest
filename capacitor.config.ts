@@ -21,6 +21,43 @@ import type { CapacitorConfig } from "@capacitor/cli";
  */
 const serverUrl = process.env.CAPACITOR_SERVER_URL?.replace(/\/+$/, "") || undefined;
 
+/**
+ * Hosts the WebView is allowed to navigate to itself.
+ *
+ * This is what makes "Continue with Google" work inside the APK. Capacitor's
+ * Bridge.launchIntent hands any navigation to an unlisted host to the system
+ * browser (Intent.ACTION_VIEW), so without this list the OAuth round trip
+ * leaves the app: the human signs in in Chrome, Google bounces to the API,
+ * the API bounces back to https://localhost/#/login?… — and Chrome has
+ * nothing listening on localhost, so the code is dropped on the floor and the
+ * app never sees it.
+ *
+ * Listed here, the whole trip stays in the WebView: out to Google, back to
+ * the API, back to the app's own origin, where lib/googleAuth reads the
+ * one-time code out of the hash and trades it for a session.
+ *
+ * The API host comes from VITE_API_BASE_URL — the same value the bundle is
+ * built with, so the shell and the JS can never disagree about where the
+ * backend is.
+ */
+function allowNavigation(): string[] {
+  const hosts = ["accounts.google.com"];
+  const raw = (process.env.VITE_API_BASE_URL ?? "").trim();
+  if (raw) {
+    try {
+      hosts.push(new URL(raw).hostname);
+    } catch {
+      console.warn(`[capacitor] ignoring unparsable VITE_API_BASE_URL: ${raw}`);
+    }
+  } else {
+    console.warn(
+      "[capacitor] VITE_API_BASE_URL is not set — the APK has no API address, so " +
+        "sign-in (and every ledger call) cannot reach a backend. Set it before building.",
+    );
+  }
+  return [...new Set(hosts)];
+}
+
 const config: CapacitorConfig = {
   appId: "app.arena.shadowquest",
   appName: "ShadowQuest",
@@ -39,8 +76,15 @@ const config: CapacitorConfig = {
         url: serverUrl,
         // A hosted build is authoritative; never fall back to a stale bundle.
         cleartext: false,
+        allowNavigation: allowNavigation(),
       }
-    : undefined,
+    : {
+        // Spelled out because it is a contract, not a default: the shell
+        // serves the bundle from https://localhost, which is the origin the
+        // backend's SQ_NATIVE_ORIGIN allows to receive a sign-in handoff.
+        androidScheme: "https",
+        allowNavigation: allowNavigation(),
+      },
   plugins: {
     SplashScreen: {
       backgroundColor: "#0c0b0a",

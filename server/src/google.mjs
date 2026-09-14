@@ -46,6 +46,17 @@ const STATE_TTL_MS = 10 * 60_000;
 /** How long the app has to redeem the one-time handoff code. */
 const HANDOFF_TTL_MS = 2 * 60_000;
 
+/**
+ * The origins the Capacitor shell serves its own bundle from.
+ *
+ * @capacitor/android defaults to hostname "localhost" with scheme "https"
+ * (CapConfig.java), so an installed APK loads the app from
+ * https://localhost. Google sign-in inside the APK is a full-page navigation
+ * out to the backend and back, so that origin has to be a permitted return or
+ * the handoff code lands on the website and the app never sees it.
+ */
+const DEFAULT_NATIVE_ORIGINS = ["https://localhost", "http://localhost"];
+
 /* ------------------------------------------------------------------ *
  * configuration
  * ------------------------------------------------------------------ */
@@ -63,8 +74,26 @@ export function googleConfig(env = process.env) {
     clientSecret,
     callbackUrl,
     appOrigins,
+    nativeOrigins: nativeOriginList(env),
     enabled: Boolean(clientId && clientSecret && callbackUrl),
   };
+}
+
+/**
+ * Which app-shell origins may receive a handoff code.
+ *
+ *   SQ_NATIVE_ORIGIN unset  → the Capacitor defaults (APK sign-in works)
+ *   SQ_NATIVE_ORIGIN=a,b    → exactly those origins
+ *   SQ_NATIVE_ORIGIN=off    → none, website-only deployments
+ */
+function nativeOriginList(env = process.env) {
+  const raw = (env.SQ_NATIVE_ORIGIN ?? "").trim();
+  if (/^off$/i.test(raw)) return [];
+  if (!raw) return [...DEFAULT_NATIVE_ORIGINS];
+  return raw
+    .split(",")
+    .map((s) => s.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
 }
 
 /**
@@ -90,12 +119,18 @@ function callbackOrigin(cfg) {
  * code to a host they control, so the answer is an allowlist:
  *   · SQ_APP_ORIGIN set          → those origins
  *   · plus the callback's origin → same-host production, always
+ *   · plus SQ_NATIVE_ORIGIN      → the installed APK's own origin
  *   · neither                    → localhost only (dev)
+ *
+ * The handoff code this redirect carries is single-use and expires in two
+ * minutes, and the shell origins are the device's own loopback — they cannot
+ * be pointed at a third party.
  */
 export function resolveReturn(cfg, requested) {
   const cbOrigin = callbackOrigin(cfg);
   const allowed = new Set(cfg.appOrigins);
   if (cbOrigin) allowed.add(cbOrigin);
+  for (const origin of cfg.nativeOrigins ?? []) allowed.add(origin);
   const fallback = cfg.appOrigins[0] || cbOrigin || "http://localhost:5173";
   if (typeof requested !== "string" || !requested) return fallback;
   let url;

@@ -16,7 +16,14 @@
  * from the address bar the instant it is read, so a shared link or a
  * back-button press can never re-open somebody's ledger.
  */
-import { apiUrl, exchangeGoogleCode, type GoogleSession } from "../api/ledger";
+import {
+  API_BASE_IS_ABSOLUTE,
+  apiUrl,
+  exchangeGoogleCode,
+  type GoogleSession,
+} from "../api/ledger";
+import { ApiError } from "../api/transport";
+import { isNativeApp } from "./native";
 import { login, type User } from "./auth";
 
 /** Which provider opened the current session, and when. */
@@ -111,8 +118,17 @@ export function forgetProvider(): void {
  * Hand the page to the backend, which sends it on to Google. A full-page
  * navigation on purpose: a popup is blocked on iOS Safari and inside the
  * Capacitor WebView, and an iframe is refused by Google outright.
+ *
+ * The WebView can follow this navigation and, on the way back, its local
+ * server serves the bundle again with the handoff code still in the hash —
+ * which is how the APK completes the same flow the website does. That only
+ * works when the bundle knows where the API is: a relative "/api" inside the
+ * shell resolves to https://localhost, where nothing is listening, so the tap
+ * would drive the app to a dead end. Refusing here, with a sentence, beats
+ * stranding the operator on a blank screen.
  */
 export function startGoogleSignIn(): void {
+  if (isNativeApp() && !API_BASE_IS_ABSOLUTE) throw new GoogleAuthError("misbuilt");
   const returnTo = `${window.location.origin}${window.location.pathname}`;
   window.location.assign(
     `${apiUrl("/v1/auth/google/start")}?return_to=${encodeURIComponent(returnTo)}`,
@@ -170,6 +186,29 @@ export class GoogleAuthError extends Error {
   }
 }
 
+/**
+ * Turn whatever the exchange threw into the reason that actually happened.
+ *
+ * This mapping used to be a single `catch { throw "network" }`, which meant a
+ * spent handoff code (401), a rate limit (429) and a deployment with Google
+ * switched off (503) all told the operator to check their wifi — and they
+ * would, endlessly, because the wifi was never the problem. Every HTTP status
+ * the backend can answer with now has its own reason.
+ */
+export function googleFailureReason(err: unknown): string {
+  if (err instanceof GoogleAuthError) return err.reason;
+  const status = err instanceof ApiError ? err.status : undefined;
+  if (status === 503) return "unconfigured";
+  if (status === 401) return "expired";
+  if (status === 429) return "throttled";
+  if (status === 404) return "missing";
+  if (typeof status === "number") return "server";
+  // No status. `call` and `exchangeGoogleCode` attach the underlying fetch
+  // error as `detail` only when the request never completed, which is the one
+  // case where blaming the connection is honest.
+  return err instanceof ApiError && err.detail === undefined ? "server" : "network";
+}
+
 /** Human-readable copy for every way this flow can end badly. */
 export function googleErrorMessage(reason: string): string {
   switch (reason) {
@@ -179,8 +218,16 @@ export function googleErrorMessage(reason: string): string {
       return "Google could not be verified. Try again.";
     case "closed":
       return "Registration is closed right now.";
+    case "throttled":
+      return "Too many sign-in attempts. Wait a minute and try again.";
     case "network":
       return "Could not reach ShadowQuest. Check your connection and try again.";
+    case "unreachable":
+      return "ShadowQuest's API did not answer. If this keeps happening the server is down, not your connection — email and passphrase still work.";
+    case "missing":
+      return "This build points at an address with no ShadowQuest API behind it. Rebuild with VITE_API_BASE_URL set to the API origin, or use email and passphrase.";
+    case "misbuilt":
+      return "This app build has no API address, so Google sign-in cannot reach the server. Rebuild the APK with VITE_API_BASE_URL set — email and passphrase work meanwhile.";
     case "unconfigured":
       return "Google sign-in is not configured on this deployment.";
     case "no_code":
@@ -188,6 +235,22 @@ export function googleErrorMessage(reason: string): string {
     default:
       return "Google sign-in failed. Try again, or use your email and passphrase.";
   }
+}
+
+/**
+ * Why the pre-flight probe of /v1/auth/providers did not come back.
+ *
+ * Checked before anything is sent to Google: a build with no API behind it
+ * cannot complete the flow, and the operator deserves that sentence rather
+ * than a redirect into nothing.
+ */
+export function probeFailureReason(status: number | undefined): string {
+  if (isNativeApp() && !API_BASE_IS_ABSOLUTE) return "misbuilt";
+  // 404 means the request reached *something* — a static host answering for
+  // an unknown path — and that something is not the ShadowQuest API.
+  if (status === 404) return "missing";
+  // No answer at all, or a gateway in between gave up: the server is down.
+  return "unreachable";
 }
 
 export interface GoogleOutcome {
@@ -206,8 +269,11 @@ export async function completeGoogleSignIn(code: string): Promise<GoogleOutcome>
   let session: GoogleSession;
   try {
     session = await exchangeGoogleCode(code);
-  } catch {
-    throw new GoogleAuthError("network");
+  } catch (err) {
+    // Preserve the reason the backend actually gave. A spent code, a rate
+    // limit and a switched-off provider all look identical from out here
+    // unless the status is carried through.
+    throw new GoogleAuthError(googleFailureReason(err));
   }
   const user = login(session.handle, session.email, session.role);
   writeProvider({ kind: "google", at: Date.now() });
