@@ -542,14 +542,34 @@ Please read [`LICENSE`](./LICENSE) first — design, motion system, session engi
 
 **2026 ssambit635-svg — All Rights Reserved.**
 
-This repository is public for **review and evaluation purposes only**.
+This repository is public for **review and evaluation purposes only** — it is a
+**viewing room, not a download shop**. The product itself is already live at
+[shadow-quest.onrender.com](https://shadow-quest.onrender.com); there is nothing
+to download in order to use it.
 
 | | |
 |---|---|
-| You **MAY** | Read, review, evaluate |
-| You **MAY NOT** | Copy, clone, fork for own projects, redistribute, repackage |
+| You **MAY** | Read, review, evaluate — in the browser |
+| You **MAY NOT** | Copy, clone, fork for own projects, redistribute, repackage, resell |
 
-Unauthorized copying will result in **DMCA takedown**. See [`LICENSE`](./LICENSE).
+### Copy-resistance in force
+
+- **Source-code downloads are disabled** — the *Download ZIP / TAR.GZ* button is
+  turned off at the repository level (Settings → General → Danger Zone).
+- **Forking is disabled** — no one-click copy of this codebase to another account.
+- **Generated release archives are docs-only** — [.gitattributes](./.gitattributes)
+  marks all source directories `export-ignore`, so any tag/release
+  *Source code (zip/tar.gz)* archive GitHub auto-generates contains
+  **documentation only, zero source code**.
+- **Legal cover** — the [`LICENSE`](./LICENSE) asserts All Rights Reserved and
+  reserves DMCA enforcement. Unauthorized copying will be pursued through all
+  available legal remedies, including DMCA takedown notices filed with GitHub.
+
+If a *Download ZIP* button or a *Fork* button ever reappears on this repository,
+that is a settings regression — re-disable both in **Settings → General →
+Danger Zone** ("Allow source code downloads" off, "Allow forks" unchecked).
+
+> Public means *visible*, not *free to take*. Viewing is welcome. Taking is not.
 
 To request a license: contact the author via GitHub.
 
