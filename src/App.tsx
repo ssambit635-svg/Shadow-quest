@@ -27,6 +27,7 @@ import { Dashboard } from "./sections/Dashboard";
 import { Ladder } from "./sections/Ladder";
 import { StatsBoard } from "./sections/StatsBoard";
 import { logout, scopeOf, useUser } from "./lib/auth";
+import { forgetProvider } from "./lib/googleAuth";
 import { gsap, REDUCED } from "./lib/motion";
 import { isNativeApp } from "./lib/native";
 import { ReadyContext } from "./lib/ready";
@@ -215,6 +216,9 @@ export default function App() {
   const signOut = useCallback(() => {
     signingOutRef.current = true;
     logout();
+    // Drop the provider marker and the cached Google profile too: signing
+    // out must leave nothing behind that says who was here.
+    forgetProvider();
     // The APK has no landing page to return to — the gate is home.
     if (isNativeApp()) go("login", { replace: true });
     else go("home");

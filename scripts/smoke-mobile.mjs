@@ -1,5 +1,5 @@
 /* smoke-mobile.mjs — boots the built bundle at PHONE width and walks the
- * mobile-native shell end to end: the demo Google gate, the ledger, task
+ * mobile-native shell end to end: the passphrase gate, the ledger, task
  * completion and its reward beat, the character sheet, rewards, profile and
  * the squad. Temporary dev script, not part of the app.
  *
@@ -100,24 +100,17 @@ await sleep(1600); // boot curtain + first paint
 /* --- 1. the gate is the mobile one, and the desktop one is absent --- */
 if (!q(".m-login")) fail("mobile login did not mount at 420px");
 if (q(".login__grid")) fail("desktop login rendered on a phone viewport");
-if (!q(".m-gbtn")) fail("Google button missing");
 ok("mobile gate mounted, desktop gate absent");
 
-/* --- 2. demo Google sign-in --- */
-q(".m-gbtn").click();
-await sleep(150);
-const accounts = qa(".m-gpick__a:not(.m-gpick__a--alt)");
-if (accounts.length !== 3) fail(`expected 3 demo accounts, got ${accounts.length}`);
-ok(
-  "account chooser: " +
-    accounts.map((a) => a.querySelector(".m-gpick__n").textContent).join(" | "),
-);
+/* The Google button is only drawn when the backend reports real OAuth
+   configuration (GET /v1/auth/providers → { google: true }). There is no
+   backend in this harness, so the gate must offer the passphrase form alone
+   — and must never fall back to a built-in account chooser. */
+if (q(".m-gbtn")) fail("Google button drawn without a configured backend");
+if (q(".m-gpick")) fail("a hardcoded Google account chooser is still present");
+ok("no Google button and no account chooser without a configured backend");
 
-accounts[0].click();
-await sleep(150);
-
-/* the chooser fills the form; the passphrase is the key in — a demo account
-   signs in exactly like any other */
+/* --- 2. passphrase sign-in --- */
 const fields = qa(".m-login__form .m-field input");
 if (fields.length !== 3) fail(`expected 3 sign-in fields, got ${fields.length}`);
 const putVal = (el, v) => {
@@ -125,9 +118,10 @@ const putVal = (el, v) => {
   set.call(el, v);
   el.dispatchEvent(new win.Event("input", { bubbles: true }));
 };
-if (fields[0].value !== "Aarav Sharma") fail(`chooser did not fill the name: ${fields[0].value}`);
-if (fields[1].value !== "aarav.sharma1998@gmail.com")
-  fail(`chooser did not fill the email: ${fields[1].value}`);
+/* An address invented by THIS script, for THIS run — not a shipped account. */
+const smokeEmail = `smoke.operator.${Date.now()}@example.test`;
+putVal(fields[0], "Smoke Operator");
+putVal(fields[1], smokeEmail);
 putVal(fields[2], "SmokePass123!");
 await sleep(80);
 q('.m-login__form button[type="submit"]').click();
@@ -136,15 +130,13 @@ await sleep(2200); // PBKDF2 device seal + the gate's navigation to #/app
 const rawUser = win.localStorage.getItem("sq.user.v1");
 if (!rawUser) fail("sign-in did not write an identity");
 const user = JSON.parse(rawUser);
-if (user.email !== "aarav.sharma1998@gmail.com")
-  fail(`wrong identity signed in: ${user.email}`);
+if (user.email !== smokeEmail) fail(`wrong identity signed in: ${user.email}`);
 
 const rawProv = win.localStorage.getItem("sq.auth.provider.v1");
 if (!rawProv) fail("provider marker not written");
 const prov = JSON.parse(rawProv);
-if (prov.kind !== "google" || prov.accountId !== "g_aarav")
-  fail(`provider marker wrong: ${rawProv}`);
-ok(`google sign-in as ${user.email} (provider=${prov.kind})`);
+if (prov.kind !== "local") fail(`provider marker wrong: ${rawProv}`);
+ok(`passphrase sign-in as ${user.email} (provider=${prov.kind})`);
 
 /* --- 3. the shell: bar, five-tab dock, home hero --- */
 if (!q(".m-app")) fail("mobile shell did not mount after sign-in");
@@ -316,10 +308,13 @@ if (!emptyRole) fail("could not read the empty slot's role label");
 
 await goto("#/app/profile", ".m-profile", "profile");
 if (q(".m-id__e").textContent !== user.email) fail("profile shows the wrong identity");
-if (!q(".m-g")) fail("google connection panel missing");
-if (!q(".m-g__e").textContent.includes("aarav.sharma1998@gmail.com"))
-  fail("profile does not show the attached google account");
-ok(`profile: ${q(".m-id__n").textContent} / ${q(".m-g__e").textContent}`);
+if (!q(".m-g")) fail("sign-in panel missing");
+// A passphrase session must SAY so — never claim a Google account it does
+// not have, and never offer a hardcoded one to attach.
+if (!q(".m-g__n").textContent.includes("passphrase"))
+  fail(`sign-in panel misreports the provider: ${q(".m-g__n").textContent}`);
+if (q(".m-gpick")) fail("a hardcoded Google account chooser is still present on Profile");
+ok(`profile: ${q(".m-id__n").textContent} / ${q(".m-g__n").textContent}`);
 
 /* --- 6. the docked tabs navigate --- */
 win.location.hash = "#/app";

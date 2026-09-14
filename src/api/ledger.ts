@@ -202,6 +202,86 @@ export async function signInWithPassword(
 }
 
 /* ------------------------------------------------------------------ *
+ * Google OAuth — the client half of a flow that happens server-side
+ *
+ * This module never sees a Google token, an id_token or the client secret.
+ * It sends the browser to the backend's /start (which 302s to Google), and
+ * later trades the one-time handoff code the backend put in the return URL
+ * for the ordinary ShadowQuest session token. Identity is decided entirely
+ * by the backend from a signature-verified ID token.
+ * ------------------------------------------------------------------ */
+
+/** Absolute form of the API base, needed for a full-page redirect. */
+export function apiUrl(path: string): string {
+  if (/^https?:\/\//i.test(BASE)) return `${BASE}${path}`;
+  return `${window.location.origin}${BASE}${path}`;
+}
+
+/** Which sign-in methods the deployment actually has configured. */
+export async function fetchAuthProviders(): Promise<{ password: boolean; google: boolean }> {
+  try {
+    const raw = await call<{ password?: boolean; google?: boolean }>("/v1/auth/providers");
+    return { password: raw?.password !== false, google: raw?.google === true };
+  } catch {
+    return { password: true, google: false };
+  }
+}
+
+export interface GoogleSession {
+  token: string;
+  mode: "created" | "linked" | "returning";
+  handle: string;
+  email: string;
+  picture: string;
+  role: "operator" | "admin";
+}
+
+/**
+ * Redeem the one-time code from the OAuth return URL. The code is single-use
+ * and short-lived; the backend refuses a replay, so a refresh of the landing
+ * URL can never re-open a session.
+ */
+export async function exchangeGoogleCode(code: string): Promise<GoogleSession> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/v1/auth/google/exchange`, {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ code }),
+    });
+  } catch (cause) {
+    throw new ApiError("backend unreachable", undefined, cause);
+  }
+  if (!res.ok) throw new ApiError(`google exchange refused (${res.status})`, res.status);
+  const raw = (await res.json().catch(() => null)) as
+    | {
+        token?: string;
+        mode?: GoogleSession["mode"];
+        user?: {
+          handle?: string;
+          email?: string;
+          picture?: string;
+          role?: "operator" | "admin";
+        };
+      }
+    | null;
+  if (!raw?.token || !raw.user?.email) throw new ApiError("google exchange returned nothing");
+  const email = String(raw.user.email).toLowerCase();
+  const handle = String(raw.user.handle ?? "").slice(0, 32) || email.split("@")[0] || "Operator";
+  // The token is filed under the same scope key every other call reads, so
+  // the ledger, stats, ladder and squad all authenticate with it unchanged.
+  keepToken(scopeOf({ email, handle, joinedAt: 0 }), raw.token);
+  return {
+    token: raw.token,
+    mode: raw.mode === "created" || raw.mode === "linked" ? raw.mode : "returning",
+    handle,
+    email,
+    picture: typeof raw.user.picture === "string" ? raw.user.picture.slice(0, 512) : "",
+    role: raw.user.role === "admin" ? "admin" : "operator",
+  };
+}
+
+/* ------------------------------------------------------------------ *
  * admin — the control panel client
  * ------------------------------------------------------------------ */
 

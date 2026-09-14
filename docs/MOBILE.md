@@ -82,14 +82,32 @@ came from. It prefers the backend and labels its source in the header —
 
 ## Sign-in
 
-Sign-in is local-first, so a Google sign-in needs no client id and no server:
-it is the same `login(handle, email)` call with the name and address an
-account chooser would have handed over. The three demo identities live in
-`mobile/demoAccounts.ts` and stay as they are — they are the sign-in's
-mock data, kept on purpose. The provider is remembered separately so Profile
-can show it and offer to detach — detaching clears the marker only and never
-deletes a ledger. After sign-in the sync layer registers the operator with
-the backend, so their ledger follows them between devices.
+Two ways in, both ending in the same session.
+
+**Passphrase** — `login(handle, email)` in `lib/auth` after the backend's
+scrypt check (or this device's PBKDF2 record when the backend is away).
+
+**Continue with Google** — a real OAuth 2.0 / OIDC round trip, owned by the
+backend. The button hands the page to `GET {api}/v1/auth/google/start`, which
+302s to Google's own consent screen; Google returns to the backend, which
+verifies the ID token's RS256 signature against Google's JWKS and checks
+issuer, audience, expiry, nonce and `email_verified` before any account
+exists. It then finds or creates the MongoDB user and leaves a one-time
+handoff code in the return URL, which `lib/googleAuth` trades over POST for
+the ordinary session token. The phone shares this flow with the desktop gate
+through `hooks/useGoogleAuth` — one state machine, two designs.
+
+There are no built-in accounts and no account chooser in the app: Google's
+chooser is the chooser. The button is only drawn when the backend reports
+`google: true` from `/v1/auth/providers`, so a deployment without a client id
+shows the passphrase form alone rather than a button that always fails.
+
+The provider marker (`sq.auth.provider.v1`) records only *which* method
+opened the session, and Profile reflects it. A passphrase session can link
+Google from Profile: the backend matches on the verified email and attaches
+the provider to the existing document, so every task, habit, point and streak
+stays on the same account. Signing out clears the marker and the cached
+Google profile along with the identity.
 
 ## Design system
 
@@ -111,7 +129,9 @@ Storage is shared with any script on the origin and outlives every release, so
 a record can be stale, half-written or hand-edited — and one bad field used to
 be enough to white-screen the app with no way back to the gate. Each reader
 (`lib/auth`, `mobile/squad`, `lib/todo`, `hooks/useFocusSession`,
-`mobile/demoAccounts`) validates and repairs instead of casting.
+`lib/googleAuth`) validates and repairs instead of casting. The cached Google
+profile is held to the same rule: only an `https:` avatar URL is ever
+rendered, whatever is on disk.
 
 Sign-in additionally caps and strips what it accepts: an address is capped at
 RFC 5321's 254 octets and lowercased *before* the data scope is derived from

@@ -6,6 +6,18 @@
  * right half is the form. Everything in-world: ensō ink, split type, a
  * vermilion slash, a decode line that reports each stage of the check, and
  * the site's ink wipe as the door closing behind you.
+ *
+ * Two ways through it, both ending in the same ShadowQuest session:
+ *
+ *   Continue with Google — a real OAuth round trip. The page is handed to
+ *     the backend, which redirects to Google's consent screen; Google comes
+ *     back to the backend, which verifies the ID token's signature, resolves
+ *     (or creates) the MongoDB user and returns a one-time code this page
+ *     trades for the session token. Nothing about the operator is decided
+ *     here.
+ *
+ *   Designation + signal + passphrase — unchanged, scrypt on the server and
+ *     PBKDF2 on the device.
  */
 import { useEffect, useRef, useState } from "react";
 import { Sigil } from "../components/Sigil";
@@ -17,6 +29,9 @@ import {
   PASSWORD_MAX,
 } from "../lib/password";
 import { PasswordError, signInWithPassword } from "../api/ledger";
+import { writeProvider } from "../lib/googleAuth";
+import { useGoogleAuth } from "../hooks/useGoogleAuth";
+import { GoogleMark } from "../components/GoogleMark";
 import {
   brushReveal,
   gsap,
@@ -54,6 +69,11 @@ export function Login({ onDone }: { onDone: () => void }) {
   const [showPw, setShowPw] = useState(false);
   const [phase, setPhase] = useState<"idle" | "verifying" | "granted">("idle");
   const [refused, setRefused] = useState(false);
+
+  // The Google half. The hook owns availability, the redirect and the
+  // return leg; this screen only renders its states.
+  const google = useGoogleAuth(onDone);
+  const googleBusy = google.phase !== "idle";
 
   const policy = checkPassword(password);
   const meterLabel = !password
@@ -239,6 +259,9 @@ export function Login({ onDone }: { onDone: () => void }) {
       setPhase("granted");
       setStatus(STAGES.granted);
       login(cleanName, cleanEmail, role);
+      // The password gate, explicitly: a Google session is marked by
+      // lib/googleAuth once the backend has verified it.
+      writeProvider({ kind: "local", at: Date.now() });
       // A beat for the word to land before the wipe swallows the page.
       window.setTimeout(onDone, REDUCED ? 60 : 420);
     };
@@ -322,6 +345,40 @@ export function Login({ onDone }: { onDone: () => void }) {
             repeat it.
           </p>
 
+          {google.available ? (
+            <div className="login__oauth" data-login-line>
+              <button
+                type="button"
+                className="login__google"
+                onClick={google.begin}
+                disabled={phase !== "idle" || googleBusy}
+                aria-busy={googleBusy || undefined}
+              >
+                {googleBusy ? (
+                  <span className="login__google-spin" aria-hidden="true" />
+                ) : (
+                  <GoogleMark size={18} />
+                )}
+                <span>{google.busyLabel ?? "Continue with Google"}</span>
+              </button>
+              {google.error ? (
+                <p className="login__oauth-msg" data-bad="true" role="alert">
+                  {google.error}
+                </p>
+              ) : null}
+              {google.notice ? (
+                <p className="login__oauth-msg" role="status">
+                  {google.notice}
+                </p>
+              ) : null}
+              <div className="login__or" aria-hidden="true">
+                <i />
+                <span className="label">or</span>
+                <i />
+              </div>
+            </div>
+          ) : null}
+
           <form
             className="login__form"
             data-login-form
@@ -338,7 +395,7 @@ export function Login({ onDone }: { onDone: () => void }) {
                 maxLength={MAX_HANDLE}
                 autoComplete="name"
                 spellCheck={false}
-                disabled={phase !== "idle"}
+                disabled={phase !== "idle" || googleBusy}
               />
             </label>
 
@@ -355,7 +412,7 @@ export function Login({ onDone }: { onDone: () => void }) {
                 spellCheck={false}
                 autoCapitalize="none"
                 autoCorrect="off"
-                disabled={phase !== "idle"}
+                disabled={phase !== "idle" || googleBusy}
               />
             </label>
 
@@ -373,7 +430,7 @@ export function Login({ onDone }: { onDone: () => void }) {
                     spellCheck={false}
                     autoCapitalize="none"
                     autoCorrect="off"
-                    disabled={phase !== "idle"}
+                    disabled={phase !== "idle" || googleBusy}
                   />
                   <button
                     type="button"
@@ -402,7 +459,7 @@ export function Login({ onDone }: { onDone: () => void }) {
               <button
                 type="submit"
                 className={`btn btn--primary login__btn ${phase === "granted" ? "is-granted" : ""}`}
-                disabled={phase === "verifying"}
+                disabled={phase === "verifying" || googleBusy}
               >
                 <span className="btn__slash" />
                 {phase === "idle" && "Open the Gate"}

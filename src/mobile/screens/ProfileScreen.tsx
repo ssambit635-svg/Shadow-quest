@@ -1,26 +1,31 @@
 /**
  * ProfileScreen.tsx — the operator, and how they signed in.
  *
- * Also the home of the Google connection: which account is attached, and the
- * controls to switch or detach it. Detaching clears the provider marker only
- * — the ledger is keyed by email in lib/auth and is never deleted from here,
- * so signing back in with the same address restores exactly what was there.
+ * The sign-in panel reports the truth of the current session and nothing
+ * more: when Google opened it, the verified Google profile the backend
+ * returned is shown (name, address, avatar); otherwise the panel says the
+ * session is a passphrase one and offers the real OAuth flow, which links
+ * Google to this same account — the ledger is keyed by email, so tasks,
+ * habits, progress, rewards and achievements stay exactly where they are.
+ *
+ * There is no "switch account" here and no chooser: switching identity means
+ * signing out and signing in again, which is the only honest way to change
+ * whose ledger is on screen.
  */
 import { useEffect, useState } from "react";
 import { scopeOf, type User } from "../../lib/auth";
 import { ApkLink } from "../../components/ApkLink";
 import {
-  GOOGLE_ACCOUNTS,
   readProvider,
-  signedInAccount,
-  writeProvider,
-  type GoogleAccount,
-} from "../demoAccounts";
-import { login } from "../../lib/auth";
+  signedInGoogleProfile,
+  startGoogleSignIn,
+  type GoogleProfile,
+} from "../../lib/googleAuth";
+import { GoogleMark } from "../../components/GoogleMark";
 import { goToTab } from "../nav";
 import { achievementsOf, powerIndex } from "../stats";
 import type { Ledger } from "../useLedger";
-import { Avatar, Caption, Panel, Sheet, initialsOf } from "../parts";
+import { Avatar, Caption, Panel, initialsOf } from "../parts";
 import { squadWeekly, loadSquad } from "../squad";
 import { StreakCard } from "../StreakCard";
 
@@ -34,8 +39,8 @@ export function ProfileScreen({
   onSignOut: () => void;
 }) {
   const { profile, tasks } = ledger;
-  const [account, setAccount] = useState<GoogleAccount | null>(() => signedInAccount());
-  const [picker, setPicker] = useState(false);
+  const [account, setAccount] = useState<GoogleProfile | null>(() => signedInGoogleProfile());
+  const [linking, setLinking] = useState(false);
 
   const provider = readProvider();
   const marks = achievementsOf(profile, tasks).filter((a) => a.earned).length;
@@ -43,7 +48,7 @@ export function ProfileScreen({
 
   // Another tab can change the identity; keep this screen honest about it.
   useEffect(() => {
-    const sync = () => setAccount(signedInAccount());
+    const sync = () => setAccount(signedInGoogleProfile());
     window.addEventListener("sq:auth", sync);
     window.addEventListener("storage", sync);
     return () => {
@@ -52,16 +57,15 @@ export function ProfileScreen({
     };
   }, []);
 
-  const attach = (a: GoogleAccount) => {
-    login(a.name, a.email);
-    writeProvider({ kind: "google", accountId: a.id, at: Date.now() });
-    setAccount(a);
-    setPicker(false);
-  };
-
-  const detach = () => {
-    writeProvider(null);
-    setAccount(null);
+  /**
+   * Link Google to the account that is already open. This is the same real
+   * OAuth round trip the gate uses; the backend matches on the verified
+   * email and attaches the provider to the existing MongoDB document rather
+   * than creating a second one.
+   */
+  const connect = () => {
+    setLinking(true);
+    startGoogleSignIn();
   };
 
   const joined = new Date(user.joinedAt).toLocaleDateString(undefined, {
@@ -78,11 +82,18 @@ export function ProfileScreen({
       </header>
 
       <Panel glow className="m-id">
-        <Avatar
-          initials={account ? account.initials : initialsOf(user.handle)}
-          hue={account ? account.hue : 232}
-          size={56}
-        />
+        {account?.picture ? (
+          <img
+            className="m-id__pic"
+            src={account.picture}
+            alt=""
+            width={56}
+            height={56}
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <Avatar initials={initialsOf(user.handle)} hue={232} size={56} />
+        )}
         <div className="m-id__b">
           <span className="m-id__n">{user.handle}</span>
           <span className="m-id__e">{user.email}</span>
@@ -113,11 +124,11 @@ export function ProfileScreen({
       {/* — the chain — */}
       <StreakCard profile={profile} tasks={tasks} />
 
-      {/* — Google — */}
+      {/* — how this session was opened — */}
       <Caption>Sign-in</Caption>
       <Panel className="m-g">
         <div className="m-g__row">
-          <GoogleMark />
+          <GoogleMark size={20} className="m-gmark" />
           <div className="m-g__b">
             {account ? (
               <>
@@ -127,27 +138,33 @@ export function ProfileScreen({
             ) : (
               <>
                 <span className="m-g__n">
-                  {provider?.kind === "local" ? "Signed in on this device" : "Not connected"}
+                  {provider?.kind === "local" ? "Signed in with a passphrase" : "Not connected"}
                 </span>
                 <span className="m-g__e">
-                  {provider?.kind === "local"
-                    ? "No Google account attached"
-                    : "Attach a Google account"}
+                  Link Google to open this same ledger with one tap
                 </span>
               </>
             )}
           </div>
         </div>
-        <div className="m-g__acts">
-          <button type="button" className="m-btn m-btn--sm" onClick={() => setPicker(true)}>
-            {account ? "Switch account" : "Connect Google"}
-          </button>
-          {account ? (
-            <button type="button" className="m-btn m-btn--ghost m-btn--sm" onClick={detach}>
-              Detach
+        {!account ? (
+          <div className="m-g__acts">
+            <button
+              type="button"
+              className="m-btn m-btn--sm"
+              onClick={connect}
+              disabled={linking}
+              aria-busy={linking || undefined}
+            >
+              {linking ? "Signing in with Google…" : "Connect Google"}
             </button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
+        <p className="m-note m-g__note">
+          {account
+            ? "Your Google account is linked to this ledger. Sign out to use a different one."
+            : "Linking keeps every task, habit and point on this account — it only adds a second way in."}
+        </p>
       </Panel>
 
       {/* — squad — */}
@@ -259,55 +276,6 @@ export function ProfileScreen({
         Sign out
       </button>
 
-      {/* — Google account chooser — */}
-      <Sheet open={picker} onClose={() => setPicker(false)} title="Choose an account">
-        <div className="m-gpick">
-          <p className="m-gpick__h">to continue to ShadowQuest</p>
-          {GOOGLE_ACCOUNTS.map((a) => (
-            <button
-              type="button"
-              key={a.id}
-              className={`m-gpick__a ${account?.id === a.id ? "is-on" : ""}`}
-              onClick={() => attach(a)}
-            >
-              <Avatar initials={a.initials} hue={a.hue} size={38} />
-              <span className="m-gpick__b">
-                <span className="m-gpick__n">{a.name}</span>
-                <span className="m-gpick__e">{a.hint}</span>
-              </span>
-              {account?.id === a.id ? <span className="m-gpick__ok">✓</span> : null}
-            </button>
-          ))}
-          <p className="m-gpick__f">
-            Demo identities. Choosing one signs you in on this device only —
-            the ledger stays keyed to that address.
-          </p>
-        </div>
-      </Sheet>
     </div>
-  );
-}
-
-/** Google's four-colour G, drawn rather than pulled from a CDN. */
-function GoogleMark({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="m-gmark">
-      <path
-        fill="#4285F4"
-        d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2.1 5.1-4.4 6.7v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.2z"
-      />
-      <path
-        fill="#34A853"
-        d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.4v5.7C8 41.1 15.4 46 24 46z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M11.7 28.2c-.4-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.7H4.4C2.9 17.1 2 20.4 2 24s.9 6.9 2.4 9.9l7.3-5.7z"
-      />
-      <path
-        fill="#EA4335"
-        d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8 6.9 4.4 14.1l7.3 5.7C13.4 14.7 18.3 10.8 24 10.8z"
-      />
-    </svg>
   );
 }

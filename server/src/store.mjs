@@ -19,9 +19,15 @@ const TOKEN_BYTES = 24;
 export const newToken = () => randomBytes(TOKEN_BYTES).toString("base64url");
 export const newId = () => `u_${randomBytes(9).toString("base64url")}`;
 
-/** Strip private fields before a document leaves the server. */
+/**
+ * Strip private fields before a document leaves the server.
+ *
+ * `googleId` goes too: it is the provider's subject identifier, it is what
+ * the linking decision is made on, and no screen needs it. The client learns
+ * *that* the account is Google-linked from `providers`, never the id itself.
+ */
 export function publicUser(u) {
-  const { token, _id, passwordHash, ...rest } = u;
+  const { token, _id, passwordHash, googleId, ...rest } = u;
   return rest;
 }
 
@@ -41,11 +47,36 @@ async function mongoStore(uri, dbName) {
   const users = db.collection("users");
   await users.createIndex({ email: 1 }, { unique: true });
   await users.createIndex({ token: 1 });
+  // Sparse: only Google-linked documents carry a googleId, and no two of
+  // them may carry the same one.
+  await users.createIndex({ googleId: 1 }, { unique: true, sparse: true });
 
   return {
     kind: "mongo",
 
     async byEmail(email) {
+      return await users.findOne({ email });
+    },
+
+    async byGoogleId(googleId) {
+      if (!googleId) return null;
+      return await users.findOne({ googleId });
+    },
+
+    /**
+     * Attach (or refresh) the Google identity on an existing document. This
+     * is the account-linking path: same email, same `_id`, same ledger —
+     * only the provider metadata changes.
+     */
+    async linkGoogle(email, { googleId, picture, name }) {
+      const now = Date.now();
+      const set = { googleId, updatedAtAccount: now };
+      if (picture) set.picture = picture;
+      if (name) set.handle = name;
+      await users.updateOne(
+        { email },
+        { $set: set, $addToSet: { providers: "google" } },
+      );
       return await users.findOne({ email });
     },
 
@@ -84,13 +115,27 @@ async function mongoStore(uri, dbName) {
       return await users.findOne({ token });
     },
 
-    async upsertSignIn(email, handle) {
+    async upsertSignIn(email, handle, extra = {}) {
       const now = Date.now();
       const token = newToken();
       const filter = { email };
+      const { provider = "password", googleId, picture } = extra;
+      const set = { handle, token, lastSeenAt: now, updatedAtAccount: now };
+      if (googleId) set.googleId = googleId;
+      if (picture) set.picture = picture;
       const update = {
-        $set: { handle, token, lastSeenAt: now },
-        $setOnInsert: { id: newId(), email, createdAt: now, profile: null, tasks: [], habits: [], updatedAt: 0, passwordHash: null },
+        $set: set,
+        $addToSet: { providers: provider },
+        $setOnInsert: {
+          id: newId(),
+          email,
+          createdAt: now,
+          profile: null,
+          tasks: [],
+          habits: [],
+          updatedAt: 0,
+          passwordHash: null,
+        },
       };
       await users.updateOne(filter, update, { upsert: true });
       return await users.findOne({ email });
@@ -162,6 +207,22 @@ async function fileStore(filePath) {
       return find((u) => u.email === email);
     },
 
+    async byGoogleId(googleId) {
+      return googleId ? find((u) => u.googleId === googleId) : null;
+    },
+
+    async linkGoogle(email, { googleId, picture, name }) {
+      const u = find((x) => x.email === email);
+      if (!u) throw new Error("unknown operator");
+      u.googleId = googleId;
+      if (picture) u.picture = picture;
+      if (name) u.handle = name;
+      u.providers = Array.from(new Set([...(u.providers ?? []), "google"]));
+      u.updatedAtAccount = Date.now();
+      flush();
+      return u;
+    },
+
     async setPassword(email, hash) {
       const u = find((x) => x.email === email);
       if (!u) throw new Error("unknown operator");
@@ -198,9 +259,10 @@ async function fileStore(filePath) {
       return token ? find((u) => u.token === token) : null;
     },
 
-    async upsertSignIn(email, handle) {
+    async upsertSignIn(email, handle, extra = {}) {
       let u = find((x) => x.email === email);
       const now = Date.now();
+      const { provider = "password", googleId, picture } = extra;
       if (!u) {
         u = {
           id: newId(),
@@ -213,14 +275,22 @@ async function fileStore(filePath) {
           tasks: [],
           habits: [],
           updatedAt: 0,
+          updatedAtAccount: now,
           passwordHash: null,
+          providers: [],
+          googleId: null,
+          picture: "",
         };
         data.users.push(u);
       } else {
         u.handle = handle;
         u.token = newToken();
         u.lastSeenAt = now;
+        u.updatedAtAccount = now;
       }
+      if (googleId) u.googleId = googleId;
+      if (picture) u.picture = picture;
+      u.providers = Array.from(new Set([...(u.providers ?? []), provider]));
       flush();
       return u;
     },
