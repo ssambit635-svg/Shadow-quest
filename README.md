@@ -355,6 +355,41 @@ npm run preview
 
 ---
 
+## Deploy — one service, site + API
+
+The default build calls its API at the **same-origin `/api` prefix**. That
+works in dev because Vite proxies `/api` to the local backend — and it works
+in production only when the address that serves the site also serves the API.
+A static-only deploy answers 404 for `/api`, which the gate reports as
+*"This build points at an address with no ShadowQuest API behind it"*.
+
+The backend in `server/` therefore serves the built site itself: run it and
+the same origin is the site **and** the API. No `VITE_API_BASE_URL`, no
+rewrite rules, no proxy.
+
+**Render (recommended):** the repo ships a blueprint — Render dashboard →
+**New → Blueprint** → pick this repo (or remove the old static-site service
+and redeploy from [`render.yaml`](./render.yaml)). It builds the web bundle,
+then starts `node server/src/index.mjs`, which serves `dist/` and every
+`/v1` route (under both `/v1/…` and `/api/v1/…`).
+
+**Any Node host:**
+
+```bash
+npm ci && npm ci --prefix server && npm run build
+node server/src/index.mjs          # serves dist/ + the API on $PORT
+```
+
+`VITE_API_BASE_URL` is still required for **APK builds** — the Capacitor
+WebView serves the bundle from `https://localhost`, so it has no same origin
+to fall back on:
+
+```bash
+VITE_API_BASE_URL=https://shadow-quest.onrender.com npm run build
+```
+
+---
+
 ## Environment Variables
 
 Create `.env` from `.env.example`:
@@ -365,7 +400,7 @@ cp .env.example .env
 
 | Variable | Default | Where | Purpose |
 |----------|---------|-------|---------|
-| `VITE_API_BASE_URL` | *(empty)* → `/api` | Frontend | Deployed API URL. Empty = dev proxy. Set for APK/prod: `https://api.your-domain.com` |
+| `VITE_API_BASE_URL` | *(empty)* → `/api` | Frontend | Deployed API URL. Empty = dev proxy / same-origin server. **Set for APK builds** (APK has no same origin); a web deploy served by `server/` needs none |
 | `VITE_API_MODE` | `mock` | Frontend | `mock` keeps duel engine even with API set. Ledger ALWAYS uses API. |
 | `MONGODB_URI` | *(unset)* → file store | Backend | MongoDB connection string. Unset = `server/.data/db.json` fallback |
 | `MONGODB_DB` | `shadowquest` | Backend | DB name |

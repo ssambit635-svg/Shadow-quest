@@ -16,6 +16,12 @@
  *     admin route fails closed when it is not configured
  *   · all errors answer with a generic body — internals never leak
  *
+ * Every route is registered twice in effect: the bare /v1/… path, and the
+ * same path under /api (the prefix is stripped on the way in), because the
+ * default frontend build calls the same-origin /api prefix. When dist/
+ * exists this process also serves the built site, so one service can be the
+ * whole deployment — see the "one service serves both halves" block below.
+ *
  * Endpoints (all JSON):
  *   GET  /v1/health                        — liveness + which store is active
  *   POST /v1/auth/signin                   — sign in / sign up with password
@@ -37,6 +43,9 @@
 // Must be the first import: it puts a local `.env` into process.env before
 // anything below reads it (admin, google, store, PORT).
 import "./env.mjs";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
 import { createStore, publicUser } from "./store.mjs";
@@ -128,6 +137,17 @@ if (corsOrigins.length) {
   app.use(cors());
 }
 app.use(express.json({ limit: "512kb" }));
+
+/* Same-origin builds — the default, with VITE_API_BASE_URL unset — call the
+ * API under the /api prefix (the dev server proxies it here; a deployment
+ * served by THIS process needs no proxy in between). Strip the prefix so
+ * /api/v1/… reaches the same handlers as /v1/…, which APK builds keep using
+ * when VITE_API_BASE_URL points straight at this origin. Both spellings,
+ * one set of routes. */
+app.use((req, _res, next) => {
+  if (req.url.startsWith("/api/")) req.url = req.url.slice(4);
+  next();
+});
 
 /* ------------------------------------------------------------------ *
  * limits — fixed windows, per key
@@ -576,30 +596,93 @@ app.post("/v1/admin/sessions/revoke-all", authed, adminOnly, async (_req, res) =
   res.json({ revoked: count });
 });
 
-app.get("/", (_req, res) => {
+/* ------------------------------------------------------------------ *
+ * the site — one service serves both halves
+ *
+ * When the built bundle (dist/) exists, this same process serves it. That
+ * is what makes the default frontend build work in production: its API base
+ * is the same-origin /api prefix, and an address served from here has the
+ * ShadowQuest API behind it by construction — no VITE_API_BASE_URL, no
+ * static host answering 404 for /api, no proxy to configure. APK builds
+ * keep pointing VITE_API_BASE_URL at this origin and use the bare /v1
+ * paths, which stay registered exactly as before.
+ *
+ * dist/ is found relative to this file (repo root/dist); SQ_DIST_DIR
+ * overrides it for unusual layouts. Without a dist/ the server is the
+ * API-only mode it always was.
+ * ------------------------------------------------------------------ */
+
+const DIST = process.env.SQ_DIST_DIR
+  ? path.resolve(process.env.SQ_DIST_DIR)
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "dist");
+const SITE_INDEX = path.join(DIST, "index.html");
+const HAS_SITE = existsSync(SITE_INDEX);
+
+const API_ENDPOINTS = [
+  "GET /v1/health",
+  "POST /v1/auth/signin",
+  "GET /v1/auth/providers",
+  "GET /v1/auth/google/start",
+  "GET /v1/auth/google/callback",
+  "POST /v1/auth/google/exchange",
+  "GET /v1/ledger",
+  "PUT /v1/ledger",
+  "GET /v1/stats",
+  "GET /v1/leaderboard",
+  "GET /v1/people",
+  "POST /v1/admin/elevate",
+  "GET /v1/admin/overview",
+  "GET /v1/admin/users",
+  "DELETE /v1/admin/users/:email",
+  "POST /v1/admin/sessions/revoke-all",
+];
+
+function describeApi(_req, res) {
   res.json({
     name: "ShadowQuest API",
     db: store.kind,
-    endpoints: [
-      "GET /v1/health",
-      "POST /v1/auth/signin",
-      "GET /v1/auth/providers",
-      "GET /v1/auth/google/start",
-      "GET /v1/auth/google/callback",
-      "POST /v1/auth/google/exchange",
-      "GET /v1/ledger",
-      "PUT /v1/ledger",
-      "GET /v1/stats",
-      "GET /v1/leaderboard",
-      "GET /v1/people",
-      "POST /v1/admin/elevate",
-      "GET /v1/admin/overview",
-      "GET /v1/admin/users",
-      "DELETE /v1/admin/users/:email",
-      "POST /v1/admin/sessions/revoke-all",
-    ],
+    site: HAS_SITE,
+    endpoints: API_ENDPOINTS,
   });
+}
+
+if (HAS_SITE) {
+  app.use(
+    express.static(DIST, {
+      setHeaders(res, filePath) {
+        // Hashed build assets never change; the app shell must revalidate so
+        // a fresh deploy reaches the operator on their next load.
+        if (filePath.startsWith(path.join(DIST, "assets"))) {
+          res.setHeader("cache-control", "public, max-age=31536000, immutable");
+        } else {
+          res.setHeader("cache-control", "no-cache");
+        }
+      },
+    }),
+  );
+}
+
+app.get("/", (_req, res) => {
+  // With a built site, express.static above already answered "/" with the
+  // app shell; this handler is the API-only mode's description of itself.
+  if (HAS_SITE) return res.sendFile(SITE_INDEX);
+  describeApi(_req, res);
 });
+
+/** Checking what an address serves: the API's own card. */
+app.get("/api", describeApi);
+
+if (HAS_SITE) {
+  // Hash-routing SPA: every other GET that is not an API path serves the app
+  // shell. /v1 and /api deliberately keep their honest 404s, so a mistyped
+  // endpoint is still diagnosed as a missing route rather than hidden under
+  // the site.
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    if (req.path.startsWith("/v1") || req.path.startsWith("/api")) return next();
+    res.sendFile(SITE_INDEX);
+  });
+}
 
 // Never let one bad request take the API down — and never explain why.
 app.use((err, _req, res, _next) => {
@@ -608,5 +691,8 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`[api] ShadowQuest backend on :${PORT} (store: ${store.kind})`);
+  console.log(
+    `[api] ShadowQuest backend on :${PORT} (store: ${store.kind}` +
+      `${HAS_SITE ? `, serving the site from ${DIST}` : ""})`,
+  );
 });

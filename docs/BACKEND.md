@@ -7,10 +7,12 @@ through this API whenever it can reach it.
 
 ```
 browser / APK
-   │  same-origin /api (dev: vite proxy)  ·  VITE_API_BASE_URL (prod/APK)
+   │  same-origin /api (dev: vite proxy · prod: served by this server)
+   │  VITE_API_BASE_URL (APK builds — the WebView has no same origin)
    ▼
 server/  — Express
    │
+   ├── dist/  (when built)             ← serves the site too: one service
    ├── MongoDB  (MONGODB_URI set)      ← production
    └── file store (server/.data/db.json) ← dev fallback, same shape
 ```
@@ -42,6 +44,7 @@ takes precedence.
 | `ADMIN_PIN`       | *(unset)*     | the control panel PIN (8+ chars); both required |
 | `SQ_MAX_USERS`    | `1000`        | hard cap on registered operators                 |
 | `SQ_CORS_ORIGIN`  | *(unset)*     | CORS allowlist, comma-separated origins          |
+| `SQ_DIST_DIR`     | repo `dist/`  | built site to serve; unset = API-only mode       |
 | `SQ_TRUST_PROXY`  | `0`           | set `1` behind a platform proxy for honest IPs   |
 | `GOOGLE_CLIENT_ID` | *(unset)*    | OAuth 2.0 web client id from the Google console  |
 | `GOOGLE_CLIENT_SECRET` | *(unset)* | its secret — server-side only, never bundled    |
@@ -60,6 +63,27 @@ Example (MongoDB Atlas):
 ```bash
 MONGODB_URI='mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net' npm start
 ```
+
+## One service serves both halves
+
+When a built site (`dist/index.html`) exists, the server serves it too:
+`GET /` answers with the app shell, hashed assets are served from `dist/`,
+and every non-API GET falls back to the shell (the app hash-routes, so no
+path rewrites are needed). The effect on deployment:
+
+- The default frontend build calls the **same-origin `/api` prefix**. In dev
+  the vite proxy forwards it here; in production this server answers it
+  directly — the `/api` prefix is stripped on the way in, so `/api/v1/…`
+  and `/v1/…` are the same handlers. An address served by this process can
+  never answer the gate's probe with *"no ShadowQuest API behind it"*.
+- Every path in the table below therefore also answers under `/api` —
+  `GET /api/v1/health` and `GET /v1/health` alike. The bare paths are what
+  APK builds use when `VITE_API_BASE_URL` points at this origin.
+- No `dist/` → API-only mode, exactly as before: `GET /` answers with the
+  API's description card (also available at `GET /api`).
+- `SQ_DIST_DIR` overrides where the site is read from; unknown GETs under
+  `/v1` and `/api` keep their honest 404 instead of being papered over
+  with the shell.
 
 ## Endpoints
 

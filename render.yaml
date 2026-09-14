@@ -1,0 +1,37 @@
+# render.yaml — ShadowQuest as ONE Render service: the built site and the
+# ShadowQuest API on the same origin.
+#
+# Why one service: the default frontend build calls its API at the
+# same-origin /api prefix. A static-site deploy has nothing behind /api and
+# the gate refuses Google sign-in with "This build points at an address with
+# no ShadowQuest API behind it". The Node server in server/ serves the built
+# dist/ itself, so a single web service is the site AND the API — no
+# VITE_API_BASE_URL, no rewrite rules.
+#
+# Deploy: Render dashboard → New → Blueprint → pick this repo, or:
+#   https://render.com/deploy (with this repo)
+#
+# The APK still needs the repository variable VITE_API_BASE_URL set to this
+# service's origin (its WebView has no same origin) — see docs/APK.md.
+services:
+  - type: web
+    name: shadow-quest
+    runtime: node
+    buildCommand: npm ci --no-audit --no-fund && npm ci --no-audit --no-fund --prefix server && npm run build
+    startCommand: node server/src/index.mjs
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Render fronts every request with a proxy; trust it so rate limits key
+      # off the operator's address, not the load balancer's.
+      - key: SQ_TRUST_PROXY
+        value: "1"
+      # Optional — set these in the dashboard (Environment) when needed:
+      #   MONGODB_URI          production store (file store otherwise)
+      #   GOOGLE_CLIENT_ID     \
+      #   GOOGLE_CLIENT_SECRET  > Google sign-in (docs/GOOGLE-SIGNIN-SETUP.md)
+      #   GOOGLE_CALLBACK_URL  /
+      #   SQ_APP_ORIGIN        origins the login may return to (set in prod)
+      #   SQ_CORS_ORIGIN       lock CORS once the APK origin list is decided
+      #   ADMIN_EMAILS / ADMIN_PIN   the control panel gate

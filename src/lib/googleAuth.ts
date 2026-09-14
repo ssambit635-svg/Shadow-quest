@@ -225,7 +225,7 @@ export function googleErrorMessage(reason: string): string {
     case "unreachable":
       return "ShadowQuest's API did not answer. If this keeps happening the server is down, not your connection — email and passphrase still work.";
     case "missing":
-      return "This build points at an address with no ShadowQuest API behind it. Rebuild with VITE_API_BASE_URL set to the API origin, or use email and passphrase.";
+      return "This build points at an address with no ShadowQuest API behind it. Serve the ShadowQuest server (server/) at this origin, or rebuild with VITE_API_BASE_URL set to the API origin — email and passphrase still work meanwhile.";
     case "misbuilt":
       return "This app build has no API address, so Google sign-in cannot reach the server. Rebuild the APK with VITE_API_BASE_URL set — email and passphrase work meanwhile.";
     case "unconfigured":
