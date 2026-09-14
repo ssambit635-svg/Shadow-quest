@@ -34,6 +34,9 @@
  *   DELETE /v1/admin/users/:email          — remove an operator               (admin)
  *   POST /v1/admin/sessions/revoke-all     — kill every active session        (admin)
  */
+// Must be the first import: it puts a local `.env` into process.env before
+// anything below reads it (admin, google, store, PORT).
+import "./env.mjs";
 import express from "express";
 import cors from "cors";
 import { createStore, publicUser } from "./store.mjs";

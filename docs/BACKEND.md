@@ -25,6 +25,13 @@ npm start            # or: npm run dev (watch mode)
 
 Environment:
 
+Copy `.env.example` to `.env` in the repository root and fill it in — the API
+loads it on startup (`server/src/env.mjs`, zero dependencies) and logs the
+**keys** it picked up, never the values. Anything already present in the real
+environment wins, so a platform's injected variables and CI overrides are
+never clobbered by a stale local file. Inline `VAR=… npm start` also works and
+takes precedence.
+
 | variable          | default       | meaning                                        |
 | ----------------- | ------------- | ---------------------------------------------- |
 | `PORT`            | `8788`        | listen port (the vite proxy expects this)       |
@@ -40,6 +47,7 @@ Environment:
 | `GOOGLE_CLIENT_SECRET` | *(unset)* | its secret — server-side only, never bundled    |
 | `GOOGLE_CALLBACK_URL` | *(unset)* | must match a registered redirect URI exactly     |
 | `SQ_APP_ORIGIN`   | *(unset)*     | allowlist of origins the login may return to     |
+| `SQ_NATIVE_ORIGIN` | `https://localhost,http://localhost` | the installed APK's own origins, allowed to receive a sign-in handoff and included in CORS. `off` disables both. |
 
 With `MONGODB_URI` set and reachable the API uses MongoDB (collection
 `users`, one document per operator, ledger embedded). Without it, the API

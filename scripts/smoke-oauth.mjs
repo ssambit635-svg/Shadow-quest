@@ -180,6 +180,30 @@ resolveReturn(onCfg, "https://localhost/") === "https://localhost"
 resolveReturn(onCfg, "https://evil.example.com") === "https://app.x.test"
   ? ok("an arbitrary third-party origin is still refused") : bad("evil → " + resolveReturn(onCfg, "https://evil.example.com"));
 
+/* the `.env` loader, since a credentials file that nothing reads is how this
+ * flow silently stayed "not configured" */
+const { parseEnv } = await import(new URL("../server/src/env.mjs", import.meta.url).href);
+const parsed = parseEnv([
+  "# a comment",
+  "",
+  "PLAIN=value",
+  'QUOTED="with spaces"',
+  "SINGLE='also fine'",
+  "export EXPORTED=yes",
+  "  SPACED  =  trimmed  ",
+  "URL=https://x.test/a?b=c&d=e",
+  "BAD LINE NO EQUALS",
+  "9NOT_A_KEY=nope",
+].join("\n"));
+JSON.stringify(parsed) === JSON.stringify({
+  PLAIN: "value",
+  QUOTED: "with spaces",
+  SINGLE: "also fine",
+  EXPORTED: "yes",
+  SPACED: "trimmed",
+  URL: "https://x.test/a?b=c&d=e",
+}) ? ok(".env parser: keys, quotes, export, comments, junk lines") : bad("parseEnv: " + JSON.stringify(parsed));
+
 /* no secret ever leaves */
 const root = await (await realFetch(`${API}/`)).text();
 (!root.includes("test-secret") && !root.includes(CLIENT_ID)) ? ok("no client id/secret in any API response body") : bad("secret leaked");
