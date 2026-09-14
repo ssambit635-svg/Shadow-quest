@@ -218,12 +218,21 @@ export function apiUrl(path: string): string {
 }
 
 /** Which sign-in methods the deployment actually has configured. */
-export async function fetchAuthProviders(): Promise<{ password: boolean; google: boolean }> {
+export async function fetchAuthProviders(): Promise<{
+  password: boolean;
+  google: boolean;
+  /** False when the backend never answered — distinct from "Google is off". */
+  reachable: boolean;
+}> {
   try {
     const raw = await call<{ password?: boolean; google?: boolean }>("/v1/auth/providers");
-    return { password: raw?.password !== false, google: raw?.google === true };
+    return {
+      password: raw?.password !== false,
+      google: raw?.google === true,
+      reachable: true,
+    };
   } catch {
-    return { password: true, google: false };
+    return { password: true, google: false, reachable: false };
   }
 }
 

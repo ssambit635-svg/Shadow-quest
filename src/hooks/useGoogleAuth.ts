@@ -5,13 +5,14 @@
  * components with separate designs, but the flow behind the button is
  * identical, so it lives here once:
  *
- *   · ask the backend whether Google is configured at all (the button is
- *     not drawn against a deployment that has no client id)
- *   · start the redirect
+ *   · the button is always drawn — website and APK, laptop and phone
+ *   · on click, confirm the backend actually has Google OAuth live, then
+ *     hand the page to Google's own consent screen
  *   · on the way back, redeem the one-time code and report the outcome
  *
  * Nothing here decides who anybody is — it only reflects what the backend
- * verified. Every failure path ends in a sentence the operator can read.
+ * verified. There is no account chooser and no hardcoded identity. Every
+ * failure path ends in a sentence the operator can read.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -27,7 +28,11 @@ import { fetchAuthProviders } from "../api/ledger";
 export type GooglePhase = "idle" | "redirecting" | "finishing";
 
 export interface GoogleAuth {
-  /** True once the backend confirms it has Google OAuth configured. */
+  /**
+   * Always true: the gate draws Continue with Google on every surface.
+   * Configuration is checked at click time, not at paint time — hiding the
+   * button on the website while showing it in the APK was the old bug.
+   */
   available: boolean;
   phase: GooglePhase;
   /** Non-null while the flow is in progress — render it as a loading line. */
@@ -40,25 +45,25 @@ export interface GoogleAuth {
   dismissError: () => void;
 }
 
+type Providers = { password: boolean; google: boolean; reachable: boolean };
+
 /**
  * @param onDone called after a successful sign-in, once the identity is
  *               written — the gate uses it to navigate to the ledger.
  */
 export function useGoogleAuth(onDone: () => void): GoogleAuth {
-  const [available, setAvailable] = useState(false);
   const [phase, setPhase] = useState<GooglePhase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
+  const providersRef = useRef<Providers | null>(null);
 
-  // Ask once per mount. A deployment without GOOGLE_CLIENT_ID answers
-  // `google: false` and the button simply is not offered — better than a
-  // button that always fails.
+  // Warm the providers probe so a click does not wait on a round trip.
   useEffect(() => {
     let alive = true;
     void fetchAuthProviders().then((p) => {
-      if (alive) setAvailable(p.google);
+      if (alive) providersRef.current = p;
     });
     return () => {
       alive = false;
@@ -103,18 +108,45 @@ export function useGoogleAuth(onDone: () => void): GoogleAuth {
     setError(null);
     setNotice(null);
     setPhase("redirecting");
-    // A full-page navigation: if it is somehow blocked, drop the spinner
-    // rather than leaving the gate stuck reading "Signing in with Google…".
-    try {
-      startGoogleSignIn();
-    } catch {
-      setPhase("idle");
-      setError(googleErrorMessage("network"));
+
+    const go = (p: Providers) => {
+      if (!p.reachable) {
+        setPhase("idle");
+        setError(googleErrorMessage("network"));
+        return;
+      }
+      if (!p.google) {
+        setPhase("idle");
+        setError(googleErrorMessage("unconfigured"));
+        return;
+      }
+      // A full-page navigation: if it is somehow blocked, drop the spinner
+      // rather than leaving the gate stuck reading "Signing in with Google…".
+      try {
+        startGoogleSignIn();
+      } catch {
+        setPhase("idle");
+        setError(googleErrorMessage("network"));
+        return;
+      }
+      window.setTimeout(() => {
+        setPhase((cur) => (cur === "redirecting" ? "idle" : cur));
+      }, 8000);
+    };
+
+    if (providersRef.current) {
+      go(providersRef.current);
       return;
     }
-    window.setTimeout(() => {
-      setPhase((p) => (p === "redirecting" ? "idle" : p));
-    }, 8000);
+    void fetchAuthProviders()
+      .then((p) => {
+        providersRef.current = p;
+        go(p);
+      })
+      .catch(() => {
+        setPhase("idle");
+        setError(googleErrorMessage("network"));
+      });
   }, []);
 
   const busyLabel =
@@ -125,7 +157,7 @@ export function useGoogleAuth(onDone: () => void): GoogleAuth {
         : null;
 
   return {
-    available,
+    available: true,
     phase,
     busyLabel,
     error,

@@ -106,7 +106,7 @@ Most productivity apps look like dashboards. Shadow Quest feels like a dojo.
 
 ### Sign-in
 - **Email + Passphrase** — Hard policy (12+ chars, upper/lower/digit/symbol), scrypt on the server, PBKDF2 on the device.
-- **Continue with Google** — *Real* OAuth 2.0 / OIDC. Google's own consent screen, PKCE + `state` + `nonce`, and the ID token's RS256 signature verified server-side against Google's JWKS before an account exists. No demo accounts, no chooser in the app, no client secret in the bundle.
+- **Continue with Google** — *Real* OAuth 2.0 / OIDC, on the **website and the APK**. Google's own consent screen, PKCE + `state` + `nonce`, and the ID token's RS256 signature verified server-side against Google's JWKS before an account exists. No demo accounts, no chooser in the app, no client secret in the bundle. The button is always drawn; a click that cannot reach a configured backend is refused instead of inventing an identity.
 - **Account Linking** — Sign up with a password, later sign in with the same Google address, and you land on the *same* MongoDB user: tasks, habits, life factors, rewards, achievements and streak all intact. The password keeps working.
 
 ### Owner Control
@@ -380,7 +380,7 @@ cp .env.example .env
 | `GOOGLE_CALLBACK_URL` | *(unset)* | Backend | Must match a registered redirect URI **exactly**. Dev: `http://localhost:5173/api/v1/auth/google/callback` · Prod: `https://api.your-domain.com/v1/auth/google/callback` |
 | `SQ_APP_ORIGIN` | *(localhost only)* | Backend | Allowlist of origins the login may return to. **Set in prod** or the redirect falls back to localhost |
 
-All three Google variables must be set or the button is simply not offered — the gate falls back to email + passphrase and never invents an identity.
+All three Google variables must be set for the click to complete — otherwise the button is still drawn (website and APK) and the click is refused with a clear line. The gate never invents an identity.
 
 <details>
 <summary><b>Setting up Google OAuth (one time)</b></summary>
@@ -495,7 +495,7 @@ Sign-in requires **hard passphrase**: min 12 chars, uppercase + lowercase + digi
 - **The session token never travels in a URL.** The redirect carries a one-time handoff code in the hash fragment (browsers don't send fragments to servers — no access logs, no `Referer`); redeeming it deletes it, and a replay answers 401.
 - **CSRF + code interception:** single-use `state` (10 min TTL) and PKCE `S256`.
 - **No open redirect:** `SQ_APP_ORIGIN` is an allowlist; unlisted origins fall back to an allowed one.
-- **Fails closed:** unconfigured → every Google route 503 and the button isn't drawn.
+- **Fails closed:** unconfigured → every Google route 503. The button stays on the gate (website and APK) and the click is refused — it never invents an identity.
 
 Full audit: [`docs/SECURITY.md`](./docs/SECURITY.md) + `node scripts/audit.mjs` (23 probes)
 
@@ -513,7 +513,7 @@ Everything routes through `src/lib/motion.ts`:
 - **Scroll Velocity → Marquee timeScale** — motion responds to input, not loops at you
 - **One Idle Loop:** `[data-fx-bleed]` ink under field, paused via IntersectionObserver when off-screen
 - **Reduced Motion:** Handled at registration layer (`REDUCED` + global `timeScale`) — no component can opt out
-- **Boot Curtain:** `src/components/Boot.tsx` — ink aurora, drifting grid, kanji embers, rising ink, counter-rotating rings, 影 slam + blade-line exit. Loops are **CSS**, dies with curtain — no rAF chains left (measured by audit)
+- **Boot Curtain:** `src/components/Boot.tsx` — ink aurora, drifting grid, kanji embers, rising ink, counter-rotating rings, the app mark slams in on a vermilion flash + blade-line exit. Loops are **CSS**, dies with curtain — no rAF chains left (measured by audit)
 
 ---
 

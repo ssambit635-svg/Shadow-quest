@@ -340,44 +340,43 @@ export function Login({ onDone }: { onDone: () => void }) {
           </h1>
 
           <p className="login__sub" data-login-line>
-            Sign in to open your ledger. A hard passphrase is the only key —
-            new accounts must pass the strength bar, returning ones must
-            repeat it.
+            Sign in to open your ledger. Continue with Google — a real OAuth
+            round trip, never a fake account — or a hard passphrase. New
+            passphrase accounts must pass the strength bar; returning ones
+            must repeat it.
           </p>
 
-          {google.available ? (
-            <div className="login__oauth" data-login-line>
-              <button
-                type="button"
-                className="login__google"
-                onClick={google.begin}
-                disabled={phase !== "idle" || googleBusy}
-                aria-busy={googleBusy || undefined}
-              >
-                {googleBusy ? (
-                  <span className="login__google-spin" aria-hidden="true" />
-                ) : (
-                  <GoogleMark size={18} />
-                )}
-                <span>{google.busyLabel ?? "Continue with Google"}</span>
-              </button>
-              {google.error ? (
-                <p className="login__oauth-msg" data-bad="true" role="alert">
-                  {google.error}
-                </p>
-              ) : null}
-              {google.notice ? (
-                <p className="login__oauth-msg" role="status">
-                  {google.notice}
-                </p>
-              ) : null}
-              <div className="login__or" aria-hidden="true">
-                <i />
-                <span className="label">or</span>
-                <i />
-              </div>
+          <div className="login__oauth" data-login-line>
+            <button
+              type="button"
+              className="login__google"
+              onClick={google.begin}
+              disabled={phase !== "idle" || googleBusy}
+              aria-busy={googleBusy || undefined}
+            >
+              {googleBusy ? (
+                <span className="login__google-spin" aria-hidden="true" />
+              ) : (
+                <GoogleMark size={18} />
+              )}
+              <span>{google.busyLabel ?? "Continue with Google"}</span>
+            </button>
+            {google.error ? (
+              <p className="login__oauth-msg" data-bad="true" role="alert">
+                {google.error}
+              </p>
+            ) : null}
+            {google.notice ? (
+              <p className="login__oauth-msg" role="status">
+                {google.notice}
+              </p>
+            ) : null}
+            <div className="login__or" aria-hidden="true">
+              <i />
+              <span className="label">or</span>
+              <i />
             </div>
-          ) : null}
+          </div>
 
           <form
             className="login__form"
@@ -482,7 +481,7 @@ export function Login({ onDone }: { onDone: () => void }) {
           </form>
 
           <p className="login__foot label" data-login-line>
-            hard password required · sealed to your signal · synced when a
+            google or hard password · sealed to your signal · synced when a
             backend answers
           </p>
         </div>

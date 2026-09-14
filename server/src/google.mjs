@@ -68,16 +68,35 @@ export function googleConfig(env = process.env) {
 }
 
 /**
+ * Origin of the configured callback URL — always a safe return, because it
+ * is an env-configured address on this deployment, never a value the
+ * browser chose. Lets production Google sign-in complete when the app and
+ * the API share a host (the usual Render / same-origin setup) even if
+ * SQ_APP_ORIGIN was forgotten.
+ */
+function callbackOrigin(cfg) {
+  if (!cfg?.callbackUrl) return "";
+  try {
+    return new URL(cfg.callbackUrl).origin;
+  } catch {
+    return "";
+  }
+}
+
+/**
  * Where the browser is allowed to land after the callback.
  *
  * An open redirect here would let anyone bounce a freshly-minted handoff
  * code to a host they control, so the answer is an allowlist:
- *   · SQ_APP_ORIGIN set → only those origins, nothing else
- *   · unset             → localhost only (dev), so a misconfigured
- *                         production deployment cannot leak a session
+ *   · SQ_APP_ORIGIN set          → those origins
+ *   · plus the callback's origin → same-host production, always
+ *   · neither                    → localhost only (dev)
  */
 export function resolveReturn(cfg, requested) {
-  const fallback = cfg.appOrigins[0] ?? "http://localhost:5173";
+  const cbOrigin = callbackOrigin(cfg);
+  const allowed = new Set(cfg.appOrigins);
+  if (cbOrigin) allowed.add(cbOrigin);
+  const fallback = cfg.appOrigins[0] || cbOrigin || "http://localhost:5173";
   if (typeof requested !== "string" || !requested) return fallback;
   let url;
   try {
@@ -87,8 +106,8 @@ export function resolveReturn(cfg, requested) {
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") return fallback;
   const origin = url.origin;
-  if (cfg.appOrigins.length) {
-    return cfg.appOrigins.includes(origin) ? origin : fallback;
+  if (allowed.size) {
+    return allowed.has(origin) ? origin : fallback;
   }
   const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(url.hostname);
   return local ? origin : fallback;

@@ -148,7 +148,7 @@ node scripts/audit.mjs # crash + hardening probes against the built bundle
 ```
 
 `smoke-mobile.mjs` boots the built bundle at 420×860 in happy-dom and walks
-the real thing: the demo Google gate, the ledger, a task completion and the
+the real thing: the Google button (present, no mock chooser), the ledger, a task completion and the
 reward beat it produces, the character sheet, rewards, the squad formation,
 and the dock. It asserts against `localStorage`, so a number that fails to
 persist fails the test.
