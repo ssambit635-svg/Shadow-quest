@@ -1,0 +1,55 @@
+# ShadowQuest on Render — one Web Service serves the app AND the API.
+#
+# Why a single service: the web build calls the relative `/api` prefix. A
+# static-only host answers those paths with 404 ("This build points at an
+# address with no ShadowQuest API behind it"), and a static site cannot proxy
+# API traffic to a second service. So the Express backend serves the built
+# `dist/` bundle itself (SQ_SERVE_WEB=1) and answers both `/v1/*` and
+# `/api/v1/*` — same origin, no CORS to configure, no VITE_API_BASE_URL.
+#
+# Deploy: Render Dashboard → New → Blueprint → pick this repo → Apply.
+# Then set the `sync: false` variables below on the created service
+# (Dashboard → Environment) and trigger a manual deploy.
+#
+# Replacing the old static site: a `.onrender.com` subdomain belongs to one
+# service. Either keep the Blueprint's new URL as canonical, or delete the
+# old static site and rename this service to reclaim the previous subdomain
+# (Settings → Name → Save). Either way, re-register the Google redirect URI
+# for the final host (see GOOGLE_CALLBACK_URL below).
+services:
+  - type: web
+    name: shadowquest
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build && npm --prefix server ci
+    startCommand: node server/src/index.mjs
+    healthCheckPath: /v1/health
+    envVars:
+      - key: SQ_SERVE_WEB
+        value: "1"
+      # Behind Render's proxy: honest client IPs for the rate limiter.
+      - key: SQ_TRUST_PROXY
+        value: "1"
+      # Without this, operator data lives in server/.data on Render's
+      # ephemeral disk — wiped on every restart and deploy. A free MongoDB
+      # Atlas cluster (M0) is enough; paste its connection string here.
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        value: shadowquest
+      # "Continue with Google" needs all three or the button's click is
+      # refused with "not configured". GOOGLE_CALLBACK_URL must read
+      # https://<this-service-host>/api/v1/auth/google/callback and must
+      # match one of the Authorised redirect URIs on the OAuth client
+      # *exactly* (Google Cloud console → APIs & Services → Credentials).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      # Optional: the control panel stays closed unless both are set.
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: ADMIN_PIN
+        sync: false

@@ -353,6 +353,34 @@ npm run build
 npm run preview
 ```
 
+### 6. Deploy to Production (Render, one service)
+
+Production is a **single Web Service** that serves the app and the API from
+one host — `render.yaml` at the repo root is the whole thing as a Blueprint:
+
+1. Render Dashboard → **New → Blueprint** → pick this repo → **Apply**.
+2. On the created service → **Environment**, set `MONGODB_URI` (a free Atlas
+   cluster — without it, data lives on ephemeral disk and is wiped on every
+   deploy), the three `GOOGLE_*` variables, and optionally `ADMIN_*`. Then
+   **Manual Deploy**.
+3. In the [Google Cloud console](https://console.cloud.google.com/apis/credentials),
+   register `https://<your-service-host>/api/v1/auth/google/callback` as an
+   Authorised redirect URI — it must match `GOOGLE_CALLBACK_URL` exactly.
+
+Why one service: the web build calls the relative `/api` prefix, and a
+static-only host answers those paths with 404 (*"no ShadowQuest API behind
+it"*) — the failure you get when the frontend is deployed without the API
+behind it. With `SQ_SERVE_WEB=1` the backend serves `dist/` itself, so `/`
+is the page and `/api/v1/*` is the API on the same origin: no CORS to
+configure, no `VITE_API_BASE_URL` to set.
+
+> Replacing the previous static site? A `.onrender.com` subdomain belongs to
+> one service: either keep the Blueprint's new URL as canonical, or delete the
+> old static site and rename the new service to reclaim the previous
+> subdomain (Settings → Name → Save).
+
+Full details: [`docs/BACKEND.md`](./docs/BACKEND.md#production-single-service).
+
 ---
 
 ## Environment Variables
