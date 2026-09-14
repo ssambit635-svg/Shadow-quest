@@ -160,7 +160,7 @@ export function Nav({
           onNavigate("home");
         }}
       >
-        <Sigil size={24} className="nav__mark" />
+        <Sigil size={28} className="nav__mark" />
         <span className="nav__word">
           Shadow<em>Quest</em>
         </span>

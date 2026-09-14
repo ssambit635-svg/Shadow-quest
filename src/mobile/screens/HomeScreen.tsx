@@ -14,9 +14,9 @@ import type { User } from "../../lib/auth";
 import type { Ledger } from "../useLedger";
 import { goToTab } from "../nav";
 import { levelTrack, rankTrack } from "../stats";
-import { Avatar, Caption, FactorRow, Meter, Panel } from "../parts";
+import { Avatar, Caption, FactorRow, Meter, Panel, initialsOf } from "../parts";
 import { TaskCard } from "../TaskCard";
-import { initialsOf } from "../parts";
+import { Sigil } from "../../components/Sigil";
 
 function greeting(d = new Date()): string {
   const h = d.getHours();
@@ -75,7 +75,7 @@ export function HomeScreen({
       {/* — where am I — */}
       <Panel glow className="m-hero">
         <span className="m-hero__seal" aria-hidden="true">
-          影
+          <Sigil size={120} />
         </span>
         <div className="m-hero__top">
           <div className="m-hero__lv">

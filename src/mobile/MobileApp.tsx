@@ -33,6 +33,7 @@ import { ProfileScreen } from "./screens/ProfileScreen";
 import { SquadScreen } from "./screens/SquadScreen";
 import { StatsScreen } from "./screens/StatsScreen";
 import { Avatar, initialsOf } from "./parts";
+import { Sigil } from "../components/Sigil";
 
 const TITLES: Record<MobileTab, string> = {
   home: "Today",
@@ -100,7 +101,7 @@ export function MobileApp({ user }: { user: User }) {
           aria-label="ShadowQuest home"
         >
           <span className="m-bar__seal" aria-hidden="true">
-            影
+            <Sigil size={22} />
           </span>
           <span className="m-bar__word">
             Shadow<em>Quest</em>

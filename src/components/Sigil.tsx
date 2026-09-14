@@ -1,10 +1,10 @@
 /**
- * Sigil.tsx — the site's mark, rebuilt as geometry instead of a sketch.
+ * Sigil.tsx — the ShadowQuest mark.
  *
- * A thin ring (the field), a vermilion blade cut, and a single tick for the
- * ford. No faces, no hats, no strokes pretending to be a person. Every path
- * keeps the `.mark__stroke` class so the existing DrawSVG choreography
- * (hero inking, outro draw, lobby assemble) keeps working untouched.
+ * This is the app logo: a vermilion sun over a single brush hill, with a
+ * quiet ground line under it. The same geometry ships as `public/icons/icon.svg`
+ * (PWA, APK, GitHub README). Here the black field is omitted so the mark
+ * sits on whatever ground it is placed — nav, boot curtain, login, phone bar.
  */
 import { forwardRef } from "react";
 
@@ -20,36 +20,31 @@ export const Sigil = forwardRef<SVGSVGElement, SigilProps>(
       <svg
         ref={ref}
         className={className}
-        viewBox="0 0 120 120"
+        viewBox="0 0 512 512"
         width={size}
         height={size}
         fill="none"
         style={style}
         aria-hidden="true"
       >
-        {/* the field: a broken ring, open at the ford */}
+        {/* the sun */}
+        <circle cx="272" cy="216" r="104" fill="var(--vermilion, #c1362b)" />
+        {/* the hill — one loaded brush stroke */}
         <path
           className="mark__stroke"
-          d="M60 12 A48 48 0 1 1 26 26"
+          d="M96 352c64-72 160-104 240-88 48 8 72 32 80 64"
           stroke="currentColor"
-          strokeWidth={5}
-          strokeLinecap="square"
+          strokeWidth={27}
+          strokeLinecap="round"
         />
-        {/* the cut: one vermilion diagonal through the ring */}
+        {/* the ground line */}
         <path
           className="mark__stroke"
-          d="M28 88 L92 30"
-          stroke="var(--vermilion)"
-          strokeWidth={4}
-          strokeLinecap="square"
-        />
-        {/* the ford tick */}
-        <path
-          className="mark__stroke"
-          d="M60 96 L60 108 M52 102 L68 102"
+          d="M144 416h240"
           stroke="currentColor"
-          strokeWidth={3.5}
-          strokeLinecap="square"
+          strokeWidth={18}
+          strokeLinecap="round"
+          opacity={0.55}
         />
       </svg>
     );

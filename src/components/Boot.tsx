@@ -4,7 +4,7 @@
  * The loader is now a short film: an ink aurora breathes behind a drifting
  * grid, stray kanji float past like embers, ink particles rise, the ensō
  * draws itself inside two counter-rotating rings while the counter scrambles
- * 000→100 through five warm-up stages, the 影 slams in on a vermilion flash,
+ * 000→100 through five warm-up stages, the mark slams in on a vermilion flash,
  * the progress bar fills with a shimmer sweep — and the curtain leaves
  * upward in five panels behind a blade line. Under three seconds, skippable
  * by any input, skipped entirely for reduced-motion users and for anyone who
@@ -16,8 +16,9 @@
 import { useEffect, useRef, useState } from "react";
 import { drawIn, gsap, REDUCED, scrambleTo, wipeIn } from "../lib/motion";
 import { isNativeApp } from "../lib/native";
+import { Sigil } from "./Sigil";
 
-const SEEN_KEY = "sq.boot.seen.v2";
+const SEEN_KEY = "sq.boot.seen.v3";
 
 const STAGES = [
   "stirring the ink",
@@ -140,7 +141,7 @@ export function Boot({ onDone }: { onDone: () => void }) {
           },
           0.1,
         )
-        // 3 — the 影 slams in on a vermilion flash.
+        // 3 — the mark slams in on a vermilion flash.
         .fromTo(
           "[data-boot-flash]",
           { autoAlpha: 0 },
@@ -280,7 +281,7 @@ export function Boot({ onDone }: { onDone: () => void }) {
       {/* the stage */}
       <div className="boot__inner">
         <div className="boot__emblem">
-          {/* only the rings rotate — the ensō and the 影 stay upright */}
+          {/* only the rings rotate — the ensō and the mark stay upright */}
           <div className="boot__rings" ref={ringsRef} aria-hidden="true">
             <span className="boot__ring boot__ring--dash" />
             <span className="boot__ring boot__ring--thin" />
@@ -297,7 +298,7 @@ export function Boot({ onDone }: { onDone: () => void }) {
           <span className="boot__flash" data-boot-flash aria-hidden="true" />
           <span className="boot__glow" data-boot-glow aria-hidden="true" />
           <div className="boot__kanji" data-boot-kanji>
-            影
+            <Sigil size="100%" />
           </div>
         </div>
 

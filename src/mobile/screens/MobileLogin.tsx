@@ -15,14 +15,15 @@
  *            record verifies when it is not, and a weak password never
  *            leaves the form.
  *
- * The desktop Login screen is not touched by any of this; it is a separate
- * component and still renders on a laptop.
+ * The same real Google button is on the desktop Login screen — one flow,
+ * two faces. Nothing here is mocked.
  */
 import { useState } from "react";
 import { login, normalizeEmail, normalizeHandle, type User } from "../../lib/auth";
 import { writeProvider } from "../../lib/googleAuth";
 import { useGoogleAuth } from "../../hooks/useGoogleAuth";
 import { GoogleMark } from "../../components/GoogleMark";
+import { Sigil } from "../../components/Sigil";
 import {
   checkPassword,
   setLocalPassword,
@@ -48,7 +49,7 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The real OAuth flow: availability, the redirect, and the return leg.
+  // The real OAuth flow: the redirect, and the return leg.
   const google = useGoogleAuth(onDone);
   const googleBusy = google.phase !== "idle";
 
@@ -64,13 +65,12 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
           : "almost";
 
   /**
-   * Both entry paths land here: the account chooser hands over name + email,
-   * the form is the only way to present the passphrase. The check runs
-   * against the backend first; when it is away, this device's own verifier
-   * takes the gate. Identity is normalised before anything is written:
-   * control characters and bidi overrides are stripped, the address is
-   * lowercased and capped, and anything that is not shaped like an address
-   * is refused rather than stored.
+   * The form is the passphrase path. The check runs against the backend
+   * first; when it is away, this device's own verifier takes the gate.
+   * Identity is normalised before anything is written: control characters
+   * and bidi overrides are stripped, the address is lowercased and capped,
+   * and anything that is not shaped like an address is refused rather than
+   * stored.
    */
   const submitLocal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,12 +134,12 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
   return (
     <div className="m-login">
       <span className="m-login__seal" aria-hidden="true">
-        影
+        <Sigil size={280} />
       </span>
 
       <div className="m-login__brand">
         <span className="m-login__mark" aria-hidden="true">
-          SQ
+          <Sigil size={22} />
         </span>
         <span className="m-login__word">
           Shadow<em>Quest</em>
@@ -148,46 +148,42 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
 
       <h1 className="m-login__t">Open your ledger</h1>
       <p className="m-login__s">
-        Tasks, progress and streaks are scoped to whoever signs in — sealed by
-        a hard passphrase, kept on this device, and synced with the backend
-        when it answers.
+        Continue with Google — a real account, never a fake one — or a hard
+        passphrase. Tasks, progress and streaks stay scoped to whoever signs
+        in, kept on this device, and synced when the backend answers.
       </p>
 
-      {google.available ? (
-        <>
-          <button
-            type="button"
-            className="m-gbtn"
-            onClick={google.begin}
-            disabled={phase !== "idle" || googleBusy}
-            aria-busy={googleBusy || undefined}
-          >
-            {googleBusy ? (
-              <span className="m-gbtn__spin" aria-hidden="true" />
-            ) : (
-              <GoogleMark />
-            )}
-            <span>{google.busyLabel ?? "Continue with Google"}</span>
-          </button>
+      <button
+        type="button"
+        className="m-gbtn"
+        onClick={google.begin}
+        disabled={phase !== "idle" || googleBusy}
+        aria-busy={googleBusy || undefined}
+      >
+        {googleBusy ? (
+          <span className="m-gbtn__spin" aria-hidden="true" />
+        ) : (
+          <GoogleMark />
+        )}
+        <span>{google.busyLabel ?? "Continue with Google"}</span>
+      </button>
 
-          {google.error ? (
-            <p className="m-login__err" role="alert">
-              {google.error}
-            </p>
-          ) : null}
-          {google.notice ? (
-            <p className="m-login__note" role="status">
-              {google.notice}
-            </p>
-          ) : null}
-
-          <div className="m-login__or">
-            <span aria-hidden="true" />
-            <i>or</i>
-            <span aria-hidden="true" />
-          </div>
-        </>
+      {google.error ? (
+        <p className="m-login__err" role="alert">
+          {google.error}
+        </p>
       ) : null}
+      {google.notice ? (
+        <p className="m-login__note" role="status">
+          {google.notice}
+        </p>
+      ) : null}
+
+      <div className="m-login__or">
+        <span aria-hidden="true" />
+        <i>or</i>
+        <span aria-hidden="true" />
+      </div>
 
       <form className="m-login__form" onSubmit={submitLocal} noValidate>
         <label className="m-field">
@@ -269,8 +265,8 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
       </form>
 
       <p className="m-login__foot">
-        Hard password required. The key is scrypt-sealed on the server and
-        PBKDF2-sealed on this device.
+        Google or a hard password. The passphrase is scrypt-sealed on the
+        server and PBKDF2-sealed on this device.
       </p>
 
       {phase !== "idle" && who ? (

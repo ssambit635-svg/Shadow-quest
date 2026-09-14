@@ -210,7 +210,7 @@ browser ── operator token + admin token ──▶ server
 ### 3.7 ✅ Loader — heavily animated (21st.dev-inspired)
 - `src/components/Boot.tsx` + the `.boot` block in `src/styles/home.css`:
   ink aurora orbs, drifting grid, stray kanji, rising ink particles,
-  counter-rotating rings, ensō draw, 影 slam on a vermilion flash,
+  counter-rotating rings, ensō draw, the app mark slamming in on a vermilion flash,
   scrambling 000→100 counter, shimmer bar, blade-line exit through five
   panels. Skippable, reduced-motion-safe, and every loop is CSS so it dies
   with the curtain (verified by the `motion` audit probes).

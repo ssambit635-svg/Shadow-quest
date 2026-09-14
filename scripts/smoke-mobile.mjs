@@ -102,13 +102,16 @@ if (!q(".m-login")) fail("mobile login did not mount at 420px");
 if (q(".login__grid")) fail("desktop login rendered on a phone viewport");
 ok("mobile gate mounted, desktop gate absent");
 
-/* The Google button is only drawn when the backend reports real OAuth
-   configuration (GET /v1/auth/providers → { google: true }). There is no
-   backend in this harness, so the gate must offer the passphrase form alone
-   — and must never fall back to a built-in account chooser. */
-if (q(".m-gbtn")) fail("Google button drawn without a configured backend");
+/* Continue with Google is always on the gate — website and phone — so the
+   operator can see it. There is no backend in this harness, so clicking it
+   must not invent an identity, and the old hardcoded account chooser must
+   stay gone. */
+if (!q(".m-gbtn")) fail("Google button missing on the phone gate");
 if (q(".m-gpick")) fail("a hardcoded Google account chooser is still present");
-ok("no Google button and no account chooser without a configured backend");
+q(".m-gbtn").click();
+await sleep(600);
+if (win.localStorage.getItem("sq.user.v1")) fail("Google click invented an identity without OAuth");
+ok("Google button present; click without a backend invents nobody; no account chooser");
 
 /* --- 2. passphrase sign-in --- */
 const fields = qa(".m-login__form .m-field input");
