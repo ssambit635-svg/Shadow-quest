@@ -1,29 +1,28 @@
 /**
  * MobileLogin.tsx — the gate, on a phone.
  *
- * Two ways in, one key:
+ * Two ways in:
  *
- *   Google — a demo account chooser. ShadowQuest's sign-in is local-first
- *            (`login(handle, email)` in lib/auth), so a Google sign-in needs
- *            no client id and no server: it is the same call, with the name
- *            and address an account chooser would have handed over. Which
- *            provider was used is remembered separately so Profile can show
- *            it and offer to detach.
+ *   Google — the real thing. The button hands the page to the backend, which
+ *            redirects to Google's own consent screen; Google redirects back
+ *            to the backend, which verifies the ID token's signature, finds
+ *            or creates the MongoDB user, and returns a one-time code this
+ *            page trades for the ordinary ShadowQuest session. No account is
+ *            chosen here — Google's own chooser does that.
  *
- *   Name + email + passphrase — the only actual key. A hard password is
- *            required: the backend verifies (scrypt) when reachable, this
- *            device's PBKDF2 record verifies when it is not, and a weak
- *            password never leaves the form.
- *
- * Picking a Google account fills the form and hands the user the passphrase
- * field — the password is the gate for every identity, demo or not.
+ *   Name + email + passphrase — unchanged. A hard password is required: the
+ *            backend verifies (scrypt) when reachable, this device's PBKDF2
+ *            record verifies when it is not, and a weak password never
+ *            leaves the form.
  *
  * The desktop Login screen is not touched by any of this; it is a separate
  * component and still renders on a laptop.
  */
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { login, normalizeEmail, normalizeHandle, type User } from "../../lib/auth";
-import { writeProvider, GOOGLE_ACCOUNTS, type GoogleAccount } from "../demoAccounts";
+import { writeProvider } from "../../lib/googleAuth";
+import { useGoogleAuth } from "../../hooks/useGoogleAuth";
+import { GoogleMark } from "../../components/GoogleMark";
 import {
   checkPassword,
   setLocalPassword,
@@ -31,7 +30,6 @@ import {
   PASSWORD_MAX,
 } from "../../lib/password";
 import { PasswordError, signInWithPassword } from "../../api/ledger";
-import { Avatar, Sheet, initialsOf } from "../parts";
 
 /** RFC 5321's ceiling. Anything longer is not an address, it is a payload. */
 const MAX_EMAIL = 254;
@@ -43,7 +41,6 @@ type Phase = "idle" | "checking" | "granted";
 export function MobileLogin({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [who, setWho] = useState<string | null>(null);
-  const [picker, setPicker] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -51,8 +48,10 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pwRef = useRef<HTMLInputElement>(null);
-  const [google, setGoogle] = useState<GoogleAccount | null>(null);
+  // The real OAuth flow: availability, the redirect, and the return leg.
+  const google = useGoogleAuth(onDone);
+  const googleBusy = google.phase !== "idle";
+
   const policy = checkPassword(password);
   const meterLabel = !password
     ? "empty"
@@ -125,25 +124,12 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
     }
 
     login(cleanName, cleanMail, role);
-    writeProvider(
-      google ? { kind: "google", accountId: google.id, at: Date.now() } : { kind: "local", at: Date.now() },
-    );
+    // This path is the password gate, always — a Google session is written
+    // by lib/googleAuth after the backend verified it.
+    writeProvider({ kind: "local", at: Date.now() });
     setPhase("granted");
     window.setTimeout(onDone, 260);
   };
-
-  /** The chooser fills the form; the passphrase field gets the focus. */
-  const pick = (a: GoogleAccount | null) => {
-    setGoogle(a);
-    setName(a ? a.name : "Operator");
-    setEmail(a ? a.email : "operator@local.device");
-    setPicker(false);
-    window.setTimeout(() => pwRef.current?.focus(), 60);
-  };
-
-  useEffect(() => {
-    if (picker) pwRef.current?.blur();
-  }, [picker]);
 
   return (
     <div className="m-login">
@@ -167,21 +153,41 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
         when it answers.
       </p>
 
-      <button
-        type="button"
-        className="m-gbtn"
-        onClick={() => setPicker(true)}
-        disabled={phase !== "idle"}
-      >
-        <GoogleMark />
-        <span>Continue with Google</span>
-      </button>
+      {google.available ? (
+        <>
+          <button
+            type="button"
+            className="m-gbtn"
+            onClick={google.begin}
+            disabled={phase !== "idle" || googleBusy}
+            aria-busy={googleBusy || undefined}
+          >
+            {googleBusy ? (
+              <span className="m-gbtn__spin" aria-hidden="true" />
+            ) : (
+              <GoogleMark />
+            )}
+            <span>{google.busyLabel ?? "Continue with Google"}</span>
+          </button>
 
-      <div className="m-login__or">
-        <span aria-hidden="true" />
-        <i>or</i>
-        <span aria-hidden="true" />
-      </div>
+          {google.error ? (
+            <p className="m-login__err" role="alert">
+              {google.error}
+            </p>
+          ) : null}
+          {google.notice ? (
+            <p className="m-login__note" role="status">
+              {google.notice}
+            </p>
+          ) : null}
+
+          <div className="m-login__or">
+            <span aria-hidden="true" />
+            <i>or</i>
+            <span aria-hidden="true" />
+          </div>
+        </>
+      ) : null}
 
       <form className="m-login__form" onSubmit={submitLocal} noValidate>
         <label className="m-field">
@@ -193,7 +199,7 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
             maxLength={MAX_HANDLE}
             autoComplete="name"
             spellCheck={false}
-            disabled={phase !== "idle"}
+            disabled={phase !== "idle" || googleBusy}
           />
         </label>
         <label className="m-field">
@@ -209,7 +215,7 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
             spellCheck={false}
             autoCapitalize="none"
             autoCorrect="off"
-            disabled={phase !== "idle"}
+            disabled={phase !== "idle" || googleBusy}
           />
         </label>
         <label className="m-field">
@@ -226,7 +232,6 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
             </button>
           </span>
           <input
-            ref={pwRef}
             type={showPw ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value.slice(0, PASSWORD_MAX))}
@@ -236,7 +241,7 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
             spellCheck={false}
             autoCapitalize="none"
             autoCorrect="off"
-            disabled={phase !== "idle"}
+            disabled={phase !== "idle" || googleBusy}
           />
           <span className="m-field__meter" data-level={meterLabel} aria-hidden="true">
             {[0, 1, 2, 3, 4].map((i) => (
@@ -257,7 +262,7 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
         <button
           type="submit"
           className="m-btn m-btn--go"
-          disabled={phase !== "idle" || !name.trim() || !email.trim() || !password}
+          disabled={phase !== "idle" || googleBusy || !name.trim() || !email.trim() || !password}
         >
           {phase === "granted" ? "Granted" : phase === "checking" ? "Verifying" : "Continue"}
         </button>
@@ -278,59 +283,6 @@ export function MobileLogin({ onDone }: { onDone: () => void }) {
         </div>
       ) : null}
 
-      <Sheet open={picker} onClose={() => setPicker(false)} title="Choose an account">
-        <div className="m-gpick">
-          <p className="m-gpick__h">to continue to ShadowQuest</p>
-          {GOOGLE_ACCOUNTS.map((a) => (
-            <button type="button" key={a.id} className="m-gpick__a" onClick={() => pick(a)}>
-              <Avatar initials={a.initials} hue={a.hue} size={38} />
-              <span className="m-gpick__b">
-                <span className="m-gpick__n">{a.name}</span>
-                <span className="m-gpick__e">{a.hint}</span>
-              </span>
-            </button>
-          ))}
-          <button
-            type="button"
-            className="m-gpick__a m-gpick__a--alt"
-            onClick={() => pick(null)}
-          >
-            <Avatar initials={initialsOf("Operator")} hue={6} size={38} />
-            <span className="m-gpick__b">
-              <span className="m-gpick__n">Continue without an account</span>
-              <span className="m-gpick__e">operator@local.device</span>
-            </span>
-          </button>
-          <p className="m-gpick__f">
-            Demo identities — choosing one fills the form; your passphrase is
-            still the key in.
-          </p>
-        </div>
-      </Sheet>
     </div>
-  );
-}
-
-/** Google's mark, drawn inline so the button needs no network fetch. */
-function GoogleMark({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2.1 5.1-4.4 6.7v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.2z"
-      />
-      <path
-        fill="#34A853"
-        d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.4v5.7C8 41.1 15.4 46 24 46z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M11.7 28.2c-.4-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.7H4.4C2.9 17.1 2 20.4 2 24s.9 6.9 2.4 9.9l7.3-5.7z"
-      />
-      <path
-        fill="#EA4335"
-        d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8 6.9 4.4 14.1l7.3 5.7C13.4 14.7 18.3 10.8 24 10.8z"
-      />
-    </svg>
   );
 }

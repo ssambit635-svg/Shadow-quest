@@ -55,6 +55,49 @@ browser ◀── token + public user (role) ──┘
   passphrase the server accepted is also sealed locally, so one password
   opens both gates. First-set-wins for devices that predate passwords.
 
+### 2.1b Google sign-in (`/v1/auth/google/*`)
+
+```
+browser ── click ──▶ GET /v1/auth/google/start
+                     ├─ mints state (CSRF) + nonce + PKCE verifier, in-process,
+                     │  single-use, 10 min TTL
+                     └─ 302 ▶ accounts.google.com   (the human authenticates
+                                                     on GOOGLE's page, not ours)
+Google  ── code ──▶ GET /v1/auth/google/callback
+                     ├─ state must match one we minted (else: refused)
+                     ├─ code + code_verifier + client_secret ──▶ token endpoint
+                     │  (server-to-server, over TLS)
+                     ├─ id_token verified: RS256 against Google's JWKS, then
+                     │  iss ∈ {accounts.google.com}, aud == GOOGLE_CLIENT_ID
+                     │  (constant-time), exp, iat, nonce, email_verified
+                     ├─ MongoDB: googleId → link by email → create
+                     └─ 302 ▶ app#/login?sq_auth=ok&code=<one-time handoff>
+browser ── code ──▶ POST /v1/auth/google/exchange
+browser ◀── the same bearer token a password sign-in issues ──┘
+```
+
+- **Nothing about the operator is taken from the frontend.** The identity
+  comes from claims in a token this process verified against Google's
+  published keys. A client that POSTs an email gets nowhere — there is no
+  route that accepts one.
+- `GOOGLE_CLIENT_SECRET` is used only in the token exchange, is never
+  referenced from `src/`, and carries no `VITE_` prefix, so it cannot be
+  bundled. No Google password ever reaches this system.
+- **The session token never travels in a URL.** The redirect carries a
+  one-time handoff code in the *hash fragment* (never sent to a server, so it
+  stays out of access logs and `Referer`); redeeming it deletes it, and a
+  replay answers 401.
+- **Open redirect closed.** `SQ_APP_ORIGIN` is an allowlist; an unlisted
+  origin falls back to the first allowed one. Unset, only localhost is
+  accepted, so a misconfigured production deploy cannot leak a session.
+- `googleId` is stripped by `publicUser` and never reaches the browser. The
+  avatar URL is accepted only over `https:` from Google's own hosts, and the
+  CSP's `img-src` is widened to exactly those.
+- Rate limit: **20 authorizations / 10 min / IP**; the exchange shares the
+  sign-in limiter.
+- Unconfigured → the entire surface answers 503 and `/v1/auth/providers`
+  reports `google: false`. It fails closed; it never invents an identity.
+
 ### 2.2 Ledger sync (`GET/PUT /v1/ledger`, `GET /v1/stats`)
 
 - Every call carries the bearer token; the server scopes by the token's
@@ -103,8 +146,13 @@ browser ── operator token + admin token ──▶ server
 ## 3. The checklist, item by item
 
 ### 3.1 ✅ Exposed API keys
-- **No API keys exist in this product.** There is no third-party API.
-  `VITE_API_BASE_URL` is a deployment address, not a secret.
+- The one third-party credential is the **Google OAuth client**.
+  `GOOGLE_CLIENT_SECRET` is read only by `server/src/google.mjs`, used only in
+  the server-to-server token exchange, and has no `VITE_` prefix — Vite can
+  only bundle `VITE_*`, so it is structurally impossible to ship it to the
+  browser. `GOOGLE_CLIENT_ID` is public by design (Google puts it in the
+  consent URL) but is still served from the backend, never hardcoded.
+- `VITE_API_BASE_URL` is a deployment address, not a secret.
 - `.env` is gitignored; only `.env.example` is committed. The build is
   greppable: no `sk-`, `AIza`, or key-shaped literals in `src/` or `server/`
   (verify with the grep below).

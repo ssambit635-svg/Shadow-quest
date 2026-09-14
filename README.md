@@ -104,6 +104,11 @@ Most productivity apps look like dashboards. Shadow Quest feels like a dojo.
 - **Offline First** — `src/lib/sync.ts` — pull on load (server wins if newer), debounced push, flush on `pagehide`.
 - **Notifications** — One per phase change, one per habit due — permission-gated, tab-coalesced.
 
+### Sign-in
+- **Email + Passphrase** — Hard policy (12+ chars, upper/lower/digit/symbol), scrypt on the server, PBKDF2 on the device.
+- **Continue with Google** — *Real* OAuth 2.0 / OIDC. Google's own consent screen, PKCE + `state` + `nonce`, and the ID token's RS256 signature verified server-side against Google's JWKS before an account exists. No demo accounts, no chooser in the app, no client secret in the bundle.
+- **Account Linking** — Sign up with a password, later sign in with the same Google address, and you land on the *same* MongoDB user: tasks, habits, life factors, rewards, achievements and streak all intact. The password keeps working.
+
 ### Owner Control
 - **Admin Panel** `#/app/admin` — Owner only (`ADMIN_EMAILS` + `ADMIN_PIN`), re-verified by backend every call. Overview, user directory (only place with emails), revoke all sessions.
 
@@ -370,6 +375,25 @@ cp .env.example .env
 | `SQ_MAX_USERS` | `1000` | Backend | Hard cap on operators |
 | `SQ_CORS_ORIGIN` | *(open in dev)* | Backend | CORS allowlist, comma-separated. Set in prod! |
 | `SQ_TRUST_PROXY` | `0` | Backend | Set `1` behind reverse proxy for honest IP rate limits |
+| `GOOGLE_CLIENT_ID` | *(unset)* | Backend | OAuth 2.0 **Web application** client id from the [Google Cloud console](https://console.cloud.google.com/apis/credentials) |
+| `GOOGLE_CLIENT_SECRET` | *(unset)* | Backend | Its secret. **Server-side only** — never prefix with `VITE_`, never commit |
+| `GOOGLE_CALLBACK_URL` | *(unset)* | Backend | Must match a registered redirect URI **exactly**. Dev: `http://localhost:5173/api/v1/auth/google/callback` · Prod: `https://api.your-domain.com/v1/auth/google/callback` |
+| `SQ_APP_ORIGIN` | *(localhost only)* | Backend | Allowlist of origins the login may return to. **Set in prod** or the redirect falls back to localhost |
+
+All three Google variables must be set or the button is simply not offered — the gate falls back to email + passphrase and never invents an identity.
+
+<details>
+<summary><b>Setting up Google OAuth (one time)</b></summary>
+
+1. [Google Cloud console](https://console.cloud.google.com/apis/credentials) → **Create credentials** → **OAuth client ID** → **Web application**.
+2. Under **Authorised redirect URIs** add both, so one client serves both environments:
+   - `http://localhost:5173/api/v1/auth/google/callback`
+   - `https://api.your-domain.com/v1/auth/google/callback`
+3. Copy the client id and secret into your **backend** environment (Render → Environment, or `.env` locally). Never into the frontend build.
+4. Set `SQ_APP_ORIGIN=https://your-domain.com` in production.
+5. Restart. The log line `[google] OAuth enabled` confirms it, and `GET /api/v1/auth/providers` returns `{"password":true,"google":true}`.
+
+</details>
 
 ---
 
@@ -381,6 +405,10 @@ Base: `https://shadow-quest.onrender.com/api` in production, `/api` in dev (prox
 |--------|------|------|--------------|
 | `GET` | `/v1/health` | — | Liveness + which store is active |
 | `POST` | `/v1/auth/signin` | — | Create / verify / seal account (scrypt hash, never plain) |
+| `GET` | `/v1/auth/providers` | — | Which sign-in methods this deployment has live |
+| `GET` | `/v1/auth/google/start` | — | 302 → Google's consent screen (state + nonce + PKCE) |
+| `GET` | `/v1/auth/google/callback` | — | Google's redirect. Verifies the ID token, resolves the MongoDB user |
+| `POST` | `/v1/auth/google/exchange` | — | Trade the one-time handoff code for a session token |
 | `GET` | `/v1/ledger` | Bearer | Your stored profile + tasks + habits |
 | `PUT` | `/v1/ledger` | Bearer | Replace stored ledger (validated, bounded, 120/min) |
 | `GET` | `/v1/stats` | Bearer | Aggregates: daily 84d, weekly 8w, factors, categories |
@@ -450,7 +478,7 @@ Full guide: [`docs/APK.md`](./docs/APK.md)
 
 ---
 
-## Security — Password Gate
+## Security — The Gate
 
 Sign-in requires **hard passphrase**: min 12 chars, uppercase + lowercase + digit + symbol. Live strength meter, refused before leaving device.
 
@@ -459,6 +487,15 @@ Sign-in requires **hard passphrase**: min 12 chars, uppercase + lowercase + digi
 - **Legacy accounts:** Sealed by first valid password — first-set-wins migration.
 - **CSP:** `<meta>` injected at build time (works inside APK where no headers exist). `script-src 'self'` — no `unsafe-inline`, no `unsafe-eval`.
 - **Admin:** `ADMIN_EMAILS` + `ADMIN_PIN` must both be set, else every admin route 403. Every admin call re-verifies email + token server-side.
+
+**Google OAuth** — the whole flow is server-side; the browser only ever carries opaque, single-use, server-minted values.
+
+- **Nothing is trusted from the frontend.** The identity comes from an ID token whose RS256 signature the backend verified against Google's JWKS, with `iss`, `aud` (constant-time), `exp`, `iat`, `nonce` and `email_verified` all checked. There is no route that accepts an email from the client.
+- **`GOOGLE_CLIENT_SECRET` cannot reach the browser** — no `VITE_` prefix, so Vite structurally cannot bundle it. Grep the build: `grep -r "client_secret" dist/` is empty. No Google password is ever stored.
+- **The session token never travels in a URL.** The redirect carries a one-time handoff code in the hash fragment (browsers don't send fragments to servers — no access logs, no `Referer`); redeeming it deletes it, and a replay answers 401.
+- **CSRF + code interception:** single-use `state` (10 min TTL) and PKCE `S256`.
+- **No open redirect:** `SQ_APP_ORIGIN` is an allowlist; unlisted origins fall back to an allowed one.
+- **Fails closed:** unconfigured → every Google route 503 and the button isn't drawn.
 
 Full audit: [`docs/SECURITY.md`](./docs/SECURITY.md) + `node scripts/audit.mjs` (23 probes)
 
@@ -489,6 +526,11 @@ node scripts/audit.mjs        # 23 security/crash probes - hostile + corrupt sto
 npm run smoke                 # desktop: session + habits flow, ledger persists
 npm run smoke:mobile          # phone face: gate → ledger → stats → squad → profile
 npm run smoke:ladder          # milestones: renders live AND with API down
+npm run smoke:oauth           # Google OAuth end to end against the real backend:
+                              #   new user → linked account → returning user,
+                              #   plus the refusals (forged state, replayed
+                              #   handoff, wrong audience, expired token,
+                              #   unverified email, open redirect)
 
 node scripts/pwa-icons.mjs      # regenerate PWA icons from public/icons/icon.svg
 node scripts/android-assets.mjs # regenerate Android launcher + splash (5 densities)

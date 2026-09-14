@@ -47,7 +47,10 @@ function csp(): Plugin {
           "script-src 'self'",
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "font-src 'self' https://fonts.gstatic.com data:",
-          "img-src 'self' data:",
+          // Google returns an avatar URL on its own CDN; the backend already
+          // refuses any picture host that is not Google's, so this is the
+          // exact set of origins a verified profile can produce.
+          "img-src 'self' data: https://lh3.googleusercontent.com https://*.googleusercontent.com",
           `connect-src ${connect}`,
           "manifest-src 'self'",
           "object-src 'none'",

@@ -19,6 +19,10 @@
  * Endpoints (all JSON):
  *   GET  /v1/health                        — liveness + which store is active
  *   POST /v1/auth/signin                   — sign in / sign up with password
+ *   GET  /v1/auth/google/start             — begin real Google OAuth (302)
+ *   GET  /v1/auth/google/callback          — Google's redirect back here
+ *   POST /v1/auth/google/exchange          — trade the one-time code for a session
+ *   GET  /v1/auth/providers                — which sign-in methods are live
  *   GET  /v1/ledger                        — the operator's stored ledger     (auth)
  *   PUT  /v1/ledger                        — replace the operator's ledger    (auth)
  *   GET  /v1/stats                         — aggregated stats for the operator(auth)
@@ -41,6 +45,17 @@ import {
 } from "./engine.mjs";
 import { adminConfig, adminVault, isAdminEmail, pinMatches, roleOf } from "./admin.mjs";
 import {
+  beginAuth,
+  exchangeCode,
+  googleConfig,
+  mintHandoff,
+  profileFromClaims,
+  resolveReturn,
+  takeHandoff,
+  takePending,
+  verifyIdToken,
+} from "./google.mjs";
+import {
   hashPassword,
   limiter,
   passwordProblems,
@@ -59,6 +74,22 @@ if (!admin.enabled) {
   );
 } else {
   console.log(`[admin] control panel enabled for ${[...admin.emails].join(", ")}`);
+}
+
+const google = googleConfig();
+if (!google.enabled) {
+  console.warn(
+    "[google] GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_CALLBACK_URL not configured — " +
+      "\"Continue with Google\" stays closed (email + password is unaffected)",
+  );
+} else {
+  console.log(`[google] OAuth enabled — callback ${google.callbackUrl}`);
+  if (!google.appOrigins.length) {
+    console.warn(
+      "[google] SQ_APP_ORIGIN not set — post-login redirects are limited to localhost. " +
+        "Set it in production.",
+    );
+  }
 }
 
 const store = await createStore();
@@ -95,6 +126,7 @@ const signinByIp = limiter(12, 10 * 60_000); // 12 sign-in attempts / 10 min / I
 const failedPwByEmail = limiter(8, 15 * 60_000); // 8 wrong passwords / 15 min / address
 const ledgerByToken = limiter(120, 60_000); // ledger pushes / min / token
 const adminByIp = limiter(30, 5 * 60_000); // admin calls / 5 min / IP
+const oauthByIp = limiter(20, 10 * 60_000); // Google authorizations / 10 min / IP
 
 const ipOf = (req) => req.ip || req.socket?.remoteAddress || "unknown";
 const tokenKey = (req) => `t:${req.user?.token ?? ""}`;
@@ -171,7 +203,11 @@ app.post("/v1/auth/signin", async (req, res) => {
       return res.status(503).json({ error: "registration is closed" });
     }
     const pw = hashPassword(password);
-    const user = await store.upsertSignIn(email, handle || email.split("@")[0] || "Operator");
+    const user = await store.upsertSignIn(
+      email,
+      handle || email.split("@")[0] || "Operator",
+      { provider: "password" },
+    );
     await store.setPassword(email, pw);
     return res.json({
       mode: "created",
@@ -187,7 +223,9 @@ app.post("/v1/auth/signin", async (req, res) => {
     if (!password || !verifyPassword(password, existing.passwordHash)) {
       return res.status(401).json({ error: "wrong password" });
     }
-    const user = await store.upsertSignIn(email, handle || existing.handle || "Operator");
+    const user = await store.upsertSignIn(email, handle || existing.handle || "Operator", {
+      provider: "password",
+    });
     return res.json({
       mode: "verified",
       token: user.token,
@@ -205,11 +243,171 @@ app.post("/v1/auth/signin", async (req, res) => {
   }
   const pw = hashPassword(password);
   await store.setPassword(email, pw);
-  const user = await store.upsertSignIn(email, handle || existing.handle || "Operator");
+  const user = await store.upsertSignIn(email, handle || existing.handle || "Operator", {
+    provider: "password",
+  });
   return res.json({
     mode: "sealed",
     token: user.token,
     user: { ...publicUser(user), role: roleOf(admin, email) },
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Google OAuth — the real thing, start to finish
+ *
+ * Nothing about the operator is taken from the browser. The browser only
+ * ever carries opaque, single-use, server-minted values: `state` out to
+ * Google, and a handoff `code` back into the app. The identity itself is
+ * established here, from an ID token whose signature this process verified
+ * against Google's published keys.
+ * ------------------------------------------------------------------ */
+
+/** What the gate should render. The client asks before drawing the button. */
+app.get("/v1/auth/providers", (_req, res) => {
+  res.json({ password: true, google: google.enabled });
+});
+
+/** Step 1 — send the browser to Google's own consent screen. */
+app.get("/v1/auth/google/start", (req, res) => {
+  if (!google.enabled) {
+    return res.status(503).json({ error: "google sign-in is not configured" });
+  }
+  const ipLimit = oauthByIp(`g:${ipOf(req)}`);
+  if (!ipLimit.allowed) return refused(res, ipLimit.retryAfterMs, "too many sign-in attempts");
+
+  // Where to land afterwards, validated against the allowlist before it is
+  // ever stored — an open redirect here would leak the handoff code.
+  const returnTo = resolveReturn(google, req.query?.return_to);
+  const { url } = beginAuth(google, { returnTo });
+  res.set("cache-control", "no-store");
+  res.redirect(302, url);
+});
+
+/**
+ * Step 2 — Google's redirect. Verifies everything, then reconciles the
+ * verified profile with MongoDB:
+ *
+ *   googleId already known      → that account, always (email may have moved)
+ *   email already registered    → LINK: same document, same ledger, same
+ *                                 tasks / habits / progress / rewards. The
+ *                                 password, if any, keeps working.
+ *   neither                     → a brand new operator, empty ledger
+ */
+app.get("/v1/auth/google/callback", async (req, res) => {
+  const cfg = google;
+  const bounce = (base, params) => {
+    const url = new URL(base);
+    url.hash = `/login?${new URLSearchParams(params).toString()}`;
+    res.set("cache-control", "no-store");
+    return res.redirect(302, url.toString());
+  };
+
+  if (!cfg.enabled) return res.status(503).json({ error: "google sign-in is not configured" });
+
+  const state = typeof req.query?.state === "string" ? req.query.state : "";
+  const parked = takePending(state);
+  // No parked state → replayed, expired, or forged. There is nothing safe to
+  // redirect to either, because returnTo lived in that state.
+  if (!parked) {
+    return bounce(resolveReturn(cfg, ""), { sq_auth: "error", reason: "expired" });
+  }
+  const home = resolveReturn(cfg, parked.returnTo);
+
+  // The human pressed "cancel" (or Google refused): a first-class outcome,
+  // not an error page.
+  if (typeof req.query?.error === "string") {
+    const cancelled = req.query.error === "access_denied";
+    return bounce(home, { sq_auth: cancelled ? "cancelled" : "error", reason: "google" });
+  }
+
+  const code = typeof req.query?.code === "string" ? req.query.code : "";
+  if (!code) return bounce(home, { sq_auth: "error", reason: "no_code" });
+
+  let profile;
+  try {
+    const tokens = await exchangeCode(cfg, { code, codeVerifier: parked.codeVerifier });
+    const claims = await verifyIdToken(cfg, tokens.id_token, parked.nonce);
+    profile = profileFromClaims(claims);
+  } catch (err) {
+    // The reason stays in the server log; the browser gets a generic code.
+    console.error("[google] verification failed:", err.message);
+    return bounce(home, { sq_auth: "error", reason: "verify" });
+  }
+
+  try {
+    const byGoogle = await store.byGoogleId(profile.googleId);
+    const byMail = byGoogle ? null : await store.byEmail(profile.email);
+    let mode;
+    let email;
+
+    if (byGoogle) {
+      mode = "returning";
+      email = byGoogle.email;
+    } else if (byMail) {
+      // ACCOUNT LINKING. The document is untouched apart from the provider
+      // metadata, so every task, habit, life factor, reward, achievement and
+      // point this person already earned stays exactly where it was.
+      mode = "linked";
+      email = byMail.email;
+      await store.linkGoogle(email, {
+        googleId: profile.googleId,
+        picture: profile.picture,
+        name: byMail.handle || profile.name,
+      });
+    } else {
+      if ((await store.countUsers()) >= admin.maxUsers) {
+        return bounce(home, { sq_auth: "error", reason: "closed" });
+      }
+      mode = "created";
+      email = profile.email;
+    }
+
+    // One session, minted by the same code path a password sign-in uses:
+    // the token the rest of the API already authenticates.
+    const user = await store.upsertSignIn(
+      email,
+      byGoogle?.handle || byMail?.handle || profile.name,
+      { provider: "google", googleId: profile.googleId, picture: profile.picture },
+    );
+
+    // The session token never travels in a URL. A one-time handoff code does,
+    // and the app trades it for the token over POST within two minutes.
+    const handoff = mintHandoff({
+      token: user.token,
+      email: user.email,
+      handle: user.handle,
+      picture: user.picture ?? "",
+      role: roleOf(admin, user.email),
+      mode,
+    });
+    return bounce(home, { sq_auth: "ok", code: handoff });
+  } catch (err) {
+    console.error("[google] account reconciliation failed:", err.message);
+    return bounce(home, { sq_auth: "error", reason: "server" });
+  }
+});
+
+/** Step 3 — the app redeems the one-time code for its session. */
+app.post("/v1/auth/google/exchange", (req, res) => {
+  if (!google.enabled) {
+    return res.status(503).json({ error: "google sign-in is not configured" });
+  }
+  const ipLimit = signinByIp(ipOf(req));
+  if (!ipLimit.allowed) return refused(res, ipLimit.retryAfterMs, "too many sign-in attempts");
+  const payload = takeHandoff(typeof req.body?.code === "string" ? req.body.code : "");
+  if (!payload) return res.status(401).json({ error: "sign in again" });
+  res.set("cache-control", "no-store");
+  res.json({
+    token: payload.token,
+    mode: payload.mode,
+    user: {
+      email: payload.email,
+      handle: payload.handle,
+      picture: payload.picture,
+      role: payload.role,
+      provider: "google",
+    },
   });
 });
 
@@ -374,6 +572,10 @@ app.get("/", (_req, res) => {
     endpoints: [
       "GET /v1/health",
       "POST /v1/auth/signin",
+      "GET /v1/auth/providers",
+      "GET /v1/auth/google/start",
+      "GET /v1/auth/google/callback",
+      "POST /v1/auth/google/exchange",
       "GET /v1/ledger",
       "PUT /v1/ledger",
       "GET /v1/stats",

@@ -2811,3 +2811,59 @@
   font-size: 10px;
   color: var(--m-fg-4);
 }
+
+/* ------------------------------------------------------------------ *
+ * Google OAuth — the real flow's states
+ *
+ * The button itself already existed and is untouched. These are only the
+ * pieces the live flow added: the spinner that replaces the mark while the
+ * redirect / verification is in flight, the success line beside the error
+ * line, and the avatar Google returns for the profile header.
+ * ------------------------------------------------------------------ */
+
+.m-gbtn__spin {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--m-line-2);
+  border-top-color: var(--m-accent, #e0342c);
+  animation: m-gspin 0.7s linear infinite;
+}
+
+@keyframes m-gspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Honour the operator's motion setting: the spinner still reads as "busy"
+   without turning, because the button's own label says so. */
+@media (prefers-reduced-motion: reduce) {
+  .m-gbtn__spin {
+    animation-duration: 2.4s;
+  }
+}
+
+.m-login__note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--m-fg-2);
+}
+
+/* The Google avatar in the profile header — same 56px circle the initials
+   tile occupies, so the layout does not shift when one replaces the other. */
+.m-id__pic {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--m-line-2);
+  background: var(--m-surf-2);
+}
+
+.m-g__note {
+  margin-top: 10px;
+}

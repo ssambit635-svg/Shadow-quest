@@ -36,6 +36,10 @@ Environment:
 | `SQ_MAX_USERS`    | `1000`        | hard cap on registered operators                 |
 | `SQ_CORS_ORIGIN`  | *(unset)*     | CORS allowlist, comma-separated origins          |
 | `SQ_TRUST_PROXY`  | `0`           | set `1` behind a platform proxy for honest IPs   |
+| `GOOGLE_CLIENT_ID` | *(unset)*    | OAuth 2.0 web client id from the Google console  |
+| `GOOGLE_CLIENT_SECRET` | *(unset)* | its secret — server-side only, never bundled    |
+| `GOOGLE_CALLBACK_URL` | *(unset)* | must match a registered redirect URI exactly     |
+| `SQ_APP_ORIGIN`   | *(unset)*     | allowlist of origins the login may return to     |
 
 With `MONGODB_URI` set and reachable the API uses MongoDB (collection
 `users`, one document per operator, ledger embedded). Without it, the API
@@ -55,6 +59,10 @@ MONGODB_URI='mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net' npm start
 | -------------------------------- | ----------- | --------------------------------------------------- |
 | `GET /v1/health`                 | –           | liveness + which store is active                    |
 | `POST /v1/auth/signin`           | –           | create / verify / seal the account with a password  |
+| `GET /v1/auth/providers`         | –           | which sign-in methods this deployment has live      |
+| `GET /v1/auth/google/start`      | –           | 302 to Google's consent screen (state + PKCE)       |
+| `GET /v1/auth/google/callback`   | –           | Google's redirect; verifies and reconciles the user |
+| `POST /v1/auth/google/exchange`  | –           | trade the one-time handoff code for a session token |
 | `GET /v1/ledger`                 | bearer      | the operator's stored profile + tasks + habits      |
 | `PUT /v1/ledger`                 | bearer      | replace the stored ledger (validated, bounded)      |
 | `GET /v1/stats`                  | bearer      | aggregates for the stats dashboard (see below)      |
@@ -82,6 +90,50 @@ email against `ADMIN_EMAILS` and the token against the in-memory vault.
 3. **Legacy operator** (registered before passwords existed) — the first
    valid password presented seals the account. `mode: "sealed"`.
 
+### Google sign-in
+
+Real OAuth 2.0 / OpenID Connect, entirely server-side (`server/src/google.mjs`).
+The browser never sees the client secret, an access token or an ID token — it
+only ever carries opaque, single-use, server-minted values.
+
+```
+click → GET  /v1/auth/google/start      302 → accounts.google.com
+                                              (state + nonce + PKCE S256)
+      → Google authenticates the human
+      → GET  /v1/auth/google/callback   state consumed (one-time, 10 min TTL)
+                                        code + verifier + secret → token endpoint
+                                        id_token: RS256 verified against Google's
+                                        JWKS, then iss / aud / exp / iat / nonce
+                                        / email_verified all checked
+      → MongoDB reconciliation (below)
+      → 302 back to the app with a one-time handoff code (2 min TTL)
+      → POST /v1/auth/google/exchange   code → the ordinary bearer token
+```
+
+Reconciliation, in order:
+
+1. **`googleId` already stored** → that account, always. An operator who
+   changes their Gmail address keeps their ledger.
+2. **email already registered** → **link**: the same document gains
+   `googleId` / `picture` / `providers: ["password", "google"]`. Nothing else
+   is touched, so tasks, habits, life factors, rewards, achievements and
+   progress all stay put, and the existing password keeps working.
+3. **neither** → a new operator with an empty ledger, subject to
+   `SQ_MAX_USERS`.
+
+The session token never travels in a URL — only the handoff code does, in the
+hash fragment (which browsers do not send to servers), and redeeming it
+deletes it. `SQ_APP_ORIGIN` is an allowlist, not a hint: an unlisted origin is
+refused, so a handoff can never be bounced to a host someone else controls.
+Unset, the three Google variables leave the whole surface inert — every route
+answers 503, `/v1/auth/providers` reports `google: false`, the frontend does
+not draw the button, and email + password is unaffected.
+
+`npm run smoke:oauth` walks the whole thing against the real routes, stubbing
+only Google's two HTTPS endpoints, and asserts the refusals: forged state,
+replayed handoff, wrong audience, expired token, unverified email, open
+redirect.
+
 ### Rate limits & caps
 
 | limit                        | window     |
@@ -90,6 +142,7 @@ email against `ADMIN_EMAILS` and the token against the in-memory vault.
 | wrong passwords per email    | 8 / 15 min  |
 | ledger writes per token      | 120 / min   |
 | admin calls per IP           | 30 / 5 min  |
+| Google authorizations per IP | 20 / 10 min |
 | JSON body                    | 512 kB      |
 | registered operators         | `SQ_MAX_USERS` (default 1000) |
 

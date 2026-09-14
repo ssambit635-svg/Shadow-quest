@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { gsap, REDUCED } from "../lib/motion";
 import { logout, scopeOf, type User } from "../lib/auth";
+import { forgetProvider } from "../lib/googleAuth";
 import type { CompleteEvent, Task } from "../lib/todo";
 import { useLedger } from "./useLedger";
 import { useRewardFx, RewardFx } from "./RewardFx";
@@ -86,6 +87,7 @@ export function MobileApp({ user }: { user: User }) {
 
   const onSignOut = useCallback(() => {
     logout();
+    forgetProvider();
   }, []);
 
   return (
