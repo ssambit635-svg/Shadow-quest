@@ -87,9 +87,19 @@ browser ◀── the same bearer token a password sign-in issues ──┘
   one-time handoff code in the *hash fragment* (never sent to a server, so it
   stays out of access logs and `Referer`); redeeming it deletes it, and a
   replay answers 401.
+- **The return route is part of the contract.** The bounce parks its verdict
+  in the fragment's query (`#/login?sq_auth=ok&code=…`), so the shell drops
+  any query before it resolves a route (`lib/route.ts`) and treats a URL
+  carrying `sq_auth` as the gate whatever else the fragment says. Reading it
+  as the landing page instead leaves the one-time code unread until it
+  expires — a completed sign-in that looks exactly like no sign-in.
+  `npm run smoke:return` renders the real `App.tsx` at that address and
+  asserts the operator lands inside.
 - **Open redirect closed.** `SQ_APP_ORIGIN` is an allowlist; an unlisted
   origin falls back to the first allowed one. Unset, only localhost is
-  accepted, so a misconfigured production deploy cannot leak a session.
+  accepted, so a misconfigured production deploy cannot leak a session. A
+  return *path* is kept only when it is a plain rooted path, so a
+  sub-directory deploy comes back to itself and `//evil.example.com` cannot.
 - `googleId` is stripped by `publicUser` and never reaches the browser. The
   avatar URL is accepted only over `https:` from Google's own hosts, and the
   CSP's `img-src` is widened to exactly those.
@@ -256,4 +266,8 @@ node scripts/audit.mjs
 # smoke: the real bundle, desktop + mobile
 npm run smoke
 npm run smoke:mobile
+# sign-in: server flow, browser copy, and the return leg through the real shell
+npm run smoke:oauth
+npm run smoke:client
+npm run smoke:return
 ```

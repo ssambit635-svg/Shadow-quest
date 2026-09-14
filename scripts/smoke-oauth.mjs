@@ -79,6 +79,10 @@ async function googleLogin(claims, opts = {}) {
   const back = new URL(cb.headers.get("location"));
   const params = new URLSearchParams(back.hash.slice(back.hash.indexOf("?") + 1));
   if (back.origin !== "http://localhost:5173") throw new Error("bounced to " + back.origin);
+  // The client contract: the verdict is parked on the LOGIN route's fragment.
+  // Land it anywhere else and the gate that redeems the code never mounts, so
+  // a completed sign-in looks exactly like no sign-in at all.
+  if (!back.hash.startsWith("#/login?")) throw new Error("bounced off the login route: " + back.hash);
   if (params.get("sq_auth") !== "ok") return { failed: params.get("sq_auth"), reason: params.get("reason") };
   const ex = await realFetch(`${API}/v1/auth/google/exchange`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: params.get("code") }) });
   return { ...(await ex.json()), handoff: params.get("code") };
@@ -179,6 +183,15 @@ resolveReturn(onCfg, "https://localhost/") === "https://localhost"
   ? ok("default config allows the Capacitor shell origin") : bad("on → " + resolveReturn(onCfg, "https://localhost/"));
 resolveReturn(onCfg, "https://evil.example.com") === "https://app.x.test"
   ? ok("an arbitrary third-party origin is still refused") : bad("evil → " + resolveReturn(onCfg, "https://evil.example.com"));
+
+/* an app served from a sub-directory has to come back to it, and a rooted
+ * path must never become a way off this origin */
+resolveReturn(onCfg, "https://app.x.test/sq/") === "https://app.x.test/sq"
+  ? ok("a sub-directory deployment returns to its own path") : bad("subpath → " + resolveReturn(onCfg, "https://app.x.test/sq/"));
+resolveReturn(onCfg, "https://app.x.test//evil.example.com") === "https://app.x.test"
+  ? ok("a protocol-relative return path is refused") : bad("//evil → " + resolveReturn(onCfg, "https://app.x.test//evil.example.com"));
+resolveReturn(onCfg, "https://app.x.test/?x=1") === "https://app.x.test"
+  ? ok("a query on the return is dropped") : bad("query → " + resolveReturn(onCfg, "https://app.x.test/?x=1"));
 
 /* the `.env` loader, since a credentials file that nothing reads is how this
  * flow silently stayed "not configured" */

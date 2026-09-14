@@ -18,6 +18,7 @@
     "smoke:mobile": "node scripts/smoke-mobile.mjs",
     "smoke:oauth": "node scripts/smoke-oauth.mjs",
     "smoke:client": "node scripts/smoke-google-client.mjs",
+    "smoke:return": "node scripts/smoke-google-return.mjs",
     "presmoke:mobile": "npm run build",
     "smoke:ladder": "node scripts/ladder-check.mjs http://localhost:5173 milestones",
     "presmoke:ladder": "npm run build"

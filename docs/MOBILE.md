@@ -29,10 +29,11 @@ and the desktop dashboard are never touched by this code.
 | `#/app/ladder` | the existing ladder, unchanged |
 
 The phone face adds its own destinations *under* `#/app/…` — `tasks`,
-`progress`, `rewards`, `profile`, `squad`. `App.tsx`'s `readHash()` maps all of
-them to the `app` route and stays out of the way; `mobile/nav.ts` reads the
-full hash itself. On a laptop those URLs show the dashboard, which is the
-honest fallback.
+`progress`, `rewards`, `profile`, `squad`. `lib/route.ts`'s `readHash()` maps
+all of them to the `app` route and stays out of the way; `mobile/nav.ts` reads
+the full hash itself. On a laptop those URLs show the dashboard, which is the
+honest fallback. Both drop a fragment query before matching, so a sign-in
+return (`#/app?sq_auth=ok&code=…`) still resolves to a destination.
 
 ## Layout
 

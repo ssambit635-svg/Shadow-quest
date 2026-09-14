@@ -4,13 +4,15 @@
  * The app shell keeps its five top-level hash routes untouched. The phone
  * face needs more destinations than the desktop has (Progress, Rewards,
  * Profile, Squad), so it hangs them *under* `#/app/…`. The shell's
- * `readHash()` only matches exact strings, so every one of those still reads
- * as the `app` route — meaning the desktop is unaffected if someone opens
- * `#/app/progress` on a laptop: it simply shows the dashboard.
+ * `readHash()` (lib/route.ts) matches only its own seven destinations, so
+ * every one of those still reads as the `app` route — meaning the desktop is
+ * unaffected if someone opens `#/app/progress` on a laptop: it simply shows
+ * the dashboard.
  *
  * `#/app/tasks` etc. are therefore owned by the phone face, and the phone
  * face listens to `hashchange` itself rather than asking the shell.
  */
+import { hashPath } from "../lib/route";
 
 export type MobileTab =
   | "home"
@@ -64,7 +66,9 @@ const ROUTE_OF: Record<string, MobileTab> = {
 
 /** Anything unrecognised under #/app reads as Home — never a blank screen. */
 export function tabFromHash(hash: string = window.location.hash): MobileTab {
-  const h = hash.replace(/^#\/?/, "").replace(/\/+$/, "");
+  // The query is dropped first: the sign-in return parks one in the fragment
+  // (`#/app?sq_auth=ok&code=…`), and a tab is a destination, not a parameter.
+  const h = hashPath(hash);
   return ROUTE_OF[h] ?? "home";
 }
 

@@ -130,3 +130,34 @@ Startup log should show `[env] …` then `[google] OAuth enabled — callback �
 | `Error 401: invalid_client` | secret is wrong / revoked | re-copy the secret, or issue a new one (Clients → client → rotate) |
 | our app: "not configured" | env didn't reach the server | check the `[env]` line in the log; confirm the four vars are set where the process actually runs |
 | our app: "no API address" (APK) | built without `VITE_API_BASE_URL` | set the variable and rebuild |
+| **nothing** — you chose your account, pressed Continue, and the app shows the sign-in screen again | the return URL was not read as the **login route**, so the gate that redeems the one-time code never mounted and the code expired unread | this is fixed in `src/lib/route.ts`; prove it with `npm run smoke:return` |
+
+---
+
+## The return contract (why "Google worked but I'm still signed out" happened)
+
+The backend's last step is a redirect to
+
+```
+https://YOUR-SITE/#/login?sq_auth=ok&code=<one-time handoff>
+```
+
+Two things have to be true for that to sign anybody in:
+
+1. **The fragment's query is routing metadata, not part of the destination.**
+   `#/login?sq_auth=ok&code=…` is the `login` route. The shell used to match
+   fragments by exact string, read this as the *landing page*, and the gate —
+   the only component that calls `readGoogleReturn()` — never mounted. Google
+   had done its job, the backend had verified the ID token and minted a
+   session, and the operator was shown the sign-in screen again with no error
+   anywhere to explain it. `lib/route.ts` now drops the query before matching,
+   and `App.tsx` sends any URL carrying `sq_auth` to the gate whatever else the
+   fragment says (`hasGoogleReturn()`).
+2. **Nothing may rewrite the URL before the gate reads it.** The handoff code
+   is single-use and lives only in the address bar, so the APK's boot redirect
+   (`go(…, { replace: true })`) skipped it and `go()` refuses to run at all
+   while a return is parked.
+
+`npm run smoke:return` renders the real `App.tsx` at that exact bounce address
+and asserts the operator ends up inside `#/app`, signed in as the identity the
+server verified — website and APK, plus the spent-code and no-return cases.
