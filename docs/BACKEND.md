@@ -48,6 +48,53 @@ takes precedence.
 | `GOOGLE_CALLBACK_URL` | *(unset)* | must match a registered redirect URI exactly     |
 | `SQ_APP_ORIGIN`   | *(unset)*     | allowlist of origins the login may return to     |
 | `SQ_NATIVE_ORIGIN` | `https://localhost,http://localhost` | the installed APK's own origins, allowed to receive a sign-in handoff and included in CORS. `off` disables both. |
+| `SQ_SERVE_WEB`    | *(unset)*     | set `1` to also serve the built web app (`dist/`) — single-service production, see below |
+
+## Production (single service)
+
+The web build calls the relative `/api` prefix, which only works where
+something answers it. In dev that is the vite proxy; in production it is this
+process: with `SQ_SERVE_WEB=1` the API serves the built `dist/` bundle itself,
+so **one host answers both `/` (the page) and the API**. A static-only host
+answers `/api/*` with 404 — that is the *"no ShadowQuest API behind it"*
+failure — and cannot proxy API traffic to a second service, which is why
+production is one Web Service rather than static + API.
+
+`render.yaml` at the repo root is the whole deployment as a Render Blueprint
+(Dashboard → New → Blueprint → this repo → Apply):
+
+- build: `npm ci && npm run build && npm --prefix server ci`
+- start: `node server/src/index.mjs` (Render injects `PORT`)
+- liveness: `GET /v1/health`
+- `SQ_SERVE_WEB=1` + `SQ_TRUST_PROXY=1` are set; `MONGODB_URI`,
+  `GOOGLE_*` and `ADMIN_*` are `sync: false` — set them on the service in
+  the Dashboard and redeploy.
+
+Routing in serve-web mode:
+
+- `/v1/*` and `/api/v1/*` → the same routes. Web clients use the relative
+  `/api` form; APK builds (`VITE_API_BASE_URL=https://<host>`) and direct
+  API users use the root form. Unknown paths under either prefix answer
+  JSON `404 {"error":"unknown endpoint"}` — never the app shell.
+- `/` and any extension-less non-API path → `index.html` (the app), with
+  the `public/_headers` policy applied as real headers.
+- `/assets/*` (content-hashed) caches for a year; HTML revalidates; a path
+  that looks like a file but is missing stays a 404 instead of receiving
+  HTML where it expects JavaScript.
+
+Three production notes:
+
+1. **Set `MONGODB_URI`.** Without it the file store lives on the
+   platform's ephemeral disk — wiped on every restart and deploy.
+2. **Google sign-in** needs `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` /
+   `GOOGLE_CALLBACK_URL`, where the callback reads
+   `https://<host>/api/v1/auth/google/callback` and matches a registered
+   redirect URI exactly. The app's own origin is already an allowed return
+   (the callback's origin is always permitted), so `SQ_APP_ORIGIN` is
+   optional hardening.
+3. **Free tiers sleep.** A cold Render service answers the first request
+   slowly; the frontend treats that as "API away" and degrades to the
+   device ledger rather than failing.
 
 With `MONGODB_URI` set and reachable the API uses MongoDB (collection
 `users`, one document per operator, ledger embedded). Without it, the API

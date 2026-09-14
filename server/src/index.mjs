@@ -37,6 +37,9 @@
 // Must be the first import: it puts a local `.env` into process.env before
 // anything below reads it (admin, google, store, PORT).
 import "./env.mjs";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
 import { createStore, publicUser } from "./store.mjs";
@@ -70,6 +73,30 @@ import {
 const PORT = Number(process.env.PORT ?? 8788);
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Single-service production: with SQ_SERVE_WEB=1 this process also serves the
+ * built web app (repo `dist/`), so one host answers both `/` (the page) and
+ * the API. That is the whole Render deployment — see render.yaml.
+ *
+ * Unset (dev, `npm run dev`, the smoke scripts) the process stays API-only
+ * and behaves exactly as before: the dev/preview servers own the page and
+ * proxy `/api` here.
+ */
+const SERVE_WEB = process.env.SQ_SERVE_WEB === "1";
+const WEB_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "dist",
+);
+const WEB_READY = SERVE_WEB && existsSync(path.join(WEB_ROOT, "index.html"));
+if (SERVE_WEB && !WEB_READY) {
+  console.warn(
+    `[web] SQ_SERVE_WEB=1 but ${WEB_ROOT} has no index.html — ` +
+      "API-only mode. Run `npm run build` first.",
+  );
+}
+
 const admin = adminConfig();
 if (!admin.enabled) {
   console.warn(
@@ -101,6 +128,22 @@ const app = express();
 app.disable("x-powered-by");
 // Rate limiting keys off req.ip — honour a trusted proxy when told to.
 app.set("trust proxy", process.env.SQ_TRUST_PROXY === "1" ? 1 : false);
+
+/**
+ * Answer the API under both `/v1/*` and `/api/v1/*`.
+ *
+ * Web builds without VITE_API_BASE_URL call the relative `/api` prefix: in
+ * dev the vite proxy strips it before forwarding, but single-service
+ * production (SQ_SERVE_WEB=1) has no proxy in front — the strip happens
+ * here instead. Clients pointed at an API origin (APK builds, direct API
+ * users) call `/v1/*` at the root and pass through untouched.
+ */
+app.use((req, _res, next) => {
+  if (req.url === "/api" || req.url.startsWith("/api/")) {
+    req.url = req.url.slice(4) || "/";
+  }
+  next();
+});
 
 /* CORS: open by default (dev / APK builds that talk cross-origin), locked to
  * an explicit allowlist the moment SQ_CORS_ORIGIN is set.
@@ -576,30 +619,104 @@ app.post("/v1/admin/sessions/revoke-all", authed, adminOnly, async (_req, res) =
   res.json({ revoked: count });
 });
 
-app.get("/", (_req, res) => {
-  res.json({
-    name: "ShadowQuest API",
-    db: store.kind,
-    endpoints: [
-      "GET /v1/health",
-      "POST /v1/auth/signin",
-      "GET /v1/auth/providers",
-      "GET /v1/auth/google/start",
-      "GET /v1/auth/google/callback",
-      "POST /v1/auth/google/exchange",
-      "GET /v1/ledger",
-      "PUT /v1/ledger",
-      "GET /v1/stats",
-      "GET /v1/leaderboard",
-      "GET /v1/people",
-      "POST /v1/admin/elevate",
-      "GET /v1/admin/overview",
-      "GET /v1/admin/users",
-      "DELETE /v1/admin/users/:email",
-      "POST /v1/admin/sessions/revoke-all",
-    ],
+/**
+ * API-only mode keeps the JSON index at `/`. In serve-web mode `/` is the
+ * app itself (served by the static layer + fallback below), and liveness
+ * stays on `GET /v1/health` in both modes.
+ */
+if (!WEB_READY) {
+  app.get("/", (_req, res) => {
+    res.json({
+      name: "ShadowQuest API",
+      db: store.kind,
+      endpoints: [
+        "GET /v1/health",
+        "POST /v1/auth/signin",
+        "GET /v1/auth/providers",
+        "GET /v1/auth/google/start",
+        "GET /v1/auth/google/callback",
+        "POST /v1/auth/google/exchange",
+        "GET /v1/ledger",
+        "PUT /v1/ledger",
+        "GET /v1/stats",
+        "GET /v1/leaderboard",
+        "GET /v1/people",
+        "POST /v1/admin/elevate",
+        "GET /v1/admin/overview",
+        "GET /v1/admin/users",
+        "DELETE /v1/admin/users/:email",
+        "POST /v1/admin/sessions/revoke-all",
+      ],
+    });
   });
-});
+}
+
+if (WEB_READY) {
+  console.log(`[web] serving the app from ${WEB_ROOT} (same origin as the API)`);
+  /**
+   * The bundle's filenames are content-hashed everywhere except the shell
+   * files, so hashed assets cache for a year while everything else
+   * revalidates — the same policy `public/_headers` declares for static
+   * hosts, applied here because nothing else serves headers in this mode.
+   */
+  app.use(
+    express.static(WEB_ROOT, {
+      index: false,
+      redirect: false,
+      maxAge: 0,
+      setHeaders(res, filePath) {
+        res.set("x-content-type-options", "nosniff");
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.set("cache-control", "public, max-age=31536000, immutable");
+        } else if (filePath.endsWith(".html")) {
+          res.set("cache-control", "public, max-age=0, must-revalidate");
+        }
+      },
+    }),
+  );
+
+  /**
+   * Unknown API paths stay machine-readable JSON — never the app shell.
+   * (Checked against `originalUrl`: the `/api` strip above already rewrote
+   * `req.url` by the time a miss lands here.) The frontend maps a 404 on a
+   * known path to \"no API behind this address\"; a 404 here, on an unknown
+   * path, honestly means \"no such endpoint\".
+   */
+  app.use((req, res, next) => {
+    const original = req.originalUrl.split("?")[0];
+    const isApi =
+      original === "/api" ||
+      original.startsWith("/api/") ||
+      original === "/v1" ||
+      original.startsWith("/v1/");
+    if (isApi) return res.status(404).json({ error: "unknown endpoint" });
+    next();
+  });
+
+  /**
+   * SPA fallback: a path that looks like a route serves the shell; a path
+   * that looks like a file (`/assets/x.js`, `/favicon.svg`) is a genuine
+   * miss and falls through to Express's default 404. Serving the shell for
+   * a missing script would hand the browser HTML where it expects
+   * JavaScript — a white page with a misleading console.
+   */
+  app.get("*", (req, res, next) => {
+    if (/\/[^/]*\.[a-z0-9]+$/i.test(req.path)) return next();
+    // Mirrors `public/_headers`. The script/style policy itself ships as the
+    // `<meta>` the vite build injects; the header only adds what a meta
+    // policy is not allowed to carry (`frame-ancestors`).
+    res.set({
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-frame-options": "DENY",
+      "content-security-policy": "frame-ancestors 'none'",
+      "cross-origin-opener-policy": "same-origin",
+      "permissions-policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+      "cache-control": "public, max-age=0, must-revalidate",
+    });
+    res.sendFile(path.join(WEB_ROOT, "index.html"));
+  });
+}
 
 // Never let one bad request take the API down — and never explain why.
 app.use((err, _req, res, _next) => {
@@ -608,5 +725,7 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`[api] ShadowQuest backend on :${PORT} (store: ${store.kind})`);
+  console.log(
+    `[api] ShadowQuest backend on :${PORT} (store: ${store.kind}, web: ${WEB_READY ? "on" : "off"})`,
+  );
 });
