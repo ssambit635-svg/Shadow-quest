@@ -47,12 +47,17 @@ async function bundleClient(apiBaseUrl) {
       `  completeGoogleSignIn,`,
       `  googleErrorMessage,`,
       `  googleFailureReason,`,
+      `  hasGoogleReturn,`,
       `  probeFailureReason,`,
       `  GoogleAuthError,`,
       `  readGoogleReturn,`,
       `  startGoogleSignIn,`,
       `} from "${join(ROOT, "src/lib/googleAuth.ts")}";`,
       `export { useGoogleAuth } from "${join(ROOT, "src/hooks/useGoogleAuth.ts")}";`,
+      // The shell's routing, because where a sign-in return LANDS decides
+      // whether the code is ever redeemed at all.
+      `export { routeFromHash, readHash, hashForRoute, hashPath } from "${join(ROOT, "src/lib/route.ts")}";`,
+      `export { currentUser, login } from "${join(ROOT, "src/lib/auth.ts")}";`,
     ].join("\n"),
   );
   const out = join(dir, "bundle.mjs");
@@ -79,8 +84,10 @@ async function bundleClient(apiBaseUrl) {
  * `answer(path)` returns a Response, or throws to mean "no connection".
  * `native` injects window.Capacitor, which is what the installed APK does.
  */
-function makeWindow(origin, answer, { native = false } = {}) {
-  const win = new Window({ url: `${origin}/` });
+function makeWindow(origin, answer, { native = false, url = null } = {}) {
+  // `url` boots the window at an exact address — how a real page load arrives
+  // back from Google, fragment and all.
+  const win = new Window({ url: url ?? `${origin}/` });
   if (native) win.Capacitor = { isNativePlatform: () => true };
   const calls = [];
   win.fetch = async (input, init = {}) => {
@@ -326,6 +333,79 @@ console.log("\n— what the operator is told when they tap Continue with Google 
     "return URL: no code left in the address bar",
     win.location.hash,
   );
+}
+
+/* ------------------------------------------------------------------ */
+console.log("\n— the return leg: does a finished sign-in actually get you in? —");
+
+// 9. THE REGRESSION. The backend bounces to `<origin>/#/login?sq_auth=ok&code=…`.
+//    The shell used to match that fragment as an exact string, fail, and fall
+//    back to the LANDING PAGE — so the gate that owns `readGoogleReturn` never
+//    mounted, the one-time code expired unread, and an operator who had just
+//    picked their account and pressed Continue was shown the sign-in screen
+//    again with no error to explain it. In the APK the boot redirect then
+//    rewrote the fragment and destroyed the code outright.
+{
+  const m = await import(`${pathToFileURL(pointed.out).href}?v=return-leg`);
+  const BACK = "https://shadowquest.test/#/login?sq_auth=ok&code=handoff-return";
+  const { win } = makeWindow("https://shadowquest.test", scenarios.healthy, { url: BACK });
+
+  check(
+    m.routeFromHash("#/login?sq_auth=ok&code=handoff-return") === "login",
+    "the bounce URL routes to the GATE (this was 'home' — the bug)",
+    m.routeFromHash("#/login?sq_auth=ok&code=handoff-return"),
+  );
+  check(m.routeFromHash("#/app/tasks?sq_auth=ok") === "app", "a phone sub-tab keeps its route through a query");
+  check(m.routeFromHash("#/login") === "login", "plain #/login still routes to the gate");
+  check(m.routeFromHash("#/") === "home", "the landing page is still the landing page");
+  check(m.routeFromHash("#/app/field") === "field", "deep work still routes to field");
+  check(m.hashForRoute("login") === "#/login", "hashForRoute agrees with routeFromHash");
+
+  check(m.readHash() === "login", "a page loaded at the bounce URL renders the gate", m.readHash());
+  check(m.hasGoogleReturn() === true, "the shell can see the pending return without spending it");
+
+  const back = m.readGoogleReturn();
+  check(
+    back.status === "pending" && back.code === "handoff-return",
+    "the gate redeems the code the backend left",
+    JSON.stringify(back),
+  );
+  check(m.hasGoogleReturn() === false, "nothing pending afterwards — the shell is free to navigate again");
+  check(!win.location.href.includes("handoff-return"), "the code is erased from the address bar", win.location.href);
+
+  const out = await m.completeGoogleSignIn(back.code);
+  check(out.user.email === "ada@example.com", "the session is the server's verified identity", out.user.email);
+  check(
+    m.currentUser()?.email === "ada@example.com",
+    "the identity is written down: a refresh stays signed in",
+    JSON.stringify(m.currentUser()),
+  );
+}
+
+// 10. The same verdict parked in the query instead of the fragment — a host
+//     that rewrites fragments must not strand the code either.
+{
+  const m = await import(`${pathToFileURL(pointed.out).href}?v=search-leg`);
+  const { win } = makeWindow("https://shadowquest.test", scenarios.healthy, {
+    url: "https://shadowquest.test/?sq_auth=ok&code=handoff-search#/login",
+  });
+  check(m.hasGoogleReturn() === true, "a return parked in ?search is seen too");
+  const back = m.readGoogleReturn();
+  check(back.status === "pending" && back.code === "handoff-search", "?search: code redeemed", JSON.stringify(back));
+  check(!win.location.href.includes("handoff-search"), "?search: the code is erased", win.location.href);
+  check(win.location.hash === "#/login", "?search: the route survives the clean-up", win.location.href);
+}
+
+// 11. Cancelling at Google must still land on a screen that can SAY so.
+{
+  const m = await import(`${pathToFileURL(pointed.out).href}?v=cancel-leg`);
+  makeWindow("https://shadowquest.test", scenarios.healthy, {
+    url: "https://shadowquest.test/#/login?sq_auth=cancelled",
+  });
+  check(m.readHash() === "login", "a cancelled return lands on the gate, not the landing page", m.readHash());
+  const back = m.readGoogleReturn();
+  check(back.status === "cancelled", "cancellation is reported as cancellation", JSON.stringify(back));
+  check(m.hasGoogleReturn() === false, "cancellation leaves nothing pending");
 }
 
 await rm(bare.dir, { recursive: true, force: true });

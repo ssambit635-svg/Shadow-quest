@@ -27,10 +27,11 @@ import { Dashboard } from "./sections/Dashboard";
 import { Ladder } from "./sections/Ladder";
 import { StatsBoard } from "./sections/StatsBoard";
 import { logout, scopeOf, useUser } from "./lib/auth";
-import { forgetProvider } from "./lib/googleAuth";
+import { forgetProvider, hasGoogleReturn } from "./lib/googleAuth";
 import { gsap, REDUCED } from "./lib/motion";
 import { isNativeApp } from "./lib/native";
 import { ReadyContext } from "./lib/ready";
+import { APP_ROUTES, hashForRoute, readHash, type Route } from "./lib/route";
 /* The phone face. A separate shell with its own chrome, screens and
    stylesheet — mounted below only on a phone viewport or inside the APK,
    so the desktop tree underneath is untouched and still renders as before. */
@@ -38,32 +39,22 @@ import { MobileApp } from "./mobile/MobileApp";
 import { MobileLogin } from "./mobile/screens/MobileLogin";
 import { usePhoneViewport } from "./mobile/device";
 
-export type Route = "home" | "login" | "app" | "field" | "ladder" | "stats" | "admin";
+export type { Route };
 
-const APP_ROUTES: Route[] = ["app", "field", "ladder", "stats", "admin"];
-
-const readHash = (): Route => {
-  const h = window.location.hash.replace(/^#\/?/, "").replace(/\/+$/, "");
-  if (h === "login") return "login";
-  if (h === "app" || h === "app/today") return "app";
-  if (h === "app/field" || h === "field") return "field";
-  if (h === "app/ladder" || h === "ladder") return "ladder";
-  // On a laptop this is the animated stats dashboard; on a phone the shell
-  // treats it as an `app` route and the phone face shows its own Stats tab.
-  if (h === "app/stats" || h === "stats") return "stats";
-  // The operator's control panel. Renders its own access gate.
-  if (h === "app/admin" || h === "admin") return "admin";
-  // Anything else under #/app/ belongs to the phone face's own sub-navigation
-  // (#/app/tasks, /progress, /rewards, /profile, /squad). The shell treats all
-  // of them as the `app` route and stays out of the way; the phone face reads
-  // the full hash itself. On a laptop the same URL shows the dashboard rather
-  // than falling through to the landing page, which is the honest fallback.
-  if (h.startsWith("app/")) return "app";
-  return "home";
-};
+/**
+ * Where the shell starts.
+ *
+ * A Google sign-in return wins over whatever the fragment says. The backend
+ * bounces to `#/login?sq_auth=ok&code=…`, and the gate is the only component
+ * that can spend that one-time code — so if this reads the URL as anything
+ * other than `login`, the code expires unread and the operator who just
+ * finished signing in is handed straight back to the sign-in screen. That is
+ * exactly what happened when the query was matched as part of the route.
+ */
+const initialRoute = (): Route => (hasGoogleReturn() ? "login" : readHash());
 
 export default function App() {
-  const [route, setRoute] = useState<Route>(readHash);
+  const [route, setRoute] = useState<Route>(initialRoute);
   const [booted, setBooted] = useState(false);
   const user = useUser();
   const wantRef = useRef<Route>(route);
@@ -147,20 +138,13 @@ export default function App() {
     (next: Route, opts?: { replace?: boolean }) => {
       // Already there (state-wise): never re-play the wipe for a no-op.
       if (wantRef.current === next) return;
-      const target =
-        next === "login"
-          ? "#/login"
-          : next === "app"
-            ? "#/app"
-            : next === "field"
-              ? "#/app/field"
-              : next === "stats"
-                ? "#/app/stats"
-                : next === "admin"
-                  ? "#/app/admin"
-                  : next === "ladder"
-                    ? "#/app/ladder"
-                    : "#/";
+      // A sign-in return is still parked in the URL. Rewriting the fragment
+      // now would delete the one-time handoff code before the gate spends it,
+      // which is how a finished Google sign-in used to arrive back at the
+      // sign-in screen. Stand still: the gate reads the code on mount and this
+      // navigation becomes possible again the instant the URL is clean.
+      if (hasGoogleReturn()) return;
+      const target = hashForRoute(next);
       // `replace` swaps the current history entry instead of pushing one.
       // Redirects (the gate, the native boot, sign-out) use it so BACK never
       // walks back *into* a screen the app itself refused to show — without
@@ -208,6 +192,11 @@ export default function App() {
   useEffect(() => {
     if (nativeBootRef.current || !isNativeApp()) return;
     nativeBootRef.current = true;
+    // Coming back from Google, the WebView reloads the bundle with the
+    // handoff code still in the fragment. This boot redirect must not run
+    // first: `replace` would rewrite the fragment and drop the code on the
+    // floor, inside the one shell that has no other way to get it back.
+    if (hasGoogleReturn()) return;
     if (readHash() === "home") go(user ? "app" : "login", { replace: true });
     // Launch-time identity only; later sign-ins are carried by the gate.
     // eslint-disable-next-line react-hooks/exhaustive-deps

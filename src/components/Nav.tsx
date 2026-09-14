@@ -18,7 +18,7 @@ import { gsap, ScrollTrigger } from "../lib/motion";
 import { toggleTheme, useTheme } from "../lib/theme";
 import { Sigil } from "./Sigil";
 import type { User } from "../lib/auth";
-import type { Route } from "../App";
+import type { Route } from "../lib/route";
 
 const PITCH_LINKS = [
   { label: "The System", id: "way" },

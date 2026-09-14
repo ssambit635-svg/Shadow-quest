@@ -559,6 +559,11 @@ npm run smoke:oauth           # Google OAuth end to end against the real backend
                               #   plus the refusals (forged state, replayed
                               #   handoff, wrong audience, expired token,
                               #   unverified email, open redirect)
+npm run smoke:client          # the browser half: what the operator is TOLD when
+                              #   a deployment is misbuilt, unconfigured, down
+npm run smoke:return          # the return leg: the real App.tsx loaded at the
+                              #   backend's bounce URL must end up INSIDE,
+                              #   signed in — website and APK
 
 node scripts/pwa-icons.mjs      # regenerate PWA icons from public/icons/icon.svg
 node scripts/android-assets.mjs # regenerate Android launcher + splash (5 densities)

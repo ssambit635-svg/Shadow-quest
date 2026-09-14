@@ -145,28 +145,76 @@ export type GoogleReturn =
   | { status: "cancelled" }
   | { status: "error"; reason: string };
 
+/** Where the verdict was found, and the URL to leave behind once it is read. */
+interface ParkedReturn {
+  params: URLSearchParams;
+  /** What `history.replaceState` should restore: the URL minus the verdict. */
+  clean: string;
+  /** True when only the hash needs cleaning (the normal, server-bounced case). */
+  hashOnly: boolean;
+}
+
 /**
- * Read (and immediately erase) the OAuth result the backend left in the URL.
+ * Find the OAuth verdict wherever it landed — without consuming it.
  *
- * The parameters live in the hash — `#/login?sq_auth=…` — because the app is
- * hash-routed and because a hash fragment is never sent to a server, so the
- * handoff code stays out of access logs and Referer headers.
+ * The backend parks it in the fragment (`#/login?sq_auth=…`) because a hash is
+ * never sent to a server, so the handoff code stays out of access logs and
+ * Referer headers. A host that rewrites fragments into query strings is rare
+ * but not imaginary, and a code stranded in `?sq_auth=…` is a code that
+ * expires while the operator stares at a sign-in button — so both are read.
  */
-export function readGoogleReturn(): GoogleReturn {
+function findParkedReturn(): ParkedReturn | null {
   const hash = window.location.hash;
   const qIndex = hash.indexOf("?");
-  if (qIndex < 0) return { status: "none" };
-  const params = new URLSearchParams(hash.slice(qIndex + 1));
+  if (qIndex >= 0) {
+    const params = new URLSearchParams(hash.slice(qIndex + 1));
+    if (params.has("sq_auth")) {
+      return { params, clean: hash.slice(0, qIndex) || "#/login", hashOnly: true };
+    }
+  }
+  const search = new URLSearchParams(window.location.search);
+  if (search.has("sq_auth")) {
+    const { pathname } = window.location;
+    return {
+      params: search,
+      clean: `${pathname}${hash || "#/login"}`,
+      hashOnly: false,
+    };
+  }
+  return null;
+}
+
+/**
+ * True while a sign-in return is waiting to be redeemed.
+ *
+ * The shell asks this before it decides where to land, and before it rewrites
+ * the URL for any other reason. The handoff code is single-use and lives only
+ * in the address bar until the gate spends it, so a well-meant redirect at
+ * boot is enough to throw a completed sign-in away.
+ */
+export function hasGoogleReturn(): boolean {
+  try {
+    return findParkedReturn() !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Read (and immediately erase) the OAuth result the backend left in the URL.
+ */
+export function readGoogleReturn(): GoogleReturn {
+  const parked = findParkedReturn();
+  if (!parked) return { status: "none" };
+  const { params, clean, hashOnly } = parked;
   const verdict = params.get("sq_auth");
-  if (!verdict) return { status: "none" };
 
   // Strip the parameters before anything can await: a refresh, a shared URL
   // or the back button must not carry the code a second time.
-  const path = hash.slice(0, qIndex) || "#/login";
   try {
-    window.history.replaceState(null, "", path);
+    window.history.replaceState(null, "", clean);
   } catch {
-    window.location.hash = path;
+    if (hashOnly) window.location.hash = clean;
   }
 
   if (verdict === "cancelled") return { status: "cancelled" };

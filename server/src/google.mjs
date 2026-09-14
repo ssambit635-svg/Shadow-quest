@@ -113,6 +113,23 @@ function callbackOrigin(cfg) {
 }
 
 /**
+ * The path the app asked to come back to — kept only when it cannot point
+ * anywhere else.
+ *
+ * A deployment served from a sub-directory (`https://host/sq/`) has to land
+ * there again or the bundle is not found; a deployment at the root must come
+ * back as the bare origin, which is what it has always done. Protocol-relative
+ * paths (`//evil.com`) and anything with a query are dropped rather than
+ * trusted: the bounce carries a one-time handoff code.
+ */
+function safeReturnPath(pathname) {
+  if (typeof pathname !== "string" || !pathname.startsWith("/")) return "";
+  if (pathname.startsWith("//")) return "";
+  if (!/^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$/.test(pathname)) return "";
+  return pathname.replace(/\/+$/, "");
+}
+
+/**
  * Where the browser is allowed to land after the callback.
  *
  * An open redirect here would let anyone bounce a freshly-minted handoff
@@ -142,10 +159,10 @@ export function resolveReturn(cfg, requested) {
   if (url.protocol !== "https:" && url.protocol !== "http:") return fallback;
   const origin = url.origin;
   if (allowed.size) {
-    return allowed.has(origin) ? origin : fallback;
+    return allowed.has(origin) ? origin + safeReturnPath(url.pathname) : fallback;
   }
   const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(url.hostname);
-  return local ? origin : fallback;
+  return local ? origin + safeReturnPath(url.pathname) : fallback;
 }
 
 /* ------------------------------------------------------------------ *
