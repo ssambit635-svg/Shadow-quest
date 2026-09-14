@@ -100,6 +100,34 @@ In CI the same value comes from the repository **variable**
 Leave it unset and the APK ships the in-page engine — identical behaviour to
 the site with no `.env`.
 
+**This is not optional if you want sign-in.** Inside the shell the bundle is
+served from `https://localhost` (Capacitor's defaults: hostname `localhost`,
+scheme `https`), so a relative `/api` resolves to the app's own origin, where
+nothing is listening. The login gate detects that and says so — *"This app
+build has no API address…"* — rather than sending the tap into a dead end.
+`capacitor.config.ts` prints the same warning at sync time.
+
+## 3b · "Continue with Google" inside the APK
+
+Google sign-in is the same server-side OAuth the website uses; the APK only
+has to survive the round trip. It does, because of two settings:
+
+| piece | where | what it does |
+| --- | --- | --- |
+| `server.allowNavigation` | `capacitor.config.ts` | keeps the trip **inside** the WebView. Capacitor's `Bridge.launchIntent` hands any navigation to an unlisted host to the system browser, which used to throw the sign-in out of the app: Chrome got the handoff code, `https://localhost` had nothing listening, and the app never saw it. The list is `accounts.google.com` plus the host of `VITE_API_BASE_URL`. |
+| `SQ_NATIVE_ORIGIN` | backend env | lets the backend bounce back to `https://localhost`. Defaults to the Capacitor origins; set `SQ_NATIVE_ORIGIN=off` for a website-only deployment. The same origins are added to the CORS allowlist, so the exchange POST is not refused when `SQ_CORS_ORIGIN` is set. |
+
+The trip: tap → `{api}/v1/auth/google/start?return_to=https://localhost/` →
+Google's consent screen → `{api}/v1/auth/google/callback` → back to
+`https://localhost/#/login?sq_auth=ok&code=…`, where the shell serves the
+bundle again, `readGoogleReturn` erases the code from the address bar, and
+`POST /v1/auth/google/exchange` trades it for the session. Nothing about the
+identity is ever decided in the app.
+
+So a working APK needs `VITE_API_BASE_URL` at build time **and**
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALLBACK_URL` on the
+backend — the same three the website needs.
+
 ## 4 · Release signing (only when you want a store build)
 
 With no secrets, the workflow emits a **debug-signed** APK — perfect for
@@ -168,3 +196,6 @@ there by hand — edit the web app and re-sync.
 | `env(safe-area-inset-*)` reads 0 | the edge-to-edge call in `MainActivity` was removed |
 | APK installs, taps work, page will not scroll | WebView nested-scroll / GSAP pin. Rebuild after the native-scroll fix (`MainActivity` enables nested scrolling; `html.sq-native` keeps the viewport as the scroller; the growth-loop pin is off inside the shell). Chrome on the same phone is unaffected. |
 | Release APK won’t install over debug one | different signature — uninstall the debug build first |
+| "Could not reach ShadowQuest. Check your connection" on Google sign-in | the app could not reach the API. Read the reason it now prints instead: *"no API address"* → the APK was built without `VITE_API_BASE_URL`; *"no ShadowQuest API behind it"* (404) → the site has no `/api` rewrite; *"the API did not answer"* → the backend is down or `SQ_CORS_ORIGIN` blocks the shell origin |
+| Google sign-in works on the website but not in the APK | `server.allowNavigation` missing the API host — the trip was handed to the system browser. Re-sync after setting `VITE_API_BASE_URL` |
+| Google sign-in lands on the website instead of back in the app | the backend refused the shell origin — `SQ_NATIVE_ORIGIN` is set to something that excludes `https://localhost` (or `off`) |

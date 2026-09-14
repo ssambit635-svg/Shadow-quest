@@ -100,16 +100,24 @@ app.disable("x-powered-by");
 app.set("trust proxy", process.env.SQ_TRUST_PROXY === "1" ? 1 : false);
 
 /* CORS: open by default (dev / APK builds that talk cross-origin), locked to
- * an explicit allowlist the moment SQ_CORS_ORIGIN is set. */
+ * an explicit allowlist the moment SQ_CORS_ORIGIN is set.
+ *
+ * The installed APK is always included: its WebView serves the bundle from
+ * https://localhost, so that is the Origin every one of its requests carries.
+ * Locking CORS to the website's domain alone silently breaks the app — the
+ * exchange POST is refused by the browser and the operator is told to check
+ * their connection. Same list as SQ_NATIVE_ORIGIN, so `off` turns both off.
+ */
 const corsOrigins = (process.env.SQ_CORS_ORIGIN ?? "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 if (corsOrigins.length) {
-  console.log(`[cors] restricted to ${corsOrigins.join(", ")}`);
+  const withShell = [...new Set([...corsOrigins, ...google.nativeOrigins])];
+  console.log(`[cors] restricted to ${withShell.join(", ")}`);
   app.use(
     cors({
-      origin: corsOrigins,
+      origin: withShell,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     }),
   );

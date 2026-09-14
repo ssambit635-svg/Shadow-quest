@@ -18,12 +18,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   completeGoogleSignIn,
   googleErrorMessage,
-  GoogleAuthError,
+  googleFailureReason,
+  probeFailureReason,
   readGoogleReturn,
   startGoogleSignIn,
   welcomeFor,
 } from "../lib/googleAuth";
-import { fetchAuthProviders } from "../api/ledger";
+import { API_BASE, fetchAuthProviders } from "../api/ledger";
 
 export type GooglePhase = "idle" | "redirecting" | "finishing";
 
@@ -45,7 +46,12 @@ export interface GoogleAuth {
   dismissError: () => void;
 }
 
-type Providers = { password: boolean; google: boolean; reachable: boolean };
+type Providers = {
+  password: boolean;
+  google: boolean;
+  reachable: boolean;
+  status?: number;
+};
 
 /**
  * @param onDone called after a successful sign-in, once the identity is
@@ -98,9 +104,11 @@ export function useGoogleAuth(onDone: () => void): GoogleAuth {
       })
       .catch((err: unknown) => {
         setPhase("idle");
-        setError(
-          googleErrorMessage(err instanceof GoogleAuthError ? err.reason : "server"),
-        );
+        const reason = googleFailureReason(err);
+        // The operator gets a sentence; the console gets the reason, so a
+        // support thread can tell 401 from 503 without reproducing anything.
+        console.warn(`[google] exchange failed: ${reason}`, err);
+        setError(googleErrorMessage(reason));
       });
   }, []);
 
@@ -111,8 +119,13 @@ export function useGoogleAuth(onDone: () => void): GoogleAuth {
 
     const go = (p: Providers) => {
       if (!p.reachable) {
+        const reason = probeFailureReason(p.status);
         setPhase("idle");
-        setError(googleErrorMessage("network"));
+        console.warn(`[google] API probe failed: ${reason}`, {
+          status: p.status,
+          apiBase: API_BASE,
+        });
+        setError(googleErrorMessage(reason));
         return;
       }
       if (!p.google) {
@@ -124,9 +137,11 @@ export function useGoogleAuth(onDone: () => void): GoogleAuth {
       // rather than leaving the gate stuck reading "Signing in with Google…".
       try {
         startGoogleSignIn();
-      } catch {
+      } catch (err) {
+        const reason = googleFailureReason(err);
         setPhase("idle");
-        setError(googleErrorMessage("network"));
+        console.warn(`[google] could not start: ${reason}`, err);
+        setError(googleErrorMessage(reason));
         return;
       }
       window.setTimeout(() => {
@@ -143,9 +158,11 @@ export function useGoogleAuth(onDone: () => void): GoogleAuth {
         providersRef.current = p;
         go(p);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        const reason = googleFailureReason(err);
         setPhase("idle");
-        setError(googleErrorMessage("network"));
+        console.warn(`[google] providers probe threw: ${reason}`, err);
+        setError(googleErrorMessage(reason));
       });
   }, []);
 

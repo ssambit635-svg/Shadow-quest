@@ -28,6 +28,17 @@ const BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api
 /** True when this build points at something other than a same-origin /api. */
 export const API_BASE = BASE;
 
+/**
+ * True when BASE is an absolute http(s) origin rather than a relative prefix.
+ *
+ * A relative "/api" only works where something serves it — the dev server and
+ * the preview server both proxy it. Inside the APK nothing does: the WebView
+ * serves the bundle from https://localhost, so a relative base resolves to
+ * the app's own origin and every call dies there. The gate uses this to tell
+ * "the API is away" from "this build was never pointed at an API".
+ */
+export const API_BASE_IS_ABSOLUTE = /^https?:\/\//i.test(BASE);
+
 const JSON_HEADERS = { "content-type": "application/json" } as const;
 
 /* ------------------------------------------------------------------ *
@@ -217,12 +228,23 @@ export function apiUrl(path: string): string {
   return `${window.location.origin}${BASE}${path}`;
 }
 
-/** Which sign-in methods the deployment actually has configured. */
+/**
+ * Which sign-in methods the deployment actually has configured.
+ *
+ * `status` is the HTTP code the probe answered with, or undefined when no
+ * answer came at all. That difference is the whole point: a 404 means the
+ * build is pointed at an address with no ShadowQuest API behind it (a static
+ * host with no rewrite, or an APK built without VITE_API_BASE_URL, where
+ * "/api" resolves to the WebView's own origin) and checking the wifi will
+ * never fix it — while no answer at all really is a connection problem.
+ */
 export async function fetchAuthProviders(): Promise<{
   password: boolean;
   google: boolean;
   /** False when the backend never answered — distinct from "Google is off". */
   reachable: boolean;
+  /** The probe's HTTP status, or undefined when the request never completed. */
+  status: number | undefined;
 }> {
   try {
     const raw = await call<{ password?: boolean; google?: boolean }>("/v1/auth/providers");
@@ -230,9 +252,11 @@ export async function fetchAuthProviders(): Promise<{
       password: raw?.password !== false,
       google: raw?.google === true,
       reachable: true,
+      status: 200,
     };
-  } catch {
-    return { password: true, google: false, reachable: false };
+  } catch (err) {
+    const status = err instanceof ApiError ? err.status : undefined;
+    return { password: true, google: false, reachable: false, status };
   }
 }
 

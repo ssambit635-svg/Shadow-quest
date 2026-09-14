@@ -16,6 +16,8 @@ import { useEffect, useState } from "react";
 import { scopeOf, type User } from "../../lib/auth";
 import { ApkLink } from "../../components/ApkLink";
 import {
+  googleErrorMessage,
+  googleFailureReason,
   readProvider,
   signedInGoogleProfile,
   startGoogleSignIn,
@@ -41,6 +43,7 @@ export function ProfileScreen({
   const { profile, tasks } = ledger;
   const [account, setAccount] = useState<GoogleProfile | null>(() => signedInGoogleProfile());
   const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   const provider = readProvider();
   const marks = achievementsOf(profile, tasks).filter((a) => a.earned).length;
@@ -64,8 +67,18 @@ export function ProfileScreen({
    * than creating a second one.
    */
   const connect = () => {
+    setLinkError(null);
     setLinking(true);
-    startGoogleSignIn();
+    try {
+      startGoogleSignIn();
+    } catch (err) {
+      // A build with no API address refuses to navigate at all. Say why,
+      // instead of leaving the button spinning forever.
+      const reason = googleFailureReason(err);
+      console.warn(`[google] connect failed: ${reason}`, err);
+      setLinking(false);
+      setLinkError(googleErrorMessage(reason));
+    }
   };
 
   const joined = new Date(user.joinedAt).toLocaleDateString(undefined, {
@@ -159,6 +172,11 @@ export function ProfileScreen({
               {linking ? "Signing in with Google…" : "Connect Google"}
             </button>
           </div>
+        ) : null}
+        {linkError ? (
+          <p className="m-note m-g__note" role="alert">
+            {linkError}
+          </p>
         ) : null}
         <p className="m-note m-g__note">
           {account
