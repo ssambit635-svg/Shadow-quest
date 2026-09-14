@@ -1,0 +1,30 @@
+# Shadow Quest — copy-resistance (.gitattributes)
+#
+# GitHub automatically attaches a "Source code (zip / tar.gz)" archive to
+# every tag and release. `export-ignore` strips all real source code out of
+# those generated archives, leaving only the documentation shell:
+#
+#   README.md, LICENSE, docs/, .github/
+#
+# Nothing here affects `git clone`, CI/CD (actions/checkout), or local
+# development — it only changes what the auto-generated download archives
+# contain. Combined with source-code downloads and forking being disabled
+# on the repository, this is the deepest copy-resistance GitHub allows
+# while the repo stays public.
+#
+# See LICENSE and the "Copyright & License" section of README.md.
+
+/src                 export-ignore
+/server              export-ignore
+/android             export-ignore
+/public              export-ignore
+/scripts             export-ignore
+/index.html          export-ignore
+/vite.config.ts      export-ignore
+/capacitor.config.ts export-ignore
+/package.json        export-ignore
+/package-lock.json   export-ignore
+/tsconfig.json       export-ignore
+/tsconfig.app.json   export-ignore
+/tsconfig.node.json  export-ignore
+/.env.example        export-ignore
