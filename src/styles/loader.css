@@ -1,377 +1,47 @@
-/* ============================================================
-   loader.css — SITE LOADER stylesheet (single-loader architecture)
 
-   THE site loader lives ONLY in:
-     index.html          #sq-initial-loader markup + #sq-critical-loader CSS
-     public/sq-loader.js its ONLY driver (counter, stages, skip, exit)
-   React (src/components/Boot.tsx) renders NOTHING — it only waits for the
-   loader to finish. Do NOT add a second loader animation anywhere.
-
-   This file mirrors the critical loader CSS for the bundled stylesheet so
-   the curtain keeps its styling even after React hydrates and so any future
-   re-show (e.g. ?loader) is styled before paint. Keep it in sync with the
-   #sq-critical-loader block in index.html.
-
-   - Session key: sq.boot.seen.v4 — shown once per tab session
-   - ?loader forces it, ?noloader skips it
-   - Skippable by any pointerdown/keydown
-   - Reduced-motion safe (hidden via media query)
-   ============================================================ */
-
-/* The loader is a short film. Everything that loops (aurora, grid, glyphs,
-   ink, shimmer, scan) is CSS: when the curtain unmounts, the loops die
-   with it — the boot leaves no rAF chains behind. GSAP only choreographs
-   the entrance and the exit. */
-
-.boot,
-#sq-initial-loader {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: transparent;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-#sq-initial-loader {
-  z-index: 99999;
-  background: var(--ink-900, #08090c);
-}
-
-/* — the atmosphere — */
-
-.boot__sky {
-  z-index: 1;
-  background: radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--vermilion) 16%, transparent), transparent 60%);
-  position: absolute;
-  inset: 0;
-}
-
-.boot__grid {
-  position: absolute;
-  inset: -2px;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--bone-400) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--bone-400) 7%, transparent) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(75% 75% at 50% 45%, #000 30%, transparent 100%);
-  animation: boot-grid 9s linear infinite;
-}
-
-@keyframes boot-grid {
-  from { background-position: 0 0, 0 0; }
-  to { background-position: 0 56px, 56px 0; }
-}
-
-.boot__orb {
-  position: absolute;
-  width: 46vmax;
-  height: 46vmax;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.5;
-  mix-blend-mode: screen;
-  animation: boot-orb 7s ease-in-out infinite alternate;
-}
-
-.boot__orb--verm {
-  top: -18vmax;
-  left: -12vmax;
-  background: radial-gradient(circle at 35% 35%, var(--vermilion-lit), transparent 62%);
-}
-
-.boot__orb--indigo {
-  bottom: -20vmax;
-  right: -14vmax;
-  background: radial-gradient(circle at 60% 40%, color-mix(in srgb, var(--indigo, #4f46e5) 80%, transparent), transparent 62%);
-  animation-delay: -2.4s;
-  animation-duration: 8.4s;
-}
-
-.boot__orb--brass {
-  top: 30%;
-  left: 34%;
-  width: 30vmax;
-  height: 30vmax;
-  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brass) 65%, transparent), transparent 60%);
-  animation-delay: -4.1s;
-  animation-duration: 6.2s;
-}
-
-@keyframes boot-orb {
-  from { transform: translate3d(-4%, -3%, 0) scale(0.92) rotate(0deg); opacity: 0.32; }
-  to { transform: translate3d(5%, 4%, 0) scale(1.12) rotate(24deg); opacity: 0.6; }
-}
-
-.boot__scan {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    color-mix(in srgb, var(--bone-200) 4%, transparent) 46%,
-    color-mix(in srgb, var(--bone-200) 7%, transparent) 50%,
-    color-mix(in srgb, var(--bone-200) 4%, transparent) 54%,
-    transparent 100%
-  );
-  background-size: 100% 46vh;
-  will-change: transform;
-  background-repeat: no-repeat;
-  animation: boot-scan 4.6s ease-in-out infinite;
-}
-
-@keyframes boot-scan {
-  from { transform: translateY(-60vh); }
-  to { transform: translateY(130vh); }
-}
-
-/* — stray kanji, drifting like embers — */
-
-.boot__glyphs {
-  z-index: 1;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.boot__glyphs > span {
-  position: absolute;
-  left: var(--gx, 10%);
-  top: -12%;
-  font-family: var(--font-jp);
-  font-weight: 800;
-  font-size: clamp(2.2rem, 6vw, 4.6rem);
-  color: var(--bone-300);
-  text-shadow: 0 0 24px color-mix(in srgb, var(--vermilion) 35%, transparent);
-  animation: boot-glyph var(--gd, 9s) linear infinite;
-}
-
-@keyframes boot-glyph {
-  0% { transform: translateY(0) rotate(-8deg); opacity: 0; }
-  12% { opacity: 0.28; }
-  88% { opacity: 0.2; }
-  100% { transform: translateY(118vh) rotate(10deg); opacity: 0; }
-}
-
-/* — rising ink — */
-
-.boot__ink {
-  z-index: 1;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.boot__ink > i {
-  position: absolute;
-  left: var(--ix, 5%);
-  bottom: -3%;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--vermilion-lit) 70%, var(--bone-100));
-  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--vermilion) 55%, transparent);
-  animation: boot-ink var(--id, 3s) ease-in var(--idl, 0s) infinite;
-}
-
-@keyframes boot-ink {
-  0% { transform: translateY(0) scale(1); opacity: 0; }
-  10% { opacity: 0.75; }
-  85% { opacity: 0.12; }
-  100% { transform: translateY(-104vh) scale(0.4); opacity: 0; }
-}
-
-/* — the stage — */
-
-.boot__inner {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 1.05rem;
-  z-index: 2;
-}
-
-.boot__emblem {
-  position: relative;
-  width: clamp(210px, 42vw, 260px);
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-}
-
-.boot__rings {
-  position: absolute;
-  inset: 0;
-  will-change: transform;
-}
-
-.boot__ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-}
-
-.boot__ring--dash {
-  border: 1px dashed color-mix(in srgb, var(--bone-400) 55%, transparent);
-  animation: boot-ring-spin 7s linear infinite reverse;
-}
-
-.boot__ring--thin {
-  inset: 12%;
-  border: 1px solid color-mix(in srgb, var(--vermilion) 45%, transparent);
-  box-shadow:
-    0 0 18px color-mix(in srgb, var(--vermilion) 30%, transparent),
-    inset 0 0 18px color-mix(in srgb, var(--vermilion) 22%, transparent);
-  animation: boot-ring-spin 5s linear infinite;
-}
-
-@keyframes boot-ring-spin {
-  to { transform: rotate(360deg); }
-}
-
-.boot__enso {
-  width: 62%;
-  opacity: 0.55;
-  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--bone-200) 35%, transparent));
-}
-
-.boot__halo {
-  position: absolute;
-  inset: 8%;
-  border-radius: 50%;
-  border: 1px solid var(--vermilion);
-}
-
-.boot__flash {
-  position: absolute;
-  inset: 14%;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--vermilion-lit) 85%, transparent), transparent 70%);
-  filter: blur(18px);
-}
-
-.boot__glow {
-  position: absolute;
-  inset: -6%;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--vermilion) 26%, transparent), transparent 66%);
-}
-
-.boot__kanji {
-  position: relative;
-  z-index: 2;
-  width: 58%;
-  height: 58%;
-  display: grid;
-  place-items: center;
-  color: var(--bone-100);
-  filter: drop-shadow(0 0 28px color-mix(in srgb, var(--vermilion) 55%, transparent));
-}
-
-.boot__kanji svg {
-  width: 100%;
-  height: 100%;
-}
-
-.boot__meta {
-  display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  min-width: min(340px, 68vw);
-  justify-content: space-between;
-}
-
-.boot__num {
-  font-family: var(--font-label);
-  font-size: 0.9rem;
-  color: var(--bone-300);
-  font-variant-numeric: tabular-nums;
-}
-
-.boot__bar {
-  position: relative;
-  width: min(340px, 68vw);
-  height: 3px;
-  background: var(--line-strong);
-  overflow: hidden;
-  border-radius: 2px;
-}
-
-.boot__bar > span {
-  display: block;
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(90deg, var(--vermilion), var(--vermilion-lit));
-  box-shadow: 0 0 14px color-mix(in srgb, var(--vermilion) 70%, transparent);
-  transform: scaleX(0);
-  transform-origin: left center;
-}
-
-.boot__bar > i {
-  position: absolute;
-  inset: 0;
-  width: 34%;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bone-100) 85%, transparent), transparent);
-  transform: translateX(-110%);
-}
-
-.boot__stage {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--bone-500);
-  min-height: 1em;
-}
-
-.boot__copy {
-  font-size: 0.8rem;
-  color: var(--bone-500);
-  letter-spacing: 0.14em;
-  opacity: 0;
-}
-
-/* — the exit: five panels + the blade line — */
-
-.boot__blade {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 46%;
-  height: 2px;
-  z-index: 6;
-  background: linear-gradient(90deg, transparent, var(--vermilion-lit) 18%, var(--vermilion-lit) 82%, transparent);
-  box-shadow: 0 0 22px 4px color-mix(in srgb, var(--vermilion) 60%, transparent);
-  transform: scaleX(0);
-}
-
-.boot__panel {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 20.2%;
-  z-index: 0;
-  will-change: transform;
-  background: var(--ink-900);
-  border-right: 1px solid color-mix(in srgb, var(--vermilion) 34%, transparent);
-}
-
-.boot__panel:nth-child(6) { left: 0; }
-.boot__panel:nth-child(7) { left: 20%; border-right-color: transparent; }
-.boot__panel:nth-child(8) { left: 40%; border-right-color: transparent; }
-.boot__panel:nth-child(9) { left: 60%; }
-.boot__panel:nth-child(10) { left: 80%; border-right: 0; }
-
-@media (max-width: 700px) {
-  .boot__orb { filter: blur(44px); }
-  .boot__glyphs > span:nth-child(n + 7) { display: none; }
-  .boot__ink > i:nth-child(n + 10) { display: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .boot,
-  #sq-initial-loader { display: none !important; }
-}
+/* Shared verbatim with src/styles/loader.css. Panels alone provide coverage. */
+#sq-initial-loader { position: fixed; inset: 0; z-index: 99999; background: transparent; overflow: hidden; isolation: isolate; color: #eeeae1; font-family: Arial, sans-serif; }
+#sq-initial-loader .boot__panel { position: absolute; top: 0; bottom: 0; width: 20.2%; background: #08090c; z-index: -1; }
+#sq-initial-loader .boot__panel:nth-child(6) { left: 0; }
+#sq-initial-loader .boot__panel:nth-child(7) { left: 20%; }
+#sq-initial-loader .boot__panel:nth-child(8) { left: 40%; }
+#sq-initial-loader .boot__panel:nth-child(9) { left: 60%; }
+#sq-initial-loader .boot__panel:nth-child(10) { left: 80%; }
+#sq-initial-loader .sq-load-atmosphere { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, #a936211c, transparent 55%); transition: opacity .3s; }
+#sq-initial-loader .sq-load-atmosphere::after { content: ''; position: absolute; inset: 24px; border: 1px solid #ffffff0b; }
+#sq-initial-loader .sq-load-top { position: absolute; top: 46px; left: 48px; right: 48px; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .24em; color: #92918e; }
+#sq-initial-loader .sq-load-top b { color: #f16649; font-weight: 400; }
+#sq-initial-loader .sq-load-center { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+#sq-initial-loader .sq-load-orbit { position: relative; width: 154px; height: 154px; margin-bottom: 42px; animation: sq-emerge .8s ease both; }
+#sq-initial-loader .sq-load-orbit::before, #sq-initial-loader .sq-load-orbit::after { content: ''; position: absolute; border-radius: 50%; inset: 0; border: 1px solid #ffffff12; border-top-color: #f16649; border-right-color: #f1664960; animation: sq-orbit 2.6s linear infinite; }
+#sq-initial-loader .sq-load-orbit::after { inset: 15px; border: 1px dashed #bcb4a64a; border-bottom-color: #f16649; animation-direction: reverse; animation-duration: 8s; }
+#sq-initial-loader .sq-load-symbol { position: absolute; inset: 36px; display: grid; place-items: center; font-family: Georgia, serif; font-size: 44px; color: #f16649; text-shadow: 0 0 35px #ef563e66; animation: sq-breathe 2s ease-in-out infinite alternate; }
+#sq-initial-loader .sq-load-title { margin: 0; font-size: clamp(27px, 5.5vw, 62px); font-weight: 400; letter-spacing: .22em; padding-left: .22em; animation: sq-emerge .9s .15s both; }
+#sq-initial-loader .sq-load-title span { font-weight: 700; }
+#sq-initial-loader .sq-load-subtitle { margin: 17px 0 0; font-size: 9px; letter-spacing: .4em; color: #99928a; animation: sq-emerge .9s .3s both; }
+#sq-initial-loader .sq-load-bottom { position: absolute; bottom: 54px; left: 50%; width: min(360px, calc(100% - 96px)); transform: translateX(-50%); }
+#sq-initial-loader .sq-load-readout { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+#sq-initial-loader [data-boot-stage] { color: #aaa39a; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+#sq-initial-loader .sq-load-number { font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 300; }
+#sq-initial-loader .sq-load-number small { font-size: 10px; color: #7d7974; margin-left: 5px; }
+#sq-initial-loader .sq-load-track { height: 1px; background: #ffffff20; overflow: hidden; }
+#sq-initial-loader [data-boot-fill] { display: block; height: 100%; background: #f16649; transform: scaleX(0); transform-origin: left; box-shadow: 0 0 12px #f16649; }
+#sq-initial-loader .sq-load-hint { display: block; text-align: center; margin-top: 18px; color: #78736d; font-size: 9px; letter-spacing: .12em; }
+#sq-initial-loader .boot__blade { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #f16649; transform: scaleX(0); transform-origin: left; }
+#sq-initial-loader.is-exiting .boot__blade { animation: boot-blade .3s ease forwards; }
+#sq-initial-loader.is-exiting .boot__panel { animation: boot-panel .72s cubic-bezier(.76,0,.24,1) .22s forwards; }
+#sq-initial-loader.is-exiting .boot__panel:nth-child(7) { animation-delay: .28s; }
+#sq-initial-loader.is-exiting .boot__panel:nth-child(8) { animation-delay: .34s; }
+#sq-initial-loader.is-exiting .boot__panel:nth-child(9) { animation-delay: .40s; }
+#sq-initial-loader.is-exiting .boot__panel:nth-child(10) { animation-delay: .46s; }
+#sq-initial-loader.is-exiting .sq-load-center, #sq-initial-loader.is-exiting .sq-load-top, #sq-initial-loader.is-exiting .sq-load-bottom { animation: sq-depart .3s ease forwards; }
+#sq-initial-loader.is-exiting .sq-load-atmosphere { opacity: 0; }
+@keyframes boot-panel { to { transform: translateY(-101%); } }
+@keyframes boot-blade { to { transform: scaleX(1); opacity: 0; } }
+@keyframes sq-orbit { to { transform: rotate(360deg); } }
+@keyframes sq-breathe { to { opacity: .55; transform: scale(.94); } }
+@keyframes sq-emerge { from { opacity: 0; translate: 0 15px; } to { opacity: 1; translate: 0 0; } }
+@keyframes sq-depart { to { opacity: 0; translate: 0 -15px; } }
+@media (max-width: 600px) { #sq-initial-loader .sq-load-top { top: 30px; left: 30px; right: 30px; font-size: 8px; } #sq-initial-loader .sq-load-atmosphere::after { inset: 14px; } #sq-initial-loader .sq-load-orbit { width: 126px; height: 126px; margin-bottom: 32px; } #sq-initial-loader .sq-load-symbol { inset: 25px; } }
+@media (max-height: 550px) { #sq-initial-loader .sq-load-orbit { width: 80px; height: 80px; margin-bottom: 12px; } #sq-initial-loader .sq-load-symbol { inset: 10px; font-size: 30px; } #sq-initial-loader .sq-load-bottom { bottom: 22px; } }
+@media (prefers-reduced-motion: reduce) { #sq-initial-loader { display: none !important; } }

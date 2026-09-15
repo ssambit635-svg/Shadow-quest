@@ -23,7 +23,9 @@
     "smoke:ladder": "node scripts/ladder-check.mjs http://localhost:5173 milestones",
     "presmoke:ladder": "npm run build",
     "smoke:loader": "node scripts/loader-check.mjs",
-    "presmoke:loader": "npm run build"
+    "presmoke:loader": "npm run build",
+    "smoke:loader:exit": "node scripts/loader-exit-check.mjs",
+    "presmoke:loader:exit": "npm run build"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
