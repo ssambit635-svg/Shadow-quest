@@ -214,6 +214,11 @@ export function Boot({ onDone }: { onDone: () => void }) {
         .add(() => {
           document.documentElement.style.overflow = "";
         }, 2.0);
+
+      // Keep the choreography exactly the same, but let the curtain clear
+      // a little sooner. A single timeScale preserves every beat and easing
+      // relationship instead of making the individual moments feel rushed.
+      tl.timeScale(1.25);
     }, rootRef);
 
     // The stage line's first word + the brand decode in with the kanji.
