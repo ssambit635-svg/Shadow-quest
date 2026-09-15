@@ -23,7 +23,8 @@ import {
   rankTrack,
   type FactorStat,
 } from "../stats";
-import { Caption, Meter, Panel } from "../parts";
+import { Caption, FactorTrend, Meter, Panel } from "../parts";
+import type { TrendMap } from "../../lib/factorTrends";
 
 /* ------------------------------------------------------------------ *
  * The heptagon
@@ -117,7 +118,14 @@ function Radar({ stats }: { stats: FactorStat[] }) {
  * The screen
  * ------------------------------------------------------------------ */
 
-export function ProgressScreen({ ledger }: { ledger: Ledger }) {
+export function ProgressScreen({
+  ledger,
+  trends,
+}: {
+  ledger: Ledger;
+  /** Change in each Life Factor against the previous period. */
+  trends?: TrendMap;
+}) {
   const { profile, tasks } = ledger;
   const stats = useMemo(() => factorStats(profile), [profile]);
   const power = powerIndex(profile);
@@ -205,6 +213,9 @@ export function ProgressScreen({ ledger }: { ledger: Ledger }) {
               </span>
               <span className="m-attr__n">{s.label}</span>
               <span className="m-attr__tier">{s.tier.name}</span>
+              {typeof trends?.[s.key]?.delta === "number" ? (
+                <FactorTrend delta={trends[s.key]!.delta} />
+              ) : null}
               <span className="m-attr__v num">{s.value}</span>
             </div>
             <Meter value={s.value} tone={s.rank === 1 ? "violet" : "accent"} height={3} />

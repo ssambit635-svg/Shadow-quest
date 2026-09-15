@@ -1,20 +1,31 @@
 /**
- * RewardsScreen.tsx — what the work has paid.
+ * RewardsScreen.tsx — what the work has paid, and the two things it can buy.
  *
- * Deliberately not a shop. Reward Points are earned by `completeTask` in
- * lib/todo and there is no spend mechanic behind them, so inventing one here
- * would put a number on screen the engine cannot honour. What this shows is
- * the real total, where it came from, what has been unlocked, and the last
- * few completions that produced it.
+ * Reward Points are earned by `completeTask` in lib/todo. There are exactly
+ * two spends, and both are decided by the backend: the daily bonus (paid once
+ * a day, when the day's requirement is met) and the Streak Shield (bought
+ * with points, spent on one missed day). Nothing on this screen decides
+ * either — it asks, and shows what came back.
  */
 import { useMemo } from "react";
 import { completedTasks, todayISO } from "../../lib/todo";
 import type { Ledger } from "../useLedger";
 import { achievementsOf, rewardBreakdown } from "../stats";
 import { Caption, Empty, Meter, Panel } from "../parts";
+import type { RewardsApi } from "../../lib/rewards";
+import type { DailyRewardState, ShieldState } from "../../api/ledger";
 
-export function RewardsScreen({ ledger }: { ledger: Ledger }) {
+export function RewardsScreen({
+  ledger,
+  rewards,
+}: {
+  ledger: Ledger;
+  /** The server's reward state, and the three calls that change it. */
+  rewards?: RewardsApi;
+}) {
   const { profile, tasks } = ledger;
+  const daily = rewards?.state?.daily;
+  const shield = rewards?.state?.shield;
   const done = useMemo(() => completedTasks(tasks), [tasks]);
   const breakdown = useMemo(() => rewardBreakdown(tasks), [tasks]);
   const achievements = useMemo(() => achievementsOf(profile, tasks), [profile, tasks]);
@@ -53,6 +64,75 @@ export function RewardsScreen({ ledger }: { ledger: Ledger }) {
           {profile.tasksCompleted} goal{profile.tasksCompleted === 1 ? "" : "s"} sealed
           {top ? ` · most from ${top.label}` : ""}
         </p>
+      </Panel>
+
+      {/* — the daily bonus: paid once a day, for a day that actually happened — */}
+      <Caption>Daily Reward</Caption>
+      <Panel className="m-daily">
+        <div className="m-daily__head">
+          <span className="m-daily__amt num">+{daily?.amount ?? 0}</span>
+          <div className="m-daily__b">
+            <span className="m-daily__t">Daily Reward</span>
+            <span className="m-daily__s" data-state={dailyState(daily)}>
+              {dailyNote(daily)}
+            </span>
+          </div>
+          {rewards ? (
+            <button
+              type="button"
+              className="m-daily__b-btn"
+              onClick={() => void rewards.claim()}
+              disabled={rewards.busy || !daily?.ready}
+            >
+              {daily?.claimed ? "Claimed" : daily?.ready ? "Claim" : "Locked"}
+            </button>
+          ) : null}
+        </div>
+        <p className="m-daily__meta">
+          {daily?.claims
+            ? `${daily.claims} daily reward${daily.claims === 1 ? "" : "s"} collected`
+            : "Seal one goal or mark one habit today"}
+          {daily?.claimedDate ? ` · last ${daily.claimedDate}` : ""}
+        </p>
+      </Panel>
+
+      {/* — the shield: bought with points, spent on one missed day — */}
+      <Caption>Streak Shield</Caption>
+      <Panel className="m-shop">
+        <div className="m-shop__row">
+          <span className="m-shop__badge num">🛡️ Streak Shield: {shield?.count ?? 0}</span>
+          <span className="m-shop__cost num">
+            {shield ? `${shield.cost} RP · max ${shield.max}` : ""}
+          </span>
+        </div>
+        <p className="m-shop__s" data-tone={shield?.canUse ? "ready" : undefined}>
+          {shieldNote(shield)}
+        </p>
+        {rewards ? (
+          <div className="m-shop__acts">
+            <button
+              type="button"
+              className="m-btn m-btn--ghost"
+              onClick={() => void rewards.use()}
+              disabled={rewards.busy || !shield?.canUse}
+            >
+              {shield?.missedDate ? `Use shield · ${shield.missedDate}` : "Use shield"}
+            </button>
+            <button
+              type="button"
+              className="m-btn"
+              onClick={() => void rewards.buy()}
+              disabled={rewards.busy || !shield?.canBuy}
+            >
+              Buy · {shield?.cost ?? 0} RP
+            </button>
+          </div>
+        ) : null}
+        {(shield?.protectedDates?.length ?? 0) > 0 ? (
+          <p className="m-shop__meta">
+            Held: {shield!.protectedDates.join(", ")}
+          </p>
+        ) : null}
       </Panel>
 
       {/* — where the points came from — */}
@@ -123,4 +203,37 @@ export function RewardsScreen({ ledger }: { ledger: Ledger }) {
       )}
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ *
+ * the two lines that explain the state — no promise the server won't keep
+ * ------------------------------------------------------------------ */
+
+const dailyState = (d?: DailyRewardState): string =>
+  !d ? "offline" : d.claimed ? "claimed" : d.ready ? "ready" : "locked";
+
+function dailyNote(d?: DailyRewardState): string {
+  if (!d) return "Connect to collect today's bonus.";
+  if (d.claimed) return "Collected today. Back tomorrow.";
+  if (d.ready) return `Ready — ${d.requirement.toLowerCase()} is done.`;
+  if (d.reason === "too-soon") return "Collected less than a day ago.";
+  return `Locked — ${d.requirement.toLowerCase()}.`;
+}
+
+function shieldNote(s?: ShieldState): string {
+  if (!s) return "Connect to buy or spend a shield.";
+  switch (s.useReason) {
+    case "open":
+      return `Yesterday was missed — the shield can hold it and keep the chain alive.`;
+    case "no-shield":
+      return `None held. Each shield protects one missed day.`;
+    case "no-chain":
+      return "No chain running yet — nothing to protect.";
+    case "chain-broken":
+      return "More than one day is missing; one shield cannot bridge that.";
+    case "used-today":
+      return "A shield was already spent today.";
+    default:
+      return "The chain is intact — nothing needs holding.";
+  }
 }

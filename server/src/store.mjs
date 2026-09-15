@@ -13,6 +13,12 @@
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  applyRewardUpdate,
+  defaultRewards,
+  matchRewardFilter,
+  normalizeRewards,
+} from "./rewards.mjs";
 
 const TOKEN_BYTES = 24;
 
@@ -134,6 +140,7 @@ async function mongoStore(uri, dbName) {
           tasks: [],
           habits: [],
           updatedAt: 0,
+          rewards: defaultRewards(),
           passwordHash: null,
         },
       };
@@ -152,6 +159,34 @@ async function mongoStore(uri, dbName) {
         { $set: { profile, tasks, habits, updatedAt } },
       );
       return updatedAt;
+    },
+
+    /**
+     * Reward state — the daily bonus and the streak shields — is server-owned.
+     * The client never writes it (PUT /v1/ledger does not carry it) and it
+     * lives in the same document as the ledger, so a payout and the balance it
+     * pays into move in one atomic write.
+     *
+     * `applyRewardUpdate` takes the (filter, update) pair built by
+     * rewards.mjs — the rule is the filter, so a second device racing the
+     * first cannot double-apply it.
+     */
+    async rewardsOf(email) {
+      const u = await users.findOne({ email }, { projection: { rewards: 1 } });
+      return normalizeRewards(u?.rewards);
+    },
+
+    /** Materialise the sub-document on accounts that predate the feature. */
+    async ensureRewards(email) {
+      await users.updateOne(
+        { email, rewards: { $exists: false } },
+        { $set: { rewards: defaultRewards() } },
+      );
+    },
+
+    async applyRewardUpdate(email, { filter, update }) {
+      const r = await users.updateOne({ email, ...filter }, update);
+      return r.matchedCount > 0;
     },
 
     async all() {
@@ -275,6 +310,7 @@ async function fileStore(filePath) {
           tasks: [],
           habits: [],
           updatedAt: 0,
+          rewards: defaultRewards(),
           updatedAtAccount: now,
           passwordHash: null,
           providers: [],
@@ -312,6 +348,31 @@ async function fileStore(filePath) {
       u.updatedAt = Date.now();
       flush();
       return u.updatedAt;
+    },
+
+    /**
+     * Reward state — server-owned, same as the Mongo branch. The pair the
+     * rules produced is interpreted here against the stored document, so the
+     * dev fallback enforces exactly the guards MongoDB enforces.
+     */
+    async rewardsOf(email) {
+      return normalizeRewards(find((x) => x.email === email)?.rewards);
+    },
+
+    async ensureRewards(email) {
+      const u = find((x) => x.email === email);
+      if (u && !u.rewards) {
+        u.rewards = defaultRewards();
+        flush();
+      }
+    },
+
+    async applyRewardUpdate(email, { filter, update }) {
+      const u = find((x) => x.email === email);
+      if (!u || !matchRewardFilter(u, filter)) return false;
+      applyRewardUpdate(u, update);
+      flush();
+      return true;
     },
 
     async all() {

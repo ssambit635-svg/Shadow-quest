@@ -554,6 +554,183 @@ export async function fetchStats(scope: string): Promise<BackendStats | null> {
 }
 
 /* ------------------------------------------------------------------ *
+ * rewards — the daily bonus and the streak shield
+ *
+ * Server-owned state, server-decided rules: these calls ask, they never
+ * decide. Each mutation answers with the full state, so the caller can trust
+ * the numbers that come back instead of re-deriving them.
+ * ------------------------------------------------------------------ */
+
+export interface DailyRewardState {
+  /** What a claim pays, in Reward Points — set by the server. */
+  amount: number;
+  day: string;
+  claimed: boolean;
+  claimedDate: string | null;
+  /** How many daily bonuses this operator has ever collected. */
+  claims: number;
+  /** The daily requirement is met by today's recorded work. */
+  eligible: boolean;
+  ready: boolean;
+  reason: "ready" | "claimed" | "no-activity" | "too-soon";
+  evidence: { goals: number; habits: number };
+  requirement: string;
+}
+
+export interface ShieldState {
+  count: number;
+  cost: number;
+  max: number;
+  bought: number;
+  used: number;
+  protectedDates: string[];
+  /** The one missed day a shield could hold, or null. */
+  missedDate: string | null;
+  canUse: boolean;
+  useReason:
+    | "open"
+    | "no-miss"
+    | "no-chain"
+    | "chain-broken"
+    | "no-shield"
+    | "used-today";
+  canBuy: boolean;
+  buyReason: "ready" | "at-max" | "not-enough-points";
+}
+
+export interface RewardState {
+  /** The server's balance — authoritative for every spend. */
+  points: number;
+  day: string;
+  daily: DailyRewardState;
+  shield: ShieldState;
+  protectedDates: string[];
+}
+
+export interface RewardAnswer {
+  state: RewardState;
+  /** Present on the claim response. */
+  awarded?: boolean;
+  bought?: boolean;
+  used?: boolean;
+  reason?: string;
+  date?: string | null;
+  status: number;
+}
+
+/** This device's UTC offset in minutes, as the server expects it. */
+export function tzOffsetMinutes(): number {
+  return new Date().getTimezoneOffset();
+}
+
+/**
+ * The device's local calendar day. The server recomputes it from the same
+ * offset and refuses any day the two disagree on, so this is a statement of
+ * where the operator is — never a way to claim a day twice.
+ */
+export function localDayKey(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+async function rewardCall(
+  scope: string,
+  path: string,
+  init: RequestInit = {},
+): Promise<RewardAnswer | null> {
+  const headers = authHeaders(scope);
+  if (!headers) return null;
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: { ...(init.body ? JSON_HEADERS : {}), ...headers, ...(init.headers ?? {}) },
+    });
+    const raw = (await res.json().catch(() => null)) as (RewardAnswer & { state?: RewardState }) | null;
+    if (!raw?.state) return null;
+    return { ...raw, status: res.status };
+  } catch {
+    return null;
+  }
+}
+
+const dayBody = () => JSON.stringify({ tz: tzOffsetMinutes(), day: localDayKey() });
+
+/** The current state, straight from the store. Null when the API is away. */
+export function fetchRewards(scope: string): Promise<RewardAnswer | null> {
+  const tz = tzOffsetMinutes();
+  const day = localDayKey();
+  return rewardCall(scope, `/v1/rewards?tz=${tz}&day=${day}`);
+}
+
+/** Ask for today's bonus. The server pays it once — this can be called freely. */
+export function claimDailyReward(scope: string): Promise<RewardAnswer | null> {
+  return rewardCall(scope, "/v1/rewards/daily/claim", { method: "POST", body: dayBody() });
+}
+
+/** Buy one shield. Refused server-side when the balance or the cap says no. */
+export function buyStreakShield(scope: string): Promise<RewardAnswer | null> {
+  return rewardCall(scope, "/v1/rewards/shield/buy", { method: "POST", body: dayBody() });
+}
+
+/** Spend one shield on the missed day the server identifies. */
+export function useStreakShield(scope: string): Promise<RewardAnswer | null> {
+  return rewardCall(scope, "/v1/rewards/shield/use", { method: "POST", body: dayBody() });
+}
+
+/* ------------------------------------------------------------------ *
+ * Life Factor trends — the momentum behind each factor
+ * ------------------------------------------------------------------ */
+
+export interface FactorTrend {
+  factor: string;
+  /** The standing on the character sheet. */
+  value: number;
+  /** Factor points earned this window, and in the window before it. */
+  current: number;
+  previous: number;
+  delta: number;
+  direction: "up" | "down" | "flat";
+}
+
+export interface FactorTrends {
+  days: number;
+  at: number;
+  items: FactorTrend[];
+}
+
+/** Server-computed trends, from stored completed work. */
+export async function fetchFactorTrends(
+  scope: string,
+  days = 7,
+): Promise<FactorTrends | null> {
+  const headers = authHeaders(scope);
+  if (!headers) return null;
+  try {
+    const raw = await call<{ days?: number; items?: unknown[] }>(
+      `/v1/progress/factors?days=${days}`,
+      { headers },
+    );
+    if (!raw || !Array.isArray(raw.items)) return null;
+    return {
+      days: typeof raw.days === "number" ? raw.days : days,
+      at: Date.now(),
+      items: raw.items
+        .filter((i): i is Record<string, unknown> => Boolean(i) && typeof i === "object")
+        .map((i): FactorTrend => ({
+          factor: String(i.factor ?? ""),
+          value: typeof i.value === "number" ? i.value : 0,
+          current: typeof i.current === "number" ? i.current : 0,
+          previous: typeof i.previous === "number" ? i.previous : 0,
+          delta: typeof i.delta === "number" ? i.delta : 0,
+          direction: i.direction === "up" || i.direction === "down" ? i.direction : "flat",
+        }))
+        .filter((i) => i.factor.length > 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * leaderboard + people
  * ------------------------------------------------------------------ */
 

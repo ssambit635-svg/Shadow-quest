@@ -26,6 +26,8 @@ export interface DayCell {
   active: boolean;
   /** How much was sealed that day (0-4+, capped for the heat scale). */
   level: number;
+  /** A Streak Shield covered this day — held, not worked. */
+  shielded?: boolean;
 }
 
 export interface StreakMilestone {
@@ -105,11 +107,21 @@ export function activityMap(
   return map;
 }
 
-/** The consecutive chain ending on `iso` (inclusive), walking backwards. */
-function chainEndingOn(map: Map<string, number>, iso: string): number {
+/**
+ * The consecutive chain ending on `iso` (inclusive), walking backwards.
+ *
+ * A day counts as a link when it carries evidence OR is covered by a Streak
+ * Shield: the shield exists precisely so a covered day does not break the
+ * chain, and the count is the same either way.
+ */
+function chainEndingOn(
+  map: Map<string, number>,
+  iso: string,
+  shielded: Set<string>,
+): number {
   let cursor = iso;
   let n = 0;
-  while (map.has(cursor)) {
+  while (map.has(cursor) || shielded.has(cursor)) {
     n += 1;
     cursor = dayBefore(cursor);
   }
@@ -121,8 +133,18 @@ export function streakSnapshot(
   tasks: Task[],
   habits: Habit[],
   days = 84,
+  /**
+   * Days the backend recorded a Streak Shield covering. They count as chain
+   * links (that is what the shield was bought for) and are marked on the heat
+   * grid so a held day never reads as a worked one.
+   */
+  protectedDates: string[] = [],
 ): StreakSnapshot {
   const map = activityMap(tasks, habits, days);
+  const shielded = new Set(
+    protectedDates.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)),
+  );
+  const link = (iso: string) => map.has(iso) || shielded.has(iso);
   const today = todayISO();
   const yesterday = dayBefore(today);
   const todayActive = map.has(today);
@@ -130,9 +152,9 @@ export function streakSnapshot(
   // The live chain runs through today when today is sealed, otherwise it
   // counts through yesterday (today is still open and can extend it).
   const computed = todayActive
-    ? chainEndingOn(map, today)
-    : map.has(yesterday)
-      ? chainEndingOn(map, yesterday)
+    ? chainEndingOn(map, today, shielded)
+    : link(yesterday)
+      ? chainEndingOn(map, yesterday, shielded)
       : 0;
 
   const longest = Math.max(Number(profile.longestStreak) || 0, Number(profile.streak) || 0, computed);
@@ -144,7 +166,12 @@ export function streakSnapshot(
     d.setDate(d.getDate() - i);
     const iso = localISO(d.getTime());
     const level = map.get(iso) ?? 0;
-    cells.push({ date: iso, active: level > 0, level: Math.min(4, level) });
+    cells.push({
+      date: iso,
+      active: level > 0,
+      level: Math.min(4, level),
+      shielded: shielded.has(iso),
+    });
   }
 
   const milestones = STREAK_MILESTONES.map((m) => ({
@@ -160,7 +187,7 @@ export function streakSnapshot(
     current: computed,
     longest,
     todayActive,
-    alive: todayActive || map.has(yesterday),
+    alive: todayActive || link(yesterday),
     lastActive,
     cells,
     milestones,

@@ -30,14 +30,18 @@ import type { Ledger } from "../useLedger";
 import { Avatar, Caption, Panel, initialsOf } from "../parts";
 import { squadWeekly, loadSquad } from "../squad";
 import { StreakCard } from "../StreakCard";
+import type { RewardsApi } from "../../lib/rewards";
 
 export function ProfileScreen({
   user,
   ledger,
+  rewards,
   onSignOut,
 }: {
   user: User;
   ledger: Ledger;
+  /** Server reward state — the chain card shows and spends the shield. */
+  rewards?: RewardsApi;
   onSignOut: () => void;
 }) {
   const { profile, tasks } = ledger;
@@ -135,7 +139,13 @@ export function ProfileScreen({
       </div>
 
       {/* — the chain — */}
-      <StreakCard profile={profile} tasks={tasks} />
+      <StreakCard
+        profile={profile}
+        tasks={tasks}
+        rewards={rewards?.state ?? null}
+        busy={rewards?.busy ?? false}
+        onUseShield={rewards ? () => void rewards.use() : undefined}
+      />
 
       {/* — how this session was opened — */}
       <Caption>Sign-in</Caption>

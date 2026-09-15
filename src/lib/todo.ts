@@ -155,6 +155,13 @@ export function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/** The day after a YYYY-MM-DD key, in local time. */
+function dayAfter(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function dayDiff(a: string, b: string): number {
   const da = new Date(a + "T00:00:00");
   const db = new Date(b + "T00:00:00");
@@ -386,6 +393,12 @@ export interface CompleteEvent {
 export function completeTask(
   profile: Profile,
   task: Task,
+  /**
+   * Days a Streak Shield covers (server-recorded). A covered day is a link in
+   * the chain, so a gap made only of covered days continues the streak
+   * instead of resetting it. Omitted by callers that have no shield state.
+   */
+  protectedDates: string[] = [],
 ): { profile: Profile; events: CompleteEvent[] } {
   const events: CompleteEvent[] = [];
   const diffMeta = DIFFICULTY_META[task.difficulty];
@@ -436,12 +449,39 @@ export function completeTask(
     p.energy = p.energyMax; // full energy on level up
   }
 
-  // Streak logic: if active today already, keep. If yesterday was last, increment.
+  // Streak logic: if active today already, keep. If yesterday was last,
+  // increment. If the only days missed since the last one are shielded, the
+  // chain never broke — it continues through them.
   const today = todayISO();
   if (p.lastActiveDate !== today) {
-    if (p.lastActiveDate && dayDiff(p.lastActiveDate, today) === 1) {
-      p.streak += 1;
-      events.push({ type: "streak", message: `CONSISTENCY: ${p.streak} DAY${p.streak === 1 ? "" : "S"}` });
+    const gap = p.lastActiveDate ? dayDiff(p.lastActiveDate, today) : 0;
+    const shielded = new Set(protectedDates);
+    let step = 0;
+    if (p.lastActiveDate && gap === 1) {
+      step = 1;
+    } else if (p.lastActiveDate && gap > 1) {
+      const missed: string[] = [];
+      let cursor = p.lastActiveDate;
+      for (let i = 0; i < gap - 1; i++) {
+        cursor = dayAfter(cursor);
+        missed.push(cursor);
+      }
+      // Every missed day covered by a shield: the streak carries on through
+      // them. One uncovered day and it is a genuine break — start again.
+      step = missed.every((d) => shielded.has(d)) ? missed.length + 1 : -1;
+    } else {
+      step = 0;
+    }
+
+    if (step > 0) {
+      p.streak += step;
+      events.push({
+        type: "streak",
+        message:
+          step > 1
+            ? `STREAK HELD BY SHIELD: ${p.streak} DAY${p.streak === 1 ? "" : "S"}`
+            : `CONSISTENCY: ${p.streak} DAY${p.streak === 1 ? "" : "S"}`,
+      });
       // A milestone day pays once: the chain itself is the achievement.
       const hit = STREAK_MILESTONES.find((m) => m.days === p.streak);
       if (hit) {
@@ -452,7 +492,7 @@ export function completeTask(
           amount: hit.points,
         });
       }
-    } else if (p.lastActiveDate && dayDiff(p.lastActiveDate, today) > 1) {
+    } else if (step < 0) {
       p.streak = 1;
     } else {
       p.streak = Math.max(1, p.streak || 1);

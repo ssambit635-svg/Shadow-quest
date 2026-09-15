@@ -11,6 +11,8 @@ import { useReveals } from "../lib/reveal";
 import { HabitsPanel } from "../components/habits/HabitsPanel";
 import { StreakBoard } from "./StreakBoard";
 import { streakSnapshot, useHabitsLive } from "../lib/streaks";
+import { protectedDatesOf, useRewards, type RewardNotice } from "../lib/rewards";
+import { useFactorTrends } from "../lib/factorTrends";
 import { ApkLink } from "../components/ApkLink";
 import type { User } from "../lib/auth";
 import { adoptSnapshot, fetchSnapshot, schedulePush, shouldAdopt } from "../lib/sync";
@@ -40,6 +42,47 @@ import {
 
 type Filter = "all" | "today" | "upcoming" | "completed" | "overdue";
 
+/** One honest line under the day's bonus — never a promise the server breaks. */
+function dailyNote(
+  d: { claimed: boolean; ready: boolean; reason: string; requirement: string } | undefined,
+  live: boolean,
+): string {
+  if (!d) return live ? "Checking the ledger…" : "Sign in with the API reachable to collect.";
+  if (d.claimed) return "Collected today · back tomorrow.";
+  if (d.ready) return `Ready — ${d.requirement.toLowerCase()}.`;
+  if (d.reason === "too-soon") return "Collected less than a day ago.";
+  return `Locked — ${d.requirement.toLowerCase()}.`;
+}
+
+/** The shield's state in one line, from the reasons the backend sends. */
+function shieldNote(
+  s:
+    | {
+        count: number;
+        cost: number;
+        useReason: string;
+        max: number;
+      }
+    | null
+    | undefined,
+): string {
+  if (!s) return "Checking…";
+  switch (s.useReason) {
+    case "open":
+      return "A missed day can be held — spend one to keep the chain.";
+    case "no-shield":
+      return `None held · ${s.cost} Reward Points each (max ${s.max}).`;
+    case "no-chain":
+      return "No chain running yet — nothing to protect.";
+    case "chain-broken":
+      return "More than one day is missing; one shield cannot bridge that.";
+    case "used-today":
+      return "Already spent today.";
+    default:
+      return s.count > 0 ? "The chain is whole." : "Buy one to protect a missed day.";
+  }
+}
+
 /**
  * Dashboard — today's ledger. The real interface: the To-Do at its core,
  * with the growth readouts around it. Everything is scoped to the signed-in
@@ -56,7 +99,50 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
   // The chain reads every source of evidence: tasks, habits, the engine's
   // last-active record. Habits stay owned by the panel; this view follows.
   const habits = useHabitsLive(scope);
-  const snap = useMemo(() => streakSnapshot(profile, tasks, habits), [profile, tasks, habits]);
+
+  /**
+   * The two spends — the daily bonus and the streak shield — are the
+   * backend's to decide. The state comes back with every call, and the
+   * balance it reports is written straight into the profile so the next
+   * push cannot undo a payout.
+   */
+  const rewards = useRewards(scope, user, {
+    onPoints: (points) => setProfile((prev) => ({ ...prev, rewardPoints: points })),
+    onNotice: (notice: RewardNotice) => {
+      const born = Date.now();
+      setEvents((prev) => [
+        ...prev.slice(-7),
+        { type: notice.kind, message: notice.message, eid: `ev_${born}`, born },
+      ]);
+      setTimeout(() => setEvents((prev) => prev.filter((e) => e.born !== born)), 2600);
+    },
+  });
+  const protectedKey = protectedDatesOf(rewards.state).join(",");
+  const protectedDates = useMemo(
+    () => (protectedKey ? protectedKey.split(",") : []),
+    [protectedKey],
+  );
+  const trends = useFactorTrends(scope, user, profile, tasks);
+
+  const snap = useMemo(
+    () => streakSnapshot(profile, tasks, habits, 84, protectedDates),
+    [profile, tasks, habits, protectedDates],
+  );
+
+  /**
+   * The daily bonus is collected as soon as the day earns it: the server
+   * checks the requirement against the stored ledger and pays once, so
+   * asking twice is harmless and asking from two devices pays once.
+   */
+  const askedRef = useRef<string>("");
+  const claimReward = rewards.claim;
+  const daily = rewards.state?.daily;
+  useEffect(() => {
+    if (!daily?.eligible || daily.claimed) return;
+    if (askedRef.current === daily.day) return;
+    askedRef.current = daily.day;
+    void claimReward();
+  }, [daily?.eligible, daily?.claimed, daily?.day, claimReward]);
 
   // Re-load when the operator changes (sign out → someone else signs in).
   useEffect(() => {
@@ -124,7 +210,7 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
     if (task.status === "completed") return;
     const updated: Task = { ...task, status: "completed", completedAt: Date.now() };
     setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
-    const { profile: newP, events: evs } = completeTask(profile, task);
+    const { profile: newP, events: evs } = completeTask(profile, task, protectedDates);
     setProfile(newP);
     schedulePush(scope);
     const born = Date.now();
@@ -267,6 +353,55 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
           />
         </div>
 
+        {/* The two spends: the day's bonus, and the shield that holds a chain. */}
+        <div className="dash__rewards" data-dash-panel>
+          <p className="label dash__factors-label">Daily Reward &amp; Streak Shield</p>
+          <div className="dash__rewards-grid">
+            <div className="rw-card" data-state={daily?.claimed ? "claimed" : daily?.ready ? "ready" : "locked"}>
+              <span className="rw-card__v num">+{daily?.amount ?? 0}</span>
+              <div className="rw-card__b">
+                <span className="rw-card__t">Daily Reward</span>
+                <span className="rw-card__s">{dailyNote(daily, rewards.live)}</span>
+              </div>
+              <button
+                type="button"
+                className="btn rw-card__b-btn"
+                onClick={() => void rewards.claim()}
+                disabled={rewards.busy || !daily?.ready}
+              >
+                <span className="btn__slash" />
+                {daily?.claimed ? "Claimed" : "Claim"}
+              </button>
+            </div>
+
+            <div className="rw-card" data-state={rewards.state?.shield?.canUse ? "ready" : "locked"}>
+              <span className="rw-card__v num">🛡️ {rewards.state?.shield?.count ?? 0}</span>
+              <div className="rw-card__b">
+                <span className="rw-card__t">Streak Shield</span>
+                <span className="rw-card__s">{shieldNote(rewards.state?.shield)}</span>
+              </div>
+              <div className="rw-card__acts">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => void rewards.use()}
+                  disabled={rewards.busy || !rewards.state?.shield?.canUse}
+                >
+                  Use
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => void rewards.buy()}
+                  disabled={rewards.busy || !rewards.state?.shield?.canBuy}
+                >
+                  Buy {rewards.state?.shield?.cost ?? 0} RP
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Life Factors */}
         <div className="dash__factors" data-dash-panel>
 
@@ -275,13 +410,26 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
             {(Object.keys(LIFE_FACTOR_META) as LifeFactor[]).map((f) => {
               const meta = LIFE_FACTOR_META[f];
               const val = Math.round(profile.factors[f]);
+              const delta = trends.trends[f]?.delta;
               return (
                 <div key={f} className="factor" data-vel>
                   <span className="factor__code num" aria-hidden="true">{meta.code}</span>
                   <div className="factor__body">
                     <div className="factor__row">
                       <span className="factor__label">{meta.label}</span>
-                      <span className="factor__val num">{val}</span>
+                      <span className="factor__meta">
+                        {typeof delta === "number" ? (
+                          <span
+                            className="factor__trend num"
+                            data-dir={delta > 0 ? "up" : delta < 0 ? "down" : "flat"}
+                            title="Change against the previous period"
+                          >
+                            {delta > 0 ? "↑ +" : delta < 0 ? "↓ " : "· "}
+                            {delta}
+                          </span>
+                        ) : null}
+                        <span className="factor__val num">{val}</span>
+                      </span>
                     </div>
                     <div className="factor__bar">
                       <span className="factor__fill" style={{ width: `${val}%` }} />
@@ -297,7 +445,15 @@ export function Dashboard({ scope, user }: { scope: string; user: User }) {
         <HabitsPanel scope={scope} />
 
         {/* The chain — every day of evidence, the heat, the milestones. */}
-        <StreakBoard profile={profile} tasks={tasks} habits={habits} />
+        <StreakBoard
+          profile={profile}
+          tasks={tasks}
+          habits={habits}
+          protectedDates={protectedDates}
+          shield={rewards.state?.shield ?? null}
+          onUseShield={() => void rewards.use()}
+          busy={rewards.busy}
+        />
 
         {showAdd && <AddTaskForm onAdd={addTask} onCancel={() => setShowAdd(false)} />}
 

@@ -15,12 +15,19 @@
  *
  * The desktop dashboard is not rendered while this is, and is not modified.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { gsap, REDUCED } from "../lib/motion";
 import { logout, scopeOf, type User } from "../lib/auth";
 import { forgetProvider } from "../lib/googleAuth";
 import type { CompleteEvent, Task } from "../lib/todo";
 import { useLedger } from "./useLedger";
+import { useFactorTrends } from "../lib/factorTrends";
+import {
+  forgetRewardCache,
+  protectedDatesOf,
+  useRewards,
+  type RewardNotice,
+} from "../lib/rewards";
 import { useRewardFx, RewardFx } from "./RewardFx";
 import { BottomNav } from "./BottomNav";
 import { TaskSheet } from "./TaskSheet";
@@ -47,8 +54,49 @@ const TITLES: Record<MobileTab, string> = {
 
 export function MobileApp({ user }: { user: User }) {
   const scope = scopeOf(user);
-  const ledger = useLedger(scope);
   const { lines, fire } = useRewardFx();
+
+  /**
+   * Reward state is fetched before the ledger is built, because the ledger
+   * needs to know which days a shield holds: a covered day keeps the streak
+   * alive through a completion, and without it the engine would reset the
+   * chain the operator paid to protect.
+   */
+  const onNotice = useCallback(
+    (notice: RewardNotice) => fire([{ type: notice.kind, message: notice.message }]),
+    [fire],
+  );
+  const rewardsRef = useRef<(points: number) => void>(() => undefined);
+  const rewards = useRewards(scope, user, {
+    onPoints: (points) => rewardsRef.current(points),
+    onNotice,
+  });
+  const protectedKey = protectedDatesOf(rewards.state).join(",");
+  const protectedDates = useMemo(
+    () => (protectedKey ? protectedKey.split(",") : []),
+    [protectedKey],
+  );
+  const ledger = useLedger(scope, protectedDates);
+  rewardsRef.current = ledger.setRewardPoints;
+
+  const trends = useFactorTrends(scope, user, ledger.profile, ledger.tasks);
+
+  /**
+   * The daily reward is automatic: the moment the server reports the day's
+   * requirement met and the day unpaid, the ask goes out. The endpoint is
+   * idempotent and refuses a replay, so a second device racing this one
+   * cannot produce a second payout — and a session that already claimed
+   * simply gets "claimed" back.
+   */
+  const askedRef = useRef<string>("");
+  const claimReward = rewards.claim;
+  const daily = rewards.state?.daily;
+  useEffect(() => {
+    if (!daily?.eligible || daily.claimed) return;
+    if (askedRef.current === daily.day) return;
+    askedRef.current = daily.day;
+    void claimReward();
+  }, [daily?.eligible, daily?.claimed, daily?.day, claimReward]);
 
   const [tab, setTab] = useState<MobileTab>(() => tabFromHash());
   const [sheet, setSheet] = useState(false);
@@ -87,9 +135,12 @@ export function MobileApp({ user }: { user: User }) {
   );
 
   const onSignOut = useCallback(() => {
+    // Sign-out leaves nothing behind that speaks for this operator — not the
+    // identity, not the provider marker, and not the cached reward record.
+    forgetRewardCache(scope);
     logout();
     forgetProvider();
-  }, []);
+  }, [scope]);
 
   return (
     <div className="m-app" data-tab={tab}>
@@ -139,6 +190,7 @@ export function MobileApp({ user }: { user: User }) {
             <HomeScreen
               user={user}
               ledger={ledger}
+              trends={trends.trends}
               onComplete={onComplete}
               onNew={() => setSheet(true)}
             />
@@ -152,10 +204,15 @@ export function MobileApp({ user }: { user: User }) {
               onNew={() => setSheet(true)}
             />
           )}
-          {tab === "progress" && <ProgressScreen ledger={ledger} />}
-          {tab === "rewards" && <RewardsScreen ledger={ledger} />}
+          {tab === "progress" && <ProgressScreen ledger={ledger} trends={trends.trends} />}
+          {tab === "rewards" && <RewardsScreen ledger={ledger} rewards={rewards} />}
           {tab === "profile" && (
-            <ProfileScreen user={user} ledger={ledger} onSignOut={onSignOut} />
+            <ProfileScreen
+              user={user}
+              ledger={ledger}
+              rewards={rewards}
+              onSignOut={onSignOut}
+            />
           )}
           {tab === "squad" && <SquadScreen user={user} profile={ledger.profile} />}
           {tab === "stats" && <StatsScreen user={user} ledger={ledger} />}
