@@ -129,6 +129,11 @@ export function createBlackHole(opts: BlackHoleOptions): BlackHoleHandle {
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 
   const gl = renderer.getContext();
+  /* A canvas keeps its WebGL context for its whole life, lost or not, and a
+     renderer built on a dead one paints nothing forever. Refusing the frame
+     here means the plate shows its drawn singularity instead of a black
+     rectangle. */
+  if (gl.isContextLost()) throw new Error("WebGL context unavailable");
   // Half-float targets are what make the disk's core bloom instead of clipping.
   // WebGL2 makes RGBA16F filterable; rendering into one needs this extension.
   const hdr = !!gl.getExtension("EXT_color_buffer_float") || !!gl.getExtension("EXT_color_buffer_half_float");
