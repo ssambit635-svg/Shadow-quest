@@ -100,6 +100,7 @@ Most productivity apps look like dashboards. Shadow Quest feels like a dojo.
 - **Bilingual Focus Areas** — English + Japanese + romaji furigana (`nameJa / readingJa / schoolJa`).
 
 ### Experience
+- **The Singularity Hero** — The landing plate is a live WebGL2 render, not an artwork: a Schwarzschild null-geodesic integrator in a fragment shader, an accretion disk crossed analytically, a Doppler-beamed blackbody, and a star field evaluated after the light has been bent. Drag to orbit it, scroll to fall in, leave it alone and it drifts. No WebGL2 gets a drawn singularity instead. See [`docs/BLACKHOLE.md`](./docs/BLACKHOLE.md).
 - **True Phone Face** — Below `860px` it becomes an app: bottom tab bar, safe-area insets, 44px targets, no grain/vignette compositor cost. `src/styles/mobile.css` is breakpoint-scoped.
 - **Ink / Paper Theme** — Toggle in nav: dark sumi ground vs inverted paper ledger. Persists per browser.
 - **Offline First** — `src/lib/sync.ts` — pull on load (server wins if newer), debounced push, flush on `pagehide`.

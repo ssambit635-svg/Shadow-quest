@@ -1,0 +1,331 @@
+/* ============================================================
+   blackhole.css — the singularity plate.
+
+   The hero's right-hand panel used to be a painting on bone paper. It is
+   now an instrument: a live geodesic render inside the same frame, with the
+   same corner stamps and the same beat of chrome — the plate is the one
+   thing that did not change, only what it holds.
+
+   Everything here is scoped under `.bh` (the renderer) or the `--void`
+   modifier on the plate, so no rule can reach the rest of the site.
+   ============================================================ */
+
+.hero__plate--void {
+  background: #04060a;
+  border-color: color-mix(in srgb, var(--bone-200) 16%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ink-900) 70%, transparent),
+    inset 0 0 90px color-mix(in srgb, #000 85%, transparent);
+}
+
+/* The instrument's chrome reads light-on-dark. */
+.hero__plate--void .hero__plate-tag {
+  color: color-mix(in srgb, var(--bone-200) 46%, transparent);
+}
+
+.hero__plate--void .hero__shine {
+  opacity: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bone-100) 14%, transparent) 50%,
+    transparent 100%
+  );
+}
+
+/* `.wash` (the pointer sheen) stays — a hand passing over glass. It is only
+   allowed to be subtle over a picture this dark. */
+.hero__plate--void.wash--hot::after,
+.hero__plate--void.wash::after {
+  background: radial-gradient(
+    46% 42% at var(--wx, 50%) var(--wy, 36%),
+    color-mix(in srgb, var(--bone-100) 9%, transparent),
+    transparent 72%
+  );
+}
+
+/* ---------------------------------------------------------- the canvas */
+
+.bh {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #04060a;
+  isolation: isolate;
+}
+
+.bh__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: grab;
+  /* Vertical drags still scroll the page on a phone; horizontal ones belong
+     to the orbit. Without this the plate would eat the scroll. */
+  touch-action: pan-y;
+  transition: opacity 1.1s var(--e-out);
+}
+
+.bh[data-bh-state="live"] .bh__canvas {
+  opacity: 1;
+}
+
+.bh__canvas[data-bh-drag] {
+  cursor: grabbing;
+}
+
+.bh__canvas:focus-visible {
+  outline: 1px solid var(--vermilion);
+  outline-offset: -2px;
+}
+
+/* -------------------------------------------------- the drawn singularity
+   What the plate shows while the renderer is booting — and what it shows
+   instead, forever, on a device that never grants a WebGL2 context. Four
+   shapes: the halo, the disk band seen almost edge-on, the shadow, and the
+   photon ring that outlines it. */
+
+.bh__still {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 1.4s var(--e-out);
+}
+
+.bh[data-bh-state="live"] .bh__still {
+  opacity: 0;
+}
+
+.bh__still > span {
+  position: absolute;
+}
+
+.bh__still-halo {
+  inset: -14%;
+  background: radial-gradient(
+    closest-side at 50% 51%,
+    color-mix(in srgb, var(--vermilion-lit) 18%, transparent),
+    color-mix(in srgb, var(--vermilion-deep) 9%, transparent) 44%,
+    transparent 70%
+  );
+  filter: blur(10px);
+}
+
+.bh__still-disk {
+  left: 4%;
+  right: 4%;
+  top: 50%;
+  height: 8%;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  filter: blur(11px) saturate(1.05);
+  background: linear-gradient(
+    90deg,
+    rgba(214, 120, 70, 0.04) 0%,
+    rgba(255, 168, 110, 0.34) 16%,
+    rgba(255, 216, 180, 0.72) 34%,
+    rgba(255, 214, 178, 0.86) 46%,
+    rgba(255, 168, 106, 0.34) 66%,
+    rgba(196, 122, 78, 0.07) 88%
+  );
+}
+
+.bh__still-shadow {
+  left: 50%;
+  top: 50%;
+  width: 30%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #000;
+  box-shadow:
+    0 0 46px 12px rgba(0, 0, 0, 0.92),
+    0 0 120px 30px rgba(0, 0, 0, 0.6);
+}
+
+.bh__still-ring {
+  left: 50%;
+  top: 50%;
+  width: 31.6%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 232, 208, 0.85),
+    inset 0 0 12px 2px rgba(255, 176, 112, 0.35),
+    0 0 18px 3px rgba(255, 154, 88, 0.36),
+    0 0 70px 22px rgba(140, 70, 34, 0.2);
+  filter: blur(0.4px);
+}
+
+/* -------------------------------------------------------------- the HUD */
+
+.bh__hud {
+  position: absolute;
+  top: 2.6rem;
+  left: 2.6rem;
+  display: grid;
+  gap: 0.34rem;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.8s var(--e-out) 0.35s,
+    transform 0.8s var(--e-out) 0.35s;
+}
+
+.bh[data-bh-state="live"] .bh__hud {
+  opacity: 1;
+  transform: none;
+}
+
+.bh[data-bh-state="failed"] .bh__hud {
+  display: none;
+}
+
+.bh__hud-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: color-mix(in srgb, var(--bone-200) 62%, transparent);
+}
+
+.bh__hud-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--vermilion-lit);
+  box-shadow: 0 0 9px var(--vermilion);
+  animation: bh-pulse 2.6s var(--e-brush) infinite;
+}
+
+@keyframes bh-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.bh__read {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  line-height: 1.2;
+}
+
+.bh__read-k {
+  font-family: var(--font-label);
+  font-size: 0.62rem;
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--bone-300) 55%, transparent);
+  min-width: 6.6rem;
+}
+
+.bh__read-v {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--bone-100) 88%, transparent);
+}
+
+.bh__read-v sub {
+  font-size: 0.62em;
+  opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- hint */
+
+.bh__hint {
+  position: absolute;
+  right: 2.6rem;
+  bottom: 2.4rem;
+  pointer-events: none;
+  color: color-mix(in srgb, var(--bone-300) 52%, transparent);
+  opacity: 0;
+  transition: opacity 0.9s var(--e-out) 0.6s;
+}
+
+.bh[data-bh-state="live"] .bh__hint {
+  opacity: 1;
+}
+
+.bh__canvas[data-bh-drag] ~ .bh__hint {
+  opacity: 0.3;
+  transition: opacity 0.25s var(--e-out);
+}
+
+@media (max-width: 980px) {
+  .bh__hud {
+    top: 1.6rem;
+    left: 1.6rem;
+  }
+  .bh__hint {
+    right: 1.6rem;
+    bottom: 1.4rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .bh__read-k {
+    min-width: 0;
+    font-size: 0.56rem;
+  }
+  .bh__read-v {
+    font-size: 0.66rem;
+  }
+  /* Two readouts are the story at this size; the third is arithmetic. */
+  .bh__read:last-child {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Paper mode.
+   The page turns to paper; the instrument stays an instrument. Its chrome is
+   pinned to literal values rather than tokens, because every token underneath
+   it inverts with the theme and the canvas does not — an ink-on-paper label
+   over a picture of deep space is a label nobody can read.
+   ============================================================ */
+html[data-theme="light"] .hero__plate--void {
+  border-color: rgba(238, 241, 246, 0.17);
+}
+
+html[data-theme="light"] .hero__plate--void .hero__plate-tag {
+  color: rgba(238, 241, 246, 0.42);
+}
+
+html[data-theme="light"] .bh__hud-title {
+  color: rgba(199, 204, 214, 0.66);
+}
+
+html[data-theme="light"] .bh__read-k {
+  color: rgba(154, 162, 176, 0.6);
+}
+
+html[data-theme="light"] .bh__read-v {
+  color: rgba(238, 241, 246, 0.9);
+}
+
+html[data-theme="light"] .bh__hint {
+  color: rgba(154, 162, 176, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bh__hud-dot {
+    animation: none;
+    opacity: 0.8;
+  }
+  .bh__canvas,
+  .bh__still,
+  .bh__hud,
+  .bh__hint {
+    transition: none;
+  }
+}

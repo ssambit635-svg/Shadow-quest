@@ -9,6 +9,7 @@ import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/loader.css";
 import "./styles/home.css";
+import "./styles/blackhole.css";
 import "./styles/dashboard.css";
 import "./styles/stats.css";
 import "./styles/login.css";

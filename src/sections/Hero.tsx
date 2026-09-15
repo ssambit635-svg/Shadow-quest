@@ -1,11 +1,20 @@
 /**
  * Hero.tsx — one screen, one argument.
  *
- * The painting sits on the paper it was painted on (a bone plate against the
- * ink page). The plate gets cinema: a slow Ken Burns drift, a shine that
- * sweeps it on entry, ember dust in the air, a pointer wash, and a vermilion
- * slash that draws itself under the title. The CTA is the gate — sign in,
- * or open the OS if you already are in.
+ * The plate on the right is no longer a painting: it is an instrument. A live
+ * WebGL render of a black hole — the accretion disk, the photon ring, the
+ * shadow — sits where the samurai used to, inside the same bone frame with
+ * the same corner stamps. The plate still gets cinema: a shine that sweeps it
+ * on entry, ember dust in the air, a pointer wash, a vermilion slash under
+ * the title. The CTA is the gate — sign in, or open the OS if you already
+ * are in.
+ *
+ * Two motion decisions are deliberate. The plate keeps its scroll parallax
+ * but the render's own Ken Burns is gone: CSS-scaling a canvas that a
+ * fragment shader paints every frame buys nothing and costs sharpness, and
+ * the black hole is already moving inside its own frame. Everything that
+ * moves on the plate is therefore either chrome (GSAP, on the DOM) or the
+ * renderer's business (inside the canvas) — never both on the same node.
  */
 import { useEffect, useRef } from "react";
 import {
@@ -18,6 +27,7 @@ import {
   wipeIn,
 } from "../lib/motion";
 import { useReady } from "../lib/ready";
+import { BlackHole } from "../components/blackhole/BlackHole";
 import type { User } from "../lib/auth";
 
 const DUST = 14;
@@ -86,20 +96,10 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
           1.9,
         );
 
-      // The painting itself breathes: a 26-second Ken Burns drift, plus the
-      // ember dust. Both are ambient loops — pure transform, cheap on a
-      // laptop GPU, but a phone compositor pays for them every frame for the
-      // whole session, so the phone face gets the still painting instead.
+      // Ember dust over the plate: each mote drifts on its own loop,
+      // desynced on purpose. The plate's own image is left alone — the
+      // renderer inside it is the thing that moves.
       if (!REDUCED && !isNarrow()) {
-        gsap.to("[data-hero-painting]", {
-          scale: 1.1,
-          xPercent: -1.5,
-          duration: 26,
-          ease: "sine.inOut",
-          yoyo: true,
-          repeat: -1,
-        });
-        // Ember dust: each mote drifts on its own loop, desynced on purpose.
         gsap.utils.toArray<HTMLElement>("[data-hero-dust] > i").forEach((mote, i) => {
           gsap.set(mote, {
             left: `${(i * 71 + 13) % 100}%`,
@@ -138,13 +138,6 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
         yPercent: -7,
         ease: "none",
         scrollTrigger: { trigger: self, start: "top top", end: "bottom top", scrub: 0.6 },
-      });
-      // The painting parallaxes *inside* the plate in the opposite direction,
-      // so the frame and the art separate as you leave.
-      gsap.to("[data-hero-painting]", {
-        yPercent: 9,
-        ease: "none",
-        scrollTrigger: { trigger: self, start: "top top", end: "bottom top", scrub: 0.8 },
       });
       // The headline is ordinary text: never split, hidden, or scroll-scrubbed.
       // The brush rule under the hero draws itself as the section leaves.
@@ -271,14 +264,8 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
         </div>
 
         <div className="hero__art" data-depth="1">
-          <div className="hero__plate wash" data-hero-plate ref={plate}>
-            <img
-              className="hero__painting"
-              data-hero-painting
-              src="/img/samurai-hero.jpg"
-              alt="Focused figure at work, cinematic ink-wash aesthetic"
-              style={{ filter: "contrast(1.05) saturate(0.7) hue-rotate(-10deg)" }}
-            />
+          <div className="hero__plate hero__plate--void wash" data-hero-plate ref={plate}>
+            <BlackHole />
             <span className="hero__shine" data-hero-shine aria-hidden="true" />
             <span className="hero__plate-tag label">system build v1.0</span>
             <i className="hero__corner hero__corner--tl" data-hero-corner />
@@ -287,8 +274,8 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
             <i className="hero__corner hero__corner--br" data-hero-corner />
           </div>
           <p className="hero__caption label">
-            ShadowQuest Personal OS <br />
-            <span>real action → progress → growth</span>
+            Schwarzschild · 3.0–13.5 r<sub>s</sub> · null geodesics, live <br />
+            <span>drag the frame to orbit the singularity</span>
           </p>
         </div>
       </div>
