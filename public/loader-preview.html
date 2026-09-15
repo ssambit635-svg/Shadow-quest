@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ShadowQuest Loader Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Rajdhani:wght@600&family=JetBrains+Mono:wght@600&family=Shippori+Mincho:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--ink-900:#08090c;--bone-100:#eef1f6;--bone-200:#c7ccd6;--bone-300:#9aa2b0;--bone-400:#6d7482;--bone-500:#4a515e;--vermilion:#d43d31;--vermilion-lit:#ff5a4a;--brass:#c7a46a;--line-strong:color-mix(in srgb,#c7ccd6 22%,transparent)}
+body{margin:0;background:var(--ink-900);color:var(--bone-100);font-family:Rajdhani,sans-serif;overflow:hidden}
+.boot{position:fixed;inset:0;z-index:10;background:transparent;isolation:isolate}
+.boot__sky{position:absolute;inset:0;z-index:1;background:radial-gradient(120% 90% at 50% 115%,color-mix(in srgb,var(--vermilion) 16%,transparent),transparent 60%)}
+.boot__grid{position:absolute;inset:-2px;background-image:linear-gradient(color-mix(in srgb,var(--bone-400) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--bone-400) 7%,transparent) 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(75% 75% at 50% 45%,#000 30%,transparent 100%);animation:grid 9s linear infinite}
+@keyframes grid{from{background-position:0 0,0 0}to{background-position:0 56px,56px 0}}
+.boot__orb{position:absolute;width:46vmax;height:46vmax;border-radius:50%;filter:blur(70px);opacity:.5;mix-blend-mode:screen;animation:orb 7s ease-in-out infinite alternate}
+.boot__orb--verm{top:-18vmax;left:-12vmax;background:radial-gradient(circle at 35% 35%,var(--vermilion-lit),transparent 62%)}
+.boot__orb--indigo{bottom:-20vmax;right:-14vmax;background:radial-gradient(circle at 60% 40%,#4f46e5,transparent 62%);animation-delay:-2.4s}
+.boot__orb--brass{top:30%;left:34%;width:30vmax;height:30vmax;background:radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--brass) 65%,transparent),transparent 60%);animation-delay:-4.1s}
+@keyframes orb{from{transform:translate3d(-4%,-3%,0) scale(.92)}to{transform:translate3d(5%,4%,0) scale(1.12)}}
+.boot__glyphs{position:absolute;inset:0;z-index:1;pointer-events:none}
+.boot__glyphs>span{position:absolute;left:var(--gx);top:-12%;font-family:Shippori Mincho,serif;font-weight:800;font-size:clamp(2.2rem,6vw,4.6rem);color:var(--bone-300);animation:glyph var(--gd) linear infinite}
+@keyframes glyph{0%{transform:translateY(0) rotate(-8deg);opacity:0}12%{opacity:.28}88%{opacity:.2}100%{transform:translateY(118vh) rotate(10deg);opacity:0}}
+.boot__inner{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:1.05rem;z-index:2}
+.boot__emblem{position:relative;width:clamp(210px,42vw,260px);aspect-ratio:1;display:grid;place-items:center}
+.boot__rings{position:absolute;inset:0}
+.boot__ring{position:absolute;inset:0;border-radius:50%}
+.boot__ring--dash{border:1px dashed color-mix(in srgb,var(--bone-400) 55%,transparent);animation:spin 7s linear infinite reverse}
+.boot__ring--thin{inset:12%;border:1px solid color-mix(in srgb,var(--vermilion) 45%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--vermilion) 30%,transparent);animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.boot__enso{width:62%;opacity:.55}
+.boot__kanji{position:relative;z-index:2;width:58%;height:58%;display:grid;place-items:center;color:var(--bone-100);filter:drop-shadow(0 0 28px color-mix(in srgb,var(--vermilion) 55%,transparent))}
+.boot__meta{display:flex;gap:1rem;min-width:min(340px,68vw);justify-content:space-between}
+.label{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-400)}
+.boot__num{font-size:.9rem;color:var(--bone-300);font-variant-numeric:tabular-nums}
+.boot__bar{position:relative;width:min(340px,68vw);height:3px;background:var(--line-strong);overflow:hidden;border-radius:2px}
+.boot__bar>span{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--vermilion),var(--vermilion-lit));transform:scaleX(var(--p,0));transform-origin:left}
+.boot__stage{font-family:JetBrains Mono,monospace;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:var(--bone-500)}
+.boot__copy{font-size:.8rem;color:var(--bone-500);letter-spacing:.14em}
+</style>
+</head>
+<body>
+<div class="boot">
+<div class="boot__sky"><div class="boot__grid"></div><span class="boot__orb boot__orb--verm"></span><span class="boot__orb boot__orb--indigo"></span><span class="boot__orb boot__orb--brass"></span></div>
+<div class="boot__glyphs"><span style="--gx:2%;--gd:7s">影</span><span style="--gx:21%;--gd:7.7s">道</span><span style="--gx:40%;--gd:8.4s">忍</span><span style="--gx:59%;--gd:9.1s">修</span><span style="--gx:78%;--gd:9.8s">剣</span></div>
+<div class="boot__inner">
+<div class="boot__emblem"><div class="boot__rings"><span class="boot__ring boot__ring--dash"></span><span class="boot__ring boot__ring--thin"></span></div><svg class="boot__enso" viewBox="0 0 120 120" fill="none"><path d="M60 10 C 88 10, 110 32, 110 60 C 110 88, 88 110, 60 110 C 32 110, 10 88, 10 60 C 10 36, 27 16, 48 11" stroke="#9aa2b0" stroke-width="5" stroke-linecap="round"/></svg><div class="boot__kanji"><svg viewBox="0 0 512 512" width="100%" height="100%" fill="none"><circle cx="272" cy="216" r="104" fill="#ff5a4a"/><path d="M96 352c64-72 160-104 240-88 48 8 72 32 80 64" stroke="#eef1f6" stroke-width="27" stroke-linecap="round"/><path d="M144 416h240" stroke="#eef1f6" stroke-width="18" stroke-linecap="round" opacity=".55"/></svg></div></div>
+<div class="boot__meta"><span class="label">SHADOWQUEST OS</span><span class="boot__num" id="num">000</span></div>
+<div class="boot__bar"><span id="fill"></span></div>
+<span class="boot__stage" id="stage">stirring the ink</span>
+<p class="boot__copy">Real action. Real progress. Real growth.</p>
+</div>
+</div>
+<script>
+let p=0;const num=document.getElementById('num'),fill=document.getElementById('fill'),stage=document.getElementById('stage'),stages=["stirring the ink","summoning the shadows","sharpening the blade","aligning the ring","sealing the ledger"];
+(function tick(){p+=p<60?1.5:p<85?0.8:0.35;if(p>100)p=0;num.textContent=String(Math.floor(p)).padStart(3,'0');fill.style.setProperty('--p',p/100);stage.textContent=stages[p>=84?4:p>=64?3:p>=44?2:p>=22?1:0];requestAnimationFrame(tick)})();
+</script>
+</body>
+</html>
