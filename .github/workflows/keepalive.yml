@@ -1,0 +1,54 @@
+# keepalive.yml — keep the one live service awake.
+#
+# ShadowQuest is evaluated by clicking a link, and the link that was submitted
+# is the retired static site (shadow-quest.onrender.com) which forwards to the
+# live service (shadowquest.onrender.com) — see public/sq-canonical.js. The
+# static site never sleeps; the Web Service on Render's **free** plan does,
+# after ~15 minutes without a request. A sleeping service answers the first
+# click with a 30–60 second boot, which is exactly the moment a judge gives up.
+#
+# So this pings `GET /v1/health` every 10 minutes — a request so small it costs
+# nothing (one JSON object, no database read) and keeps the instance warm
+# inside the free 750 instance-hours/month.
+#
+# Notes:
+#   · scheduled runs can be delayed by a few minutes under load — good enough
+#     to stay inside the 15-minute idle window
+#   · a cold start makes the first ping slow or empty; the retry below covers it
+#   · a free external monitor (UptimeRobot, cron-job.org) does the same job
+#     without the Actions-tab noise, and alerts when the site is actually down
+#   · delete this file once evaluation is over — the service is then free to
+#     sleep, and the app degrades to the device ledger exactly as designed
+name: Keep the live service awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    name: Ping the live API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: GET https://shadowquest.onrender.com/v1/health
+        run: |
+          url=https://shadowquest.onrender.com/v1/health
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o /tmp/health.json -w '%{http_code}' --max-time 90 "$url" || echo 000)
+            body=$(cat /tmp/health.json 2>/dev/null || true)
+            echo "attempt ${attempt}: HTTP ${code} ${body}"
+            # 200 with {"ok":true,…} is the only good answer; anything else is a
+            # service still booting (000/502/503) or a real problem worth seeing.
+            if [ "$code" = "200" ] && printf '%s' "$body" | grep -q '"ok":true'; then
+              echo "awake"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::warning::${url} did not answer 200 {\"ok\":true} — the service may be down"
+          exit 1
