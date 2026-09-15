@@ -84,6 +84,13 @@
 @media (max-height: 550px) { #sq-initial-loader .sq-load-orbit { width: 80px; height: 80px; margin-bottom: 12px; } #sq-initial-loader .sq-load-symbol { inset: 10px; font-size: 30px; } #sq-initial-loader .sq-load-bottom { bottom: 22px; } }
 @media (prefers-reduced-motion: reduce) { #sq-initial-loader { display: none !important; } }
 </style>
+
+    <!-- One address, one app: a retired host (shadow-quest.onrender.com, the
+         old static site with no API behind it) forwards to the live one
+         before React boots, handoff code and all. External file because the
+         production CSP is script-src 'self'; deferred so the loader above
+         still paints first. See public/sq-canonical.js. -->
+    <script defer src="/sq-canonical.js"></script>
   </head>
   <body>
     <!-- ================= THE SITE LOADER (only one) =================

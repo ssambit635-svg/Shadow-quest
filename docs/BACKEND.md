@@ -60,6 +60,15 @@ answers `/api/*` with 404 — that is the *"no ShadowQuest API behind it"*
 failure — and cannot proxy API traffic to a second service, which is why
 production is one Web Service rather than static + API.
 
+For this repository that service is **`https://shadowquest.onrender.com`**
+(`render.yaml` → `shadowquest`), and the retired static site at
+`https://shadow-quest.onrender.com` — which still deploys the same `dist/` and
+therefore still looks correct while answering `/api/*` with its own 404 page —
+is forwarded there by `public/sq-canonical.js` at boot. The forward carries
+path, query and `#fragment`, because the OAuth handoff parks its one-time code
+in the fragment. If the deployment ever moves to the old subdomain, swap the
+two values at the top of that file.
+
 `render.yaml` at the repo root is the whole deployment as a Render Blueprint
 (Dashboard → New → Blueprint → this repo → Apply):
 

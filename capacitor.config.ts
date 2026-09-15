@@ -41,7 +41,12 @@ const serverUrl = process.env.CAPACITOR_SERVER_URL?.replace(/\/+$/, "") || undef
  * backend is.
  */
 function allowNavigation(): string[] {
-  const hosts = ["accounts.google.com"];
+  // The live service, always allowed: public/sq-canonical.js forwards a
+  // retired address (shadow-quest.onrender.com, the old static site with no
+  // API behind it) to this host, and a hosted-build APK must be able to
+  // follow that inside the WebView instead of handing it to Chrome. Keep in
+  // step with LIVE in public/sq-canonical.js.
+  const hosts = ["accounts.google.com", "shadowquest.onrender.com"];
   const raw = (process.env.VITE_API_BASE_URL ?? "").trim();
   if (raw) {
     try {

@@ -100,6 +100,12 @@ In CI the same value comes from the repository **variable**
 Leave it unset and the APK ships the in-page engine — identical behaviour to
 the site with no `.env`.
 
+For this deployment the value is `https://shadowquest.onrender.com` — the
+single Web Service that answers `/` **and** `/api/*`. Anything else fails
+loudly: the retired static site at `shadow-quest.onrender.com` has no API
+behind it, so an APK pointed there reports *"This build points at an address
+with no ShadowQuest API behind it"* on every Google tap.
+
 **This is not optional if you want sign-in.** Inside the shell the bundle is
 served from `https://localhost` (Capacitor's defaults: hostname `localhost`,
 scheme `https`), so a relative `/api` resolves to the app's own origin, where
@@ -196,6 +202,6 @@ there by hand — edit the web app and re-sync.
 | `env(safe-area-inset-*)` reads 0 | the edge-to-edge call in `MainActivity` was removed |
 | APK installs, taps work, page will not scroll | WebView nested-scroll / GSAP pin. Rebuild after the native-scroll fix (`MainActivity` enables nested scrolling; `html.sq-native` keeps the viewport as the scroller; the growth-loop pin is off inside the shell). Chrome on the same phone is unaffected. |
 | Release APK won’t install over debug one | different signature — uninstall the debug build first |
-| "Could not reach ShadowQuest. Check your connection" on Google sign-in | the app could not reach the API. Read the reason it now prints instead: *"no API address"* → the APK was built without `VITE_API_BASE_URL`; *"no ShadowQuest API behind it"* (404) → the site has no `/api` rewrite; *"the API did not answer"* → the backend is down or `SQ_CORS_ORIGIN` blocks the shell origin |
+| "Could not reach ShadowQuest. Check your connection" on Google sign-in | the app could not reach the API. Read the reason it now prints instead: *"no API address"* → the APK was built without `VITE_API_BASE_URL`; *"no ShadowQuest API behind it"* (404) → the address has no API behind it (the retired `shadow-quest.onrender.com` static site, or any static host without a rewrite) — point the build at `https://shadowquest.onrender.com`; *"the API did not answer"* → the backend is down or `SQ_CORS_ORIGIN` blocks the shell origin |
 | Google sign-in works on the website but not in the APK | `server.allowNavigation` missing the API host — the trip was handed to the system browser. Re-sync after setting `VITE_API_BASE_URL` |
 | Google sign-in lands on the website instead of back in the app | the backend refused the shell origin — `SQ_NATIVE_ORIGIN` is set to something that excludes `https://localhost` (or `off`) |

@@ -273,7 +273,12 @@ export function googleErrorMessage(reason: string): string {
     case "unreachable":
       return "ShadowQuest's API did not answer. If this keeps happening the server is down, not your connection — email and passphrase still work.";
     case "missing":
-      return "This build points at an address with no ShadowQuest API behind it. Rebuild with VITE_API_BASE_URL set to the API origin, or use email and passphrase.";
+      // The one reason with a way out the operator can take right now: the
+      // page is being served from an address with no API behind it (a static
+      // host, the retired subdomain, an APK built against either). Naming the
+      // live address beats a build instruction nobody can act on from here —
+      // keep it in step with LIVE in public/sq-canonical.js.
+      return "This address has no ShadowQuest API behind it. Open https://shadowquest.onrender.com instead — or use email and passphrase.";
     case "misbuilt":
       return "This app build has no API address, so Google sign-in cannot reach the server. Rebuild the APK with VITE_API_BASE_URL set — email and passphrase work meanwhile.";
     case "unconfigured":
