@@ -8,6 +8,7 @@
  * or open the OS if you already are in.
  */
 import { useEffect, useRef } from "react";
+import { BlackHole } from "../components/BlackHole";
 import {
   attachWash,
   CAN_HOVER,
@@ -224,6 +225,17 @@ export function Hero({ user, onEnter }: { user: User | null; onEnter: () => void
       <div className="hero__ghost kanji" data-hero-ghost aria-hidden="true">
         影
       </div>
+
+      {/* The void, and nothing taken away to make room for it: a real black
+          hole — ray-marched through curved space, not a picture of a ring —
+          running behind the plate and behind the argument. It is scroll-driven
+          (the camera swings as the hero leaves) and it mounts only where the
+          hero still has a right half to fill. See components/BlackHole.tsx,
+          and docs/BLACKHOLE.md for every dial it exposes. */}
+      <div className="hero__void shell" aria-hidden="true">
+        <BlackHole className="hero__hole" />
+      </div>
+
       <div className="hero__dust" data-hero-dust aria-hidden="true">
         {Array.from({ length: DUST }).map((_, i) => (
           <i key={i} />

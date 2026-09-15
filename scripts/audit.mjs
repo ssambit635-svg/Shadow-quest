@@ -793,6 +793,37 @@ probes["motion:phone"] = async () => {
 };
 
 /* ------------------------------------------------------------------ *
+ * landing: the hero's black hole degrades instead of breaking the page
+ * ------------------------------------------------------------------ */
+probes["landing:void"] = async () => {
+  // 1440px is above the component's mount breakpoint, so the real path runs:
+  // request a context, probe the renderer, build five shaders. This harness has
+  // no canvas context at all, which is exactly the machine the fallback exists
+  // for — the hero must lose the backdrop and keep every other thing, quietly.
+  const p = await boot({ width: 1440, height: 900, hash: "#/", hover: true });
+
+  const box = p.q(".hero__void");
+  const host = p.q(".hero__hole");
+  const canvas = p.q(".blackhole__canvas");
+  const headline = p.q("[data-hero-title]")?.textContent ?? "";
+  const hidden = canvas
+    ? (canvas.style.display || p.win.getComputedStyle(canvas).display) === "none"
+    : false;
+  const why = host?.dataset.blackhole ?? "";
+
+  record(
+    "landing/void-fallback",
+    Boolean(box && host && canvas) && hidden && why === "unsupported" &&
+      /Real action\.[\s\S]*Real growth\./.test(headline) && !p.errors.length,
+    canvas
+      ? `hole mounted, canvas hidden (data-blackhole="${why || "—"}"), ` +
+        `headline intact, ${p.errors.length} page error(s)`
+      : "the void was never mounted — the hero's right half is empty again",
+  );
+  p.stop();
+};
+
+/* ------------------------------------------------------------------ *
  * weight: what actually ships
  * ------------------------------------------------------------------ */
 probes.weight = async () => {

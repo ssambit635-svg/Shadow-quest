@@ -969,9 +969,70 @@
   mask-position: center;
 }
 
+/* — the void ————————————————————————————————————————————————
+   A black hole behind the plate: every pixel of that canvas is a ray walked
+   backwards through curved space (components/BlackHole.tsx). It is a backdrop,
+   not a second subject, so three things keep it in its place:
+
+   · the box reproduces the shell's *content* box — same max width, same gutter
+     and rail — so `left: 75%` inside it is the art column's centre at every
+     width, and on a 2560px monitor the hole stays with the plate instead of
+     drifting off toward the edge. (It has to state that width explicitly:
+     absolutely positioned with only `left` set, its shrink-to-fit width would
+     be zero, and every percentage inside it would collapse with it.)
+   · it is faded out by a mask rather than framed, which is the whole reason it
+     does not read as a video pasted into the hero: the gas thins into the ink
+     the page is already painted on, and there is no edge to see;
+   · it is pointer-transparent and stacked under the text and under the plate.
+
+   `80svh` in the hole's width is load-bearing. On a short laptop the hero is
+   short too, and a fixed square would run its bottom edge — where the mask has
+   not finished — straight through the section boundary. Sizing it against the
+   viewport height keeps the whole falloff inside the section at any height. */
+.hero__void {
+  --void-pad: calc(var(--gutter) + var(--rail));
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  translate: -50% 0;
+  width: min(calc(100% - var(--void-pad) * 2), calc(var(--maxw) - var(--void-pad) * 2));
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero__hole {
+  position: absolute;
+  left: 75%;
+  top: calc(50% + 2.5rem);
+  translate: -50% -50%;
+  width: min(40rem, 50vw, 80svh);
+  aspect-ratio: 1 / 1;
+  -webkit-mask-image: radial-gradient(closest-side at 50% 60%, #000 55%, transparent 100%);
+  mask-image: radial-gradient(closest-side at 50% 60%, #000 55%, transparent 100%);
+}
+
+/* The mask is centred on 50% 60% to match the component's `focus` prop, and
+   the hole is drawn low in its box so it sits under the plate rather than
+   behind it. Move one of the three and the hole slides out from under its own
+   fade — docs/BLACKHOLE.md has the arithmetic. */
+
+.blackhole__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 @media (max-width: 980px) {
   .hero__grid {
     grid-template-columns: 1fr;
+  }
+  /* One column means no right half to fill, and this is the most expensive
+     thing on the page. The component asks the same question in JS before it
+     ever makes a GL context. */
+  .hero__void {
+    display: none;
   }
 }
 
