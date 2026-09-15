@@ -37,459 +37,65 @@
          seamlessly taken over by <Boot /> in React.
          ========================================================= -->
     <style id="sq-critical-loader">
-      :root {
-        --ink-900: #08090c;
-        --ink-800: #0f1116;
-        --bone-100: #eef1f6;
-        --bone-200: #c7ccd6;
-        --bone-300: #9aa2b0;
-        --bone-400: #6d7482;
-        --bone-500: #4a515e;
-        --vermilion: #d43d31;
-        --vermilion-lit: #ff5a4a;
-        --vermilion-deep: #8a241d;
-        --brass: #c7a46a;
-        --line: color-mix(in srgb, #c7ccd6 12%, transparent);
-        --line-strong: color-mix(in srgb, #c7ccd6 22%, transparent);
-        --font-display: "Orbitron", "Rajdhani", sans-serif;
-        --font-label: "Rajdhani", "Oswald", sans-serif;
-        --font-mono: "JetBrains Mono", monospace;
-        --font-jp: "Shippori Mincho", serif;
-      }
-      /* Initial loader - same visual language as React Boot */
-      #sq-initial-loader {
-        position: fixed;
-        inset: 0;
-        z-index: 99999;
-        background: var(--ink-900);
-        overflow: hidden;
-        isolation: isolate;
-        display: grid;
-        place-items: center;
-        font-family: var(--font-label);
-      }
-      #sq-initial-loader.boot--hidden {
-        pointer-events: none;
-      }
-      /* atmosphere */
-      #sq-initial-loader .boot__sky {
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        background: radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--vermilion) 16%, transparent), transparent 60%);
-      }
-      #sq-initial-loader .boot__grid {
-        position: absolute;
-        inset: -2px;
-        background-image:
-          linear-gradient(color-mix(in srgb, var(--bone-400) 7%, transparent) 1px, transparent 1px),
-          linear-gradient(90deg, color-mix(in srgb, var(--bone-400) 7%, transparent) 1px, transparent 1px);
-        background-size: 56px 56px;
-        mask-image: radial-gradient(75% 75% at 50% 45%, #000 30%, transparent 100%);
-        animation: boot-grid 9s linear infinite;
-      }
-      @keyframes boot-grid {
-        from { background-position: 0 0, 0 0; }
-        to { background-position: 0 56px, 56px 0; }
-      }
-      #sq-initial-loader .boot__orb {
-        position: absolute;
-        width: 46vmax;
-        height: 46vmax;
-        border-radius: 50%;
-        filter: blur(70px);
-        opacity: 0.5;
-        mix-blend-mode: screen;
-        animation: boot-orb 7s ease-in-out infinite alternate;
-      }
-      #sq-initial-loader .boot__orb--verm {
-        top: -18vmax;
-        left: -12vmax;
-        background: radial-gradient(circle at 35% 35%, var(--vermilion-lit), transparent 62%);
-      }
-      #sq-initial-loader .boot__orb--indigo {
-        bottom: -20vmax;
-        right: -14vmax;
-        background: radial-gradient(circle at 60% 40%, color-mix(in srgb, #4f46e5 80%, transparent), transparent 62%);
-        animation-delay: -2.4s;
-        animation-duration: 8.4s;
-      }
-      #sq-initial-loader .boot__orb--brass {
-        top: 30%;
-        left: 34%;
-        width: 30vmax;
-        height: 30vmax;
-        background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brass) 65%, transparent), transparent 60%);
-        animation-delay: -4.1s;
-        animation-duration: 6.2s;
-      }
-      @keyframes boot-orb {
-        from { transform: translate3d(-4%, -3%, 0) scale(0.92) rotate(0deg); opacity: 0.32; }
-        to { transform: translate3d(5%, 4%, 0) scale(1.12) rotate(24deg); opacity: 0.6; }
-      }
-      #sq-initial-loader .boot__scan {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--bone-200) 4%, transparent) 46%, color-mix(in srgb, var(--bone-200) 7%, transparent) 50%, color-mix(in srgb, var(--bone-200) 4%, transparent) 54%, transparent 100%);
-        background-size: 100% 46vh;
-        background-repeat: no-repeat;
-        animation: boot-scan 4.6s ease-in-out infinite;
-      }
-      @keyframes boot-scan {
-        from { transform: translateY(-60vh); }
-        to { transform: translateY(130vh); }
-      }
-      /* glyphs */
-      #sq-initial-loader .boot__glyphs {
-        z-index: 1;
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-      }
-      #sq-initial-loader .boot__glyphs > span {
-        position: absolute;
-        left: var(--gx, 10%);
-        top: -12%;
-        font-family: var(--font-jp);
-        font-weight: 800;
-        font-size: clamp(2.2rem, 6vw, 4.6rem);
-        color: var(--bone-300);
-        text-shadow: 0 0 24px color-mix(in srgb, var(--vermilion) 35%, transparent);
-        animation: boot-glyph var(--gd, 9s) linear infinite;
-      }
-      @keyframes boot-glyph {
-        0% { transform: translateY(0) rotate(-8deg); opacity: 0; }
-        12% { opacity: 0.28; }
-        88% { opacity: 0.2; }
-        100% { transform: translateY(118vh) rotate(10deg); opacity: 0; }
-      }
-      /* ink */
-      #sq-initial-loader .boot__ink {
-        z-index: 1;
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-      }
-      #sq-initial-loader .boot__ink > i {
-        position: absolute;
-        left: var(--ix, 5%);
-        bottom: -3%;
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: color-mix(in srgb, var(--vermilion-lit) 70%, var(--bone-100));
-        box-shadow: 0 0 12px 2px color-mix(in srgb, var(--vermilion) 55%, transparent);
-        animation: boot-ink var(--id, 3s) ease-in var(--idl, 0s) infinite;
-      }
-      @keyframes boot-ink {
-        0% { transform: translateY(0) scale(1); opacity: 0; }
-        10% { opacity: 0.75; }
-        85% { opacity: 0.12; }
-        100% { transform: translateY(-104vh) scale(0.4); opacity: 0; }
-      }
-      /* stage */
-      #sq-initial-loader .boot__inner {
-        position: relative;
-        z-index: 2;
-        display: grid;
-        place-content: center;
-        justify-items: center;
-        gap: 1.05rem;
-      }
-      #sq-initial-loader .boot__emblem {
-        position: relative;
-        width: clamp(210px, 42vw, 260px);
-        aspect-ratio: 1;
-        display: grid;
-        place-items: center;
-      }
-      #sq-initial-loader .boot__rings {
-        position: absolute;
-        inset: 0;
-      }
-      #sq-initial-loader .boot__ring {
-        position: absolute;
-        inset: 0;
-        border-radius: 50%;
-      }
-      #sq-initial-loader .boot__ring--dash {
-        border: 1px dashed color-mix(in srgb, var(--bone-400) 55%, transparent);
-        animation: boot-ring-spin 7s linear infinite reverse;
-      }
-      #sq-initial-loader .boot__ring--thin {
-        inset: 12%;
-        border: 1px solid color-mix(in srgb, var(--vermilion) 45%, transparent);
-        box-shadow: 0 0 18px color-mix(in srgb, var(--vermilion) 30%, transparent), inset 0 0 18px color-mix(in srgb, var(--vermilion) 22%, transparent);
-        animation: boot-ring-spin 5s linear infinite;
-      }
-      @keyframes boot-ring-spin { to { transform: rotate(360deg); } }
-      #sq-initial-loader .boot__enso {
-        width: 62%;
-        opacity: 0.55;
-        filter: drop-shadow(0 0 14px color-mix(in srgb, var(--bone-200) 35%, transparent));
-      }
-      #sq-initial-loader .boot__enso path {
-        stroke-dasharray: 400;
-        stroke-dashoffset: 400;
-        animation: boot-enso 1.2s cubic-bezier(0.65,0,0.35,1) forwards 0.15s;
-      }
-      @keyframes boot-enso { to { stroke-dashoffset: 0; } }
-      #sq-initial-loader .boot__halo {
-        position: absolute;
-        inset: 8%;
-        border-radius: 50%;
-        border: 1px solid var(--vermilion);
-        animation: boot-halo 1.4s ease-out forwards 0.25s;
-        opacity: 0;
-      }
-      @keyframes boot-halo {
-        0% { opacity: 0; transform: scale(0.6); }
-        30% { opacity: 0.6; }
-        100% { opacity: 0; transform: scale(1.6); }
-      }
-      #sq-initial-loader .boot__flash {
-        position: absolute;
-        inset: 14%;
-        border-radius: 50%;
-        background: radial-gradient(circle, color-mix(in srgb, var(--vermilion-lit) 85%, transparent), transparent 70%);
-        filter: blur(18px);
-        opacity: 0;
-        animation: boot-flash 0.5s ease-out forwards 0.6s;
-      }
-      @keyframes boot-flash { 0%{opacity:0} 20%{opacity:1} 100%{opacity:0} }
-      #sq-initial-loader .boot__glow {
-        position: absolute;
-        inset: -6%;
-        border-radius: 50%;
-        background: radial-gradient(circle, color-mix(in srgb, var(--vermilion) 26%, transparent), transparent 66%);
-        opacity: 0;
-        animation: boot-glow 0.8s ease-in-out infinite alternate 1.2s;
-      }
-      @keyframes boot-glow { from{opacity:0; transform:scale(0.92)} to{opacity:1; transform:scale(1.06)} }
-      #sq-initial-loader .boot__kanji {
-        position: relative;
-        z-index: 2;
-        width: 58%;
-        height: 58%;
-        display: grid;
-        place-items: center;
-        color: var(--bone-100);
-        filter: drop-shadow(0 0 28px color-mix(in srgb, var(--vermilion) 55%, transparent));
-        animation: boot-kanji 0.75s cubic-bezier(0.16,0.84,0.24,1) forwards 0.62s;
-        opacity: 0;
-        transform: scale(2.1);
-        clip-path: inset(0 0 100% 0);
-      }
-      @keyframes boot-kanji {
-        to { opacity: 1; transform: scale(1); clip-path: inset(0 0 0% 0); }
-      }
-      #sq-initial-loader .boot__meta {
-        display: flex;
-        align-items: baseline;
-        gap: 1rem;
-        min-width: min(340px, 68vw);
-        justify-content: space-between;
-      }
-      #sq-initial-loader .label {
-        font-family: var(--font-label);
-        font-size: 0.7rem;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
-        color: var(--bone-400);
-      }
-      #sq-initial-loader .boot__num {
-        font-family: var(--font-label);
-        font-size: 0.9rem;
-        color: var(--bone-300);
-        font-variant-numeric: tabular-nums;
-      }
-      #sq-initial-loader .boot__bar {
-        position: relative;
-        width: min(340px, 68vw);
-        height: 3px;
-        background: var(--line-strong);
-        overflow: hidden;
-        border-radius: 2px;
-      }
-      #sq-initial-loader .boot__bar > span {
-        display: block;
-        height: 100%;
-        width: 100%;
-        background: linear-gradient(90deg, var(--vermilion), var(--vermilion-lit));
-        box-shadow: 0 0 14px color-mix(in srgb, var(--vermilion) 70%, transparent);
-        transform: scaleX(0);
-        transform-origin: left center;
-      }
-      #sq-initial-loader .boot__bar > i {
-        position: absolute;
-        inset: 0;
-        width: 34%;
-        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bone-100) 85%, transparent), transparent);
-        animation: boot-shimmer 0.85s ease-in-out infinite 1.8s;
-        transform: translateX(-110%);
-      }
-      @keyframes boot-shimmer { to { transform: translateX(400%); } }
-      #sq-initial-loader .boot__stage {
-        display: block;
-        font-family: var(--font-mono);
-        font-size: 0.62rem;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
-        color: var(--bone-500);
-        min-height: 1em;
-      }
-      #sq-initial-loader .boot__copy {
-        font-size: 0.8rem;
-        color: var(--bone-500);
-        letter-spacing: 0.14em;
-        opacity: 0;
-        animation: boot-copy 0.5s ease forwards 1s;
-      }
-      @keyframes boot-copy { to { opacity: 1; } }
-      #sq-initial-loader .boot__blade {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 46%;
-        height: 2px;
-        z-index: 6;
-        background: linear-gradient(90deg, transparent, var(--vermilion-lit) 18%, var(--vermilion-lit) 82%, transparent);
-        box-shadow: 0 0 22px 4px color-mix(in srgb, var(--vermilion) 60%, transparent);
-        transform: scaleX(0);
-        transform-origin: center;
-      }
-      #sq-initial-loader .boot__panel {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 20.2%;
-        z-index: 0;
-        background: var(--ink-900);
-        border-right: 1px solid color-mix(in srgb, var(--vermilion) 34%, transparent);
-      }
-      #sq-initial-loader .boot__panel:nth-child(6) { left: 0; }
-      #sq-initial-loader .boot__panel:nth-child(7) { left: 20%; border-right-color: transparent; }
-      #sq-initial-loader .boot__panel:nth-child(8) { left: 40%; border-right-color: transparent; }
-      #sq-initial-loader .boot__panel:nth-child(9) { left: 60%; }
-      #sq-initial-loader .boot__panel:nth-child(10) { left: 80%; border-right: 0; }
-
-      /* exit animation */
-      #sq-initial-loader.is-exiting .boot__blade {
-        animation: boot-blade 0.32s cubic-bezier(0.7,0,0.3,1) forwards;
-      }
-      @keyframes boot-blade { to { transform: scaleX(1); } }
-      #sq-initial-loader.is-exiting .boot__panel {
-        animation: boot-panel 0.72s cubic-bezier(0.7,0,0.3,1) forwards;
-      }
-      #sq-initial-loader.is-exiting .boot__panel:nth-child(6) { animation-delay: 0s; }
-      #sq-initial-loader.is-exiting .boot__panel:nth-child(7) { animation-delay: 0.06s; }
-      #sq-initial-loader.is-exiting .boot__panel:nth-child(8) { animation-delay: 0.12s; }
-      #sq-initial-loader.is-exiting .boot__panel:nth-child(9) { animation-delay: 0.18s; }
-      #sq-initial-loader.is-exiting .boot__panel:nth-child(10) { animation-delay: 0.24s; }
-      @keyframes boot-panel { to { transform: translateY(-101%); } }
-      #sq-initial-loader.is-exiting .boot__inner,
-      #sq-initial-loader.is-exiting .boot__sky,
-      #sq-initial-loader.is-exiting .boot__glyphs,
-      #sq-initial-loader.is-exiting .boot__ink {
-        animation: boot-fade 0.55s ease forwards;
-      }
-      @keyframes boot-fade { to { opacity: 0; transform: translateY(-26%); } }
-
-      @media (max-width: 700px) {
-        #sq-initial-loader .boot__orb { filter: blur(44px); }
-        #sq-initial-loader .boot__glyphs > span:nth-child(n + 7) { display: none; }
-        #sq-initial-loader .boot__ink > i:nth-child(n + 10) { display: none; }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        #sq-initial-loader { display: none !important; }
-      }
-    </style>
+/* Shared verbatim with src/styles/loader.css. Panels alone provide coverage. */
+#sq-initial-loader { position: fixed; inset: 0; z-index: 99999; background: transparent; overflow: hidden; isolation: isolate; color: #eeeae1; font-family: Arial, sans-serif; }
+#sq-initial-loader .boot__panel { position: absolute; top: 0; bottom: 0; width: 20.2%; background: #08090c; z-index: -1; }
+#sq-initial-loader .boot__panel:nth-child(6) { left: 0; }
+#sq-initial-loader .boot__panel:nth-child(7) { left: 20%; }
+#sq-initial-loader .boot__panel:nth-child(8) { left: 40%; }
+#sq-initial-loader .boot__panel:nth-child(9) { left: 60%; }
+#sq-initial-loader .boot__panel:nth-child(10) { left: 80%; }
+#sq-initial-loader .sq-load-atmosphere { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, #a936211c, transparent 55%); transition: opacity .3s; }
+#sq-initial-loader .sq-load-atmosphere::after { content: ''; position: absolute; inset: 24px; border: 1px solid #ffffff0b; }
+#sq-initial-loader .sq-load-top { position: absolute; top: 46px; left: 48px; right: 48px; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .24em; color: #92918e; }
+#sq-initial-loader .sq-load-top b { color: #f16649; font-weight: 400; }
+#sq-initial-loader .sq-load-center { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+#sq-initial-loader .sq-load-orbit { position: relative; width: 154px; height: 154px; margin-bottom: 42px; animation: sq-emerge .8s ease both; }
+#sq-initial-loader .sq-load-orbit::before, #sq-initial-loader .sq-load-orbit::after { content: ''; position: absolute; border-radius: 50%; inset: 0; border: 1px solid #ffffff12; border-top-color: #f16649; border-right-color: #f1664960; animation: sq-orbit 2.6s linear infinite; }
+#sq-initial-loader .sq-load-orbit::after { inset: 15px; border: 1px dashed #bcb4a64a; border-bottom-color: #f16649; animation-direction: reverse; animation-duration: 8s; }
+#sq-initial-loader .sq-load-symbol { position: absolute; inset: 36px; display: grid; place-items: center; font-family: Georgia, serif; font-size: 44px; color: #f16649; text-shadow: 0 0 35px #ef563e66; animation: sq-breathe 2s ease-in-out infinite alternate; }
+#sq-initial-loader .sq-load-title { margin: 0; font-size: clamp(27px, 5.5vw, 62px); font-weight: 400; letter-spacing: .22em; padding-left: .22em; animation: sq-emerge .9s .15s both; }
+#sq-initial-loader .sq-load-title span { font-weight: 700; }
+#sq-initial-loader .sq-load-subtitle { margin: 17px 0 0; font-size: 9px; letter-spacing: .4em; color: #99928a; animation: sq-emerge .9s .3s both; }
+#sq-initial-loader .sq-load-bottom { position: absolute; bottom: 54px; left: 50%; width: min(360px, calc(100% - 96px)); transform: translateX(-50%); }
+#sq-initial-loader .sq-load-readout { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+#sq-initial-loader [data-boot-stage] { color: #aaa39a; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+#sq-initial-loader .sq-load-number { font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 300; }
+#sq-initial-loader .sq-load-number small { font-size: 10px; color: #7d7974; margin-left: 5px; }
+#sq-initial-loader .sq-load-track { height: 1px; background: #ffffff20; overflow: hidden; }
+#sq-initial-loader [data-boot-fill] { display: block; height: 100%; background: #f16649; transform: scaleX(0); transform-origin: left; box-shadow: 0 0 12px #f16649; }
+#sq-initial-loader .sq-load-hint { display: block; text-align: center; margin-top: 18px; color: #78736d; font-size: 9px; letter-spacing: .12em; }
+#sq-initial-loader .boot__blade { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #f16649; transform: scaleX(0); transform-origin: left; }
+#sq-initial-loader.is-exiting .boot__blade { animation: boot-blade .3s ease forwards; }
+#sq-initial-loader.is-exiting .boot__panel { animation: boot-panel .72s cubic-bezier(.76,0,.24,1) .22s forwards; }
+#sq-initial-loader.is-exiting .boot__panel:nth-child(7) { animation-delay: .28s; }
+#sq-initial-loader.is-exiting .boot__panel:nth-child(8) { animation-delay: .34s; }
+#sq-initial-loader.is-exiting .boot__panel:nth-child(9) { animation-delay: .40s; }
+#sq-initial-loader.is-exiting .boot__panel:nth-child(10) { animation-delay: .46s; }
+#sq-initial-loader.is-exiting .sq-load-center, #sq-initial-loader.is-exiting .sq-load-top, #sq-initial-loader.is-exiting .sq-load-bottom { animation: sq-depart .3s ease forwards; }
+#sq-initial-loader.is-exiting .sq-load-atmosphere { opacity: 0; }
+@keyframes boot-panel { to { transform: translateY(-101%); } }
+@keyframes boot-blade { to { transform: scaleX(1); opacity: 0; } }
+@keyframes sq-orbit { to { transform: rotate(360deg); } }
+@keyframes sq-breathe { to { opacity: .55; transform: scale(.94); } }
+@keyframes sq-emerge { from { opacity: 0; translate: 0 15px; } to { opacity: 1; translate: 0 0; } }
+@keyframes sq-depart { to { opacity: 0; translate: 0 -15px; } }
+@media (max-width: 600px) { #sq-initial-loader .sq-load-top { top: 30px; left: 30px; right: 30px; font-size: 8px; } #sq-initial-loader .sq-load-atmosphere::after { inset: 14px; } #sq-initial-loader .sq-load-orbit { width: 126px; height: 126px; margin-bottom: 32px; } #sq-initial-loader .sq-load-symbol { inset: 25px; } }
+@media (max-height: 550px) { #sq-initial-loader .sq-load-orbit { width: 80px; height: 80px; margin-bottom: 12px; } #sq-initial-loader .sq-load-symbol { inset: 10px; font-size: 30px; } #sq-initial-loader .sq-load-bottom { bottom: 22px; } }
+@media (prefers-reduced-motion: reduce) { #sq-initial-loader { display: none !important; } }
+</style>
   </head>
   <body>
     <!-- ================= THE SITE LOADER (only one) =================
          This IS the site loader — the single source of truth. It renders
-         instantly, before React loads. Session-aware (?loader forces it,
-         ?noloader skips it), skippable, reduced-motion safe.
+         instantly, before React loads. Plays on every navigation (?noloader skips it), skippable, reduced-motion safe.
          Driver: /sq-loader.js — React only waits for `sq:initial-loader-done`.
          ========================================================== -->
-    <div id="sq-initial-loader" aria-hidden="true">
-      <div class="boot__sky">
-        <div class="boot__grid" aria-hidden="true"></div>
-        <span class="boot__orb boot__orb--verm" aria-hidden="true"></span>
-        <span class="boot__orb boot__orb--indigo" aria-hidden="true"></span>
-        <span class="boot__orb boot__orb--brass" aria-hidden="true"></span>
-        <span class="boot__scan" aria-hidden="true"></span>
-      </div>
-
-      <div class="boot__glyphs" aria-hidden="true">
-        <span style="--gx:2%;--gd:7s">影</span>
-        <span style="--gx:21%;--gd:7.7s">道</span>
-        <span style="--gx:40%;--gd:8.4s">忍</span>
-        <span style="--gx:59%;--gd:9.1s">修</span>
-        <span style="--gx:78%;--gd:9.8s">剣</span>
-        <span style="--gx:11%;--gd:10.5s">円</span>
-        <span style="--gx:32%;--gd:11.2s">気</span>
-        <span style="--gx:52%;--gd:11.9s">心</span>
-        <span style="--gx:71%;--gd:12.6s">武</span>
-        <span style="--gx:88%;--gd:13.3s">印</span>
-      </div>
-
-      <div class="boot__ink" aria-hidden="true">
-        <i style="--ix:3%;--id:2.1s;--idl:0s"></i>
-        <i style="--ix:10.3%;--id:2.8s;--idl:0.45s"></i>
-        <i style="--ix:17.6%;--id:3.5s;--idl:0.9s"></i>
-        <i style="--ix:24.9%;--id:4.2s;--idl:1.35s"></i>
-        <i style="--ix:32.2%;--id:2.1s;--idl:0s"></i>
-        <i style="--ix:39.5%;--id:2.8s;--idl:0.45s"></i>
-        <i style="--ix:46.8%;--id:3.5s;--idl:0.9s"></i>
-        <i style="--ix:54.1%;--id:4.2s;--idl:1.35s"></i>
-        <i style="--ix:61.4%;--id:2.1s;--idl:0s"></i>
-        <i style="--ix:68.7%;--id:2.8s;--idl:0.45s"></i>
-        <i style="--ix:76%;--id:3.5s;--idl:0.9s"></i>
-        <i style="--ix:83.3%;--id:4.2s;--idl:1.35s"></i>
-        <i style="--ix:90.6%;--id:2.1s;--idl:0s"></i>
-        <i style="--ix:97%;--id:2.8s;--idl:0.45s"></i>
-      </div>
-
-      <div class="boot__inner">
-        <div class="boot__emblem">
-          <div class="boot__rings" aria-hidden="true">
-            <span class="boot__ring boot__ring--dash"></span>
-            <span class="boot__ring boot__ring--thin"></span>
-          </div>
-          <svg class="boot__enso" viewBox="0 0 120 120" fill="none" aria-hidden="true">
-            <path
-              d="M60 10 C 88 10, 110 32, 110 60 C 110 88, 88 110, 60 110 C 32 110, 10 88, 10 60 C 10 36, 27 16, 48 11"
-              stroke="#c7ccd6"
-              stroke-width="5"
-              stroke-linecap="round"
-            />
-          </svg>
-          <span class="boot__halo" aria-hidden="true"></span>
-          <span class="boot__flash" aria-hidden="true"></span>
-          <span class="boot__glow" aria-hidden="true"></span>
-          <div class="boot__kanji">
-            <!-- ShadowQuest Sigil inline for instant paint -->
-            <svg viewBox="0 0 512 512" width="100%" height="100%" fill="none" aria-hidden="true">
-              <circle cx="272" cy="216" r="104" fill="#ff5a4a" />
-              <path d="M96 352c64-72 160-104 240-88 48 8 72 32 80 64" stroke="#eef1f6" stroke-width="27" stroke-linecap="round" />
-              <path d="M144 416h240" stroke="#eef1f6" stroke-width="18" stroke-linecap="round" opacity="0.55" />
-            </svg>
-          </div>
-        </div>
-
-        <div class="boot__meta">
-          <span class="label">SHADOWQUEST OS</span>
-          <span class="boot__num" data-boot-num>000</span>
-        </div>
-        <div class="boot__bar">
-          <span data-boot-fill></span>
-          <i aria-hidden="true"></i>
-        </div>
-        <span class="boot__stage" data-boot-stage>stirring the ink</span>
-        <p class="boot__copy">Real action. Real progress. Real growth.</p>
-      </div>
-
+    <div id="sq-initial-loader" role="status" aria-label="Preparing ShadowQuest">
+      <div class="sq-load-atmosphere" aria-hidden="true"></div>
+      <div class="sq-load-top" aria-hidden="true"><span>SQ / SHADOWQUEST</span><b>THE JOURNEY BEGINS</b></div>
+      <div class="sq-load-center" aria-hidden="true"><div class="sq-load-orbit"><span class="sq-load-symbol">影</span></div><h1 class="sq-load-title">SHADOW<span>QUEST</span></h1><p class="sq-load-subtitle">DISCIPLINE BECOMES DESTINY</p></div>
+      <div class="sq-load-bottom" aria-hidden="true"><div class="sq-load-readout"><span data-boot-stage>Entering the shadows</span><span class="sq-load-number"><span data-boot-num>000</span><small>/ 100</small></span></div><div class="sq-load-track"><span data-boot-fill></span></div><span class="sq-load-hint">TAP OR PRESS ANY KEY TO SKIP</span></div>
       <span class="boot__blade" aria-hidden="true"></span>
       <div class="boot__panel"></div>
       <div class="boot__panel"></div>

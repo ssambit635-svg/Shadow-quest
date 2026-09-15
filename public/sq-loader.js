@@ -6,7 +6,7 @@
  *      markup  ->  <div id="sq-initial-loader"> … </div>
  *      styles  ->  <style id="sq-critical-loader"> … </style>
  *  - This file is its ONLY driver: counter 000→100, stage text, skip,
- *    session (once per tab), blade + 5-panel exit.
+ *    every-navigation playback, blade + 5-panel exit.
  *  - React (src/components/Boot.tsx) renders NOTHING. It only waits for the
  *    `sq:initial-loader-done` event below, then reveals the app chrome.
  *    It must NEVER hide/remove this loader early or play its own animation —
@@ -19,7 +19,7 @@
  *    same-origin, so it always runs — dev, build, preview and the APK.
  *
  * Test helpers (query params):
- *  - ?loader     force-show the loader even if already seen this tab
+ *  - ?loader     accepted for existing preview links (loader now always plays)
  *  - ?noloader   force-skip the loader entirely
  * ========================================================================== */
 (function () {
@@ -58,34 +58,19 @@
     reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   } catch (e) {}
 
-  var forceShow = false;
   var forceHide = false;
   try {
     if (typeof URLSearchParams !== "undefined") {
       var params = new URLSearchParams(window.location.search);
       forceHide = params.has("noloader");
-      forceShow = !forceHide && params.has("loader");
     } else {
       var q = window.location.search || "";
       forceHide = q.indexOf("noloader") !== -1;
-      forceShow = !forceHide && q.indexOf("loader") !== -1;
     }
   } catch (e) {}
 
-  var seen = false;
-  try {
-    seen = !!window.sessionStorage.getItem(KEY);
-  } catch (e) {}
-
-  if (forceShow) {
-    try {
-      window.sessionStorage.removeItem(KEY);
-    } catch (e) {}
-    seen = false;
-  }
-
-  // Repeat visit in this tab, forced skip, or reduced motion: no curtain.
-  if (forceHide || reduced || seen) {
+  // Show on every full navigation; only explicit skip or reduced motion bypasses it.
+  if (forceHide || reduced) {
     try {
       loader.remove();
     } catch (e) {
@@ -113,6 +98,7 @@
     "sealing the ledger",
   ];
 
+  var startedAt = performance.now();
   var progress = 0;
   var raf = 0;
   var exiting = false;
@@ -130,12 +116,8 @@
 
   function tick() {
     if (exiting) return;
-    // Ease: fast start, slow end.
-    if (progress < 60) progress += 1.7 + Math.random() * 0.8;
-    else if (progress < 85) progress += 0.7 + Math.random() * 0.5;
-    else progress += 0.35 + Math.random() * 0.3;
-
-    if (progress >= 100) progress = 100;
+    // Wall-clock progress is consistent on 60/120Hz displays.
+    progress = Math.min(100, (performance.now() - startedAt) / 26);
 
     if (numEl) numEl.textContent = String(Math.floor(progress)).padStart(3, "0");
     if (fillEl) fillEl.style.transform = "scaleX(" + progress / 100 + ")";
@@ -156,6 +138,7 @@
       cancelAnimationFrame(raf);
     } catch (e) {}
     loader.classList.add("is-exiting");
+    window.dispatchEvent(new CustomEvent("sq:initial-loader-exiting"));
     try {
       window.sessionStorage.setItem(KEY, "1");
     } catch (e) {}
@@ -168,7 +151,7 @@
       } catch (e) {}
       // Tell React (Boot.tsx) the curtain is gone — it reveals the chrome.
       markDone();
-    }, 900);
+    }, 1220);
   }
 
   // Exposed so React's safety timer can force the exit if ever stuck.

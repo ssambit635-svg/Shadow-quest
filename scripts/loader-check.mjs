@@ -6,7 +6,7 @@
  *   2. counter ticks 000 -> up (progress bar moves, stage text set)
  *   3. __SQ_EXIT_INITIAL_LOADER() exits with blade+panels, removes the node
  *   4. `sq:initial-loader-done` fires and __SQ_LOADER_STATE becomes "done"
- *   5. repeat visit (session seen) removes the loader immediately
+ *   5. explicit skip (session seen) removes the loader immediately
  *
  * Run:  npm run smoke:loader   (builds first via presmoke:loader)
  */
@@ -47,23 +47,36 @@ async function main() {
 
   // Force the exit (same call React's safety timer would make).
   win.__SQ_EXIT_INITIAL_LOADER();
-  await sleep(1200);
+  await sleep(1400);
   check("loader removed after exit", !win.document.getElementById("sq-initial-loader"));
   check("done event fired exactly once", doneEvents === 1);
   check("state is done", win.__SQ_LOADER_STATE === "done");
   check("scroll lock released", win.document.documentElement.style.overflow === "");
   await win.happyDOM.close();
 
-  // ---- Test 2: repeat visit — instant skip ---------------------------------
-  const win2 = new Window({ url: "http://localhost/" });
+  // A stored session flag must no longer hide the loader on reload.
+  const returning = new Window({ url: "http://localhost/" });
+  returning.document.write(html);
+  returning.document.close();
+  returning.sessionStorage.setItem("sq.boot.seen.v4", "1");
+  returning.eval(driver);
+  check("returning visit still displays the loader", !!returning.document.getElementById("sq-initial-loader"));
+  let exitingEvents = 0;
+  returning.addEventListener("sq:initial-loader-exiting", () => exitingEvents++);
+  returning.__SQ_EXIT_INITIAL_LOADER();
+  check("app reveal starts before curtain removal", exitingEvents === 1 && !!returning.document.getElementById("sq-initial-loader"));
+  await returning.happyDOM.close();
+
+  // ---- Test 2: explicit skip — instant skip ---------------------------------
+  const win2 = new Window({ url: "http://localhost/?noloader" });
   win2.document.write(html);
   win2.document.close();
   win2.sessionStorage.setItem("sq.boot.seen.v4", "1");
   let done2 = 0;
   win2.addEventListener("sq:initial-loader-done", () => (done2 += 1));
   win2.eval(driver);
-  check("repeat visit removes loader instantly", !win2.document.getElementById("sq-initial-loader"));
-  check("repeat visit still fires done event", done2 === 1);
+  check("explicit skip removes loader instantly", !win2.document.getElementById("sq-initial-loader"));
+  check("explicit skip still fires done event", done2 === 1);
   await win2.happyDOM.close();
 
   if (failures) {

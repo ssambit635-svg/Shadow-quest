@@ -53,7 +53,8 @@ export function Boot({ onDone }: { onDone: () => void }) {
 
     const gone = () =>
       window.__SQ_LOADER_STATE === "done" ||
-      !document.getElementById("sq-initial-loader");
+      !document.getElementById("sq-initial-loader") ||
+      !!document.getElementById("sq-initial-loader")?.classList.contains("is-exiting");
 
     // Loader already gone (repeat visit in this tab, reduced motion, HMR,
     // ?noloader): boot is trivially done — no waiting, no curtain flash.
@@ -64,6 +65,8 @@ export function Boot({ onDone }: { onDone: () => void }) {
 
     const onDoneEvent = () => finish();
     window.addEventListener(DONE_EVENT, onDoneEvent);
+    // Start the app entrance UNDER the opening curtain, not after removal.
+    window.addEventListener("sq:initial-loader-exiting", onDoneEvent);
 
     // Belt + suspenders: if the element disappears without the event, finish.
     const poll = window.setInterval(() => {
@@ -90,6 +93,7 @@ export function Boot({ onDone }: { onDone: () => void }) {
 
     return () => {
       window.removeEventListener(DONE_EVENT, onDoneEvent);
+      window.removeEventListener("sq:initial-loader-exiting", onDoneEvent);
       window.clearInterval(poll);
       window.clearTimeout(safety);
     };
