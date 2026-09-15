@@ -239,7 +239,7 @@ shadow-quest/
 │   │   ├── mock.ts       # Deep Work duel engine (self-contained game)
 │   │   └── contract.md   # Assumed contract for duel
 │   ├── components/
-│   │   ├── Boot.tsx      # Ink aurora boot curtain (CSS loops, dies with curtain)
+│   │   ├── Boot.tsx      # Passive waiter for the HTML site loader (renders nothing)
 │   │   ├── Nav.tsx       # Top nav with theme toggle
 │   │   ├── FaultLine.tsx # Error boundary - sealed recovery screen
 │   │   ├── session/      # Ensō ring - brushed, turbulence-displaced

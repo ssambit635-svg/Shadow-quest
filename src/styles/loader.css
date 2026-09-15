@@ -1,24 +1,19 @@
 /* ============================================================
-   loader.css — SITE LOADER (Your Loader)
-   This is now the official site loader for ShadowQuest.
+   loader.css — SITE LOADER stylesheet (single-loader architecture)
 
-   What was checked:
-   - Previous loader was React-only Boot.tsx (no instant paint)
-   - It showed blank screen until JS bundle loaded
+   THE site loader lives ONLY in:
+     index.html          #sq-initial-loader markup + #sq-critical-loader CSS
+     public/sq-loader.js its ONLY driver (counter, stages, skip, exit)
+   React (src/components/Boot.tsx) renders NOTHING — it only waits for the
+   loader to finish. Do NOT add a second loader animation anywhere.
 
-   What is now:
-   - index.html has #sq-initial-loader with critical inline CSS
-     that paints instantly before any JS — instant perceived load
-   - This file (loader.css) is the canonical stylesheet for both
-     #sq-initial-loader and .boot (React Boot.tsx)
-   - Boot.tsx takes over seamlessly when React mounts and animates
-     the full cinematic exit (5 panels + blade)
+   This file mirrors the critical loader CSS for the bundled stylesheet so
+   the curtain keeps its styling even after React hydrates and so any future
+   re-show (e.g. ?loader) is styled before paint. Keep it in sync with the
+   #sq-critical-loader block in index.html.
 
-   Usage:
-   - Edit index.html #sq-initial-loader markup to change instant loader
-   - Edit src/components/Boot.tsx for React cinematic loader
-   - Both share same class names so transition is seamless
-   - Session key: sq.boot.seen.v3 — shown once per tab session
+   - Session key: sq.boot.seen.v4 — shown once per tab session
+   - ?loader forces it, ?noloader skips it
    - Skippable by any pointerdown/keydown
    - Reduced-motion safe (hidden via media query)
    ============================================================ */
