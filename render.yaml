@@ -11,11 +11,16 @@
 # Then set the `sync: false` variables below on the created service
 # (Dashboard → Environment) and trigger a manual deploy.
 #
-# Replacing the old static site: a `.onrender.com` subdomain belongs to one
-# service. Either keep the Blueprint's new URL as canonical, or delete the
-# old static site and rename this service to reclaim the previous subdomain
-# (Settings → Name → Save). Either way, re-register the Google redirect URI
-# for the final host (see GOOGLE_CALLBACK_URL below).
+# The live address is this service's URL — https://shadowquest.onrender.com —
+# and it is the one to publish: it answers the page and the API. The previous
+# static site at https://shadow-quest.onrender.com (one hyphen) still deploys
+# `dist/` from this repo, so it still loads and still looks right, but every
+# `/api` call behind it 404s. `public/sq-canonical.js` forwards it here, which
+# is why the retired address keeps working; a `.onrender.com` subdomain belongs
+# to one service, so the two cannot be merged without renaming this one
+# (Settings → Name → Save) and swapping the values at the top of that file.
+# Either way, re-register the Google redirect URI for the final host (see
+# GOOGLE_CALLBACK_URL below).
 services:
   - type: web
     name: shadowquest

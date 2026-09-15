@@ -25,7 +25,9 @@
     "smoke:loader": "node scripts/loader-check.mjs",
     "presmoke:loader": "npm run build",
     "smoke:loader:exit": "node scripts/loader-exit-check.mjs",
-    "presmoke:loader:exit": "npm run build"
+    "presmoke:loader:exit": "npm run build",
+    "smoke:canonical": "node scripts/smoke-canonical.mjs",
+    "presmoke:canonical": "npm run build"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

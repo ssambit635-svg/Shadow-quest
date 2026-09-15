@@ -104,6 +104,12 @@ GOOGLE_CLIENT_SECRET=…
 GOOGLE_CALLBACK_URL=https://YOUR-API-HOST/v1/auth/google/callback
 SQ_APP_ORIGIN=https://YOUR-SITE-HERE
 ```
+
+For this deployment `https://YOUR-API-HOST` is
+`https://shadowquest.onrender.com` — the one Web Service that serves the page
+**and** the API, registered in `render.yaml`. The older static site at
+`shadow-quest.onrender.com` (one hyphen) has no API behind it; it exists only
+to forward there, so a redirect URI or an API base pointed at it will fail.
 The server now reads these from a root `.env` too (`server/src/env.mjs`).
 
 **APK:** set the repository *variable* `VITE_API_BASE_URL=https://YOUR-API-HOST`
@@ -130,6 +136,7 @@ Startup log should show `[env] …` then `[google] OAuth enabled — callback �
 | `Error 401: invalid_client` | secret is wrong / revoked | re-copy the secret, or issue a new one (Clients → client → rotate) |
 | our app: "not configured" | env didn't reach the server | check the `[env]` line in the log; confirm the four vars are set where the process actually runs |
 | our app: "no API address" (APK) | built without `VITE_API_BASE_URL` | set the variable and rebuild |
+| our app: "no ShadowQuest API behind it" | the page is being served by a static host with no API on that origin — most often the retired `shadow-quest.onrender.com` | open `https://shadowquest.onrender.com`; set `VITE_API_BASE_URL=https://shadowquest.onrender.com` on any APK rebuild |
 | **nothing** — you chose your account, pressed Continue, and the app shows the sign-in screen again | the return URL was not read as the **login route**, so the gate that redeems the one-time code never mounted and the code expired unread | this is fixed in `src/lib/route.ts`; prove it with `npm run smoke:return` |
 
 ---

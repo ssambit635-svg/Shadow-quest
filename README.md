@@ -9,7 +9,7 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-shadow--quest.onrender.com-c1362b?style=for-the-badge&logo=render&logoColor=white)](https://shadow-quest.onrender.com)
+[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-shadowquest.onrender.com-c1362b?style=for-the-badge&logo=render&logoColor=white)](https://shadowquest.onrender.com)
 [![Version](https://img.shields.io/badge/version-0.1.0-0c0b0a?style=for-the-badge)](./package.json)
 [![License](https://img.shields.io/badge/license-All_Rights_Reserved-a98a55?style=for-the-badge)](#copyright--license)
 [![PWA Ready](https://img.shields.io/badge/PWA-Ready-5a8dee?style=for-the-badge&logo=pwa&logoColor=white)](#pwa--android-apk)
@@ -26,7 +26,7 @@
 [![Capacitor](https://img.shields.io/badge/Capacitor-8-119EFF?style=flat-square&logo=capacitor&logoColor=white)](https://capacitorjs.com/)
 [![Android](https://img.shields.io/badge/Android-APK-3DDC84?style=flat-square&logo=android&logoColor=white)](#pwa--android-apk)
 
-**[Live Website](https://shadow-quest.onrender.com) • [Backend Docs](./docs/BACKEND.md) • [APK Guide](./docs/APK.md) • [Security](./docs/SECURITY.md)**
+**[Live Website](https://shadowquest.onrender.com) • [Backend Docs](./docs/BACKEND.md) • [APK Guide](./docs/APK.md) • [Security](./docs/SECURITY.md)**
 
 </div>
 
@@ -79,7 +79,7 @@ Most productivity apps look like dashboards. Shadow Quest feels like a dojo.
 - You seal goals, build **streaks** (7/30/60/100/180/365), track **life-factors** on a radar, see **84-day heatmap**, **weekly momentum**, and **marks**.
 - Everything syncs to a real backend (MongoDB) or falls back to device ledger — no fake data, ever.
 
-> **Live Now:** https://shadow-quest.onrender.com — Try the Deep Work room, create a ledger, install as PWA.
+> **Live Now:** https://shadowquest.onrender.com — Try the Deep Work room, create a ledger, install as PWA.
 
 ---
 
@@ -176,7 +176,7 @@ We asked: **What if a productivity app felt like ink, not plastic?**
 ### Tools & Infra
 
 - **Happy DOM** `20.14.5` — Smoke tests without browser
-- **Render** — Live hosting https://shadow-quest.onrender.com
+- **Render** — Live hosting https://shadowquest.onrender.com
 - **GitHub Actions** — `.github/workflows/android.yml` builds & releases APK
 - **CSP Meta** — Injected at build, works inside APK WebView (no headers there)
 
@@ -186,7 +186,7 @@ We asked: **What if a productivity app felt like ink, not plastic?**
 
 ```mermaid
 flowchart TD
-    User -->|Visits| Live[https://shadow-quest.onrender.com]
+    User -->|Visits| Live[https://shadowquest.onrender.com]
     Live -->|Vite Build| Bundle[dist/]
     
     Bundle --> Web[Web App - PWA]
@@ -374,10 +374,19 @@ behind it. With `SQ_SERVE_WEB=1` the backend serves `dist/` itself, so `/`
 is the page and `/api/v1/*` is the API on the same origin: no CORS to
 configure, no `VITE_API_BASE_URL` to set.
 
-> Replacing the previous static site? A `.onrender.com` subdomain belongs to
-> one service: either keep the Blueprint's new URL as canonical, or delete the
-> old static site and rename the new service to reclaim the previous
-> subdomain (Settings → Name → Save).
+**One address, one app.** The live deployment is
+`https://shadowquest.onrender.com` — the Web Service above, page and API on
+the same origin. The previous Render **static site** still exists at
+`https://shadow-quest.onrender.com` (one hyphen) and still deploys this same
+repository, so it looks right while every `/api` call behind it 404s; that is
+the *"no ShadowQuest API behind it"* refusal. `public/sq-canonical.js` forwards
+that retired address to the live one — path, query and `#fragment` included,
+so a Google handoff code in the URL survives the trip.
+
+> Merging the two addresses instead? A `.onrender.com` subdomain belongs to one
+> service: delete the old static site and rename the Web Service to reclaim the
+> previous subdomain (Settings → Name → Save), then swap the two values at the
+> top of `public/sq-canonical.js` and re-register the Google redirect URI.
 
 Full details: [`docs/BACKEND.md`](./docs/BACKEND.md#production-single-service).
 
@@ -427,7 +436,7 @@ All three Google variables must be set for the click to complete — otherwise t
 
 ## API Reference
 
-Base: `https://shadow-quest.onrender.com/api` in production, `/api` in dev (proxied)
+Base: `https://shadowquest.onrender.com/api` in production, `/api` in dev (proxied)
 
 | Method | Path | Auth | What it does |
 |--------|------|------|--------------|
@@ -460,7 +469,7 @@ Full details: [`docs/BACKEND.md`](./docs/BACKEND.md)
 
 - `public/manifest.webmanifest` + generated icons (`node scripts/pwa-icons.mjs`)
 - Standalone on iOS & Android, ink background `#0c0b0a` (no white flash)
-- Visit https://shadow-quest.onrender.com → Browser menu → **Install App**
+- Visit https://shadowquest.onrender.com → Browser menu → **Install App**
 
 ### APK — Same Bundle, Native Shell
 
@@ -482,7 +491,7 @@ cd android
 **Point APK at real backend:**
 
 ```bash
-VITE_API_BASE_URL=https://shadow-quest.onrender.com npm run build
+VITE_API_BASE_URL=https://shadowquest.onrender.com npm run build
 npx cap sync android
 ```
 
@@ -491,7 +500,7 @@ In CI, set repo Variable `VITE_API_BASE_URL` (Settings → Variables).
 **Live mode (APK loads hosted site):**
 
 ```bash
-CAPACITOR_SERVER_URL=https://shadow-quest.onrender.com npx cap sync android
+CAPACITOR_SERVER_URL=https://shadowquest.onrender.com npx cap sync android
 ```
 
 Full guide: [`docs/APK.md`](./docs/APK.md)
@@ -564,6 +573,10 @@ npm run smoke:client          # the browser half: what the operator is TOLD when
 npm run smoke:return          # the return leg: the real App.tsx loaded at the
                               #   backend's bounce URL must end up INSIDE,
                               #   signed in — website and APK
+npm run smoke:canonical       # the address layer: the retired static host
+                              #   forwards to the live one (handoff code and
+                              #   all), the live host never forwards, and
+                              #   localhost/preview/APK origins are untouched
 
 node scripts/pwa-icons.mjs      # regenerate PWA icons from public/icons/icon.svg
 node scripts/android-assets.mjs # regenerate Android launcher + splash (5 densities)
@@ -579,7 +592,7 @@ node scripts/android-assets.mjs # regenerate Android launcher + splash (5 densit
 - [x] Offline-first sync bridge + PWA installable
 - [x] Android APK via Capacitor (GitHub Release CI)
 - [x] Hard password gate (scrypt + PBKDF2) + admin panel
-- [x] Live deployment https://shadow-quest.onrender.com
+- [x] Live deployment https://shadowquest.onrender.com
 - [ ] Cloud audio for Mizu guide (currently local)
 - [ ] Weekly email summary of momentum
 - [ ] Multi-device conflict resolution (CRDT)
@@ -619,7 +632,7 @@ Please read [`LICENSE`](./LICENSE) first — design, motion system, session engi
 
 This repository is public for **review and evaluation purposes only** — it is a
 **viewing room, not a download shop**. The product itself is already live at
-[shadow-quest.onrender.com](https://shadow-quest.onrender.com); there is nothing
+[shadowquest.onrender.com](https://shadowquest.onrender.com); there is nothing
 to download in order to use it.
 
 | | |
@@ -654,7 +667,7 @@ To request a license: contact the author via GitHub.
 
 ### 影の道 — The Path of Shadows is not about doing more. It's about doing what matters, with full presence.
 
-**[Enter the Dojo — shadow-quest.onrender.com](https://shadow-quest.onrender.com)**
+**[Enter the Dojo — shadowquest.onrender.com](https://shadowquest.onrender.com)**
 
 <br/>
 
