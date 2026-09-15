@@ -1,93 +1,101 @@
-# Site Loader — Verification & Implementation
+# Site Loader — Check, Fix, Proof
 
-## Check: Is this loader your loader?
+## 1. Check: is the current loader YOUR loader?
 
-**Previous state:**
-- `index.html` had NO loader — blank screen until React bundle loaded (~500ms-1s FOUC)
-- React `Boot.tsx` was the only loader, rendered after JS mount
-- No instant paint, no critical CSS
-- Session key: `sq.boot.seen.v3` existed but only in React
+**How the check was done:** searched the entire repo (`index.html`,
+`public/loader-preview.html`, `src/components/Boot.tsx`, `src/styles/loader.css`).
 
-**Verdict:** ❌ The loader in HTML was NOT your site loader. It was React-only and caused blank flash.
+**Verdict: NO — and here is the proof of why the old loader kept coming back:**
 
-## What was done: Made your loader the SITE loader
+1. **React killed the HTML loader on sight.** The old `Boot.tsx` ran
+   `initial.style.display = "none"` + `initial.remove()` on mount and then
+   played its OWN GSAP animation. So whatever loader `index.html` contained
+   never showed on screen — the old React copy always won. This is exactly
+   the "baar baar wahi purana loader" bug.
+2. **Production CSP blocked the loader script.** `vite.config.ts` injects
+   `script-src 'self'` (no `'unsafe-inline'`) into built `index.html`, so the
+   inline `<script>` driving the HTML loader could never run in the built
+   site — frozen at `000` / stuck curtain in production, working only in dev.
 
-### 1. `index.html` — Instant Paint Loader (YOUR LOADER now)
-- Added `#sq-initial-loader` with **critical inline CSS** (no external CSS needed)
-- Same ShadowQuest design language:
-  - Ink aurora background with 3 orbs (verm, indigo, brass) + scan line
-  - Drifting grid
-  - Floating kanji embers: 影 道 忍 修 剣 円 気 心 武 印
-  - Rising ink particles
-  - Center emblem: counter-rotating rings + ensō SVG drawing + halo + flash + glow + Sigil mark
-  - Meta: SHADOWQUEST OS + 000→100 counter
-  - Progress bar with shimmer sweep
-  - Stage text with 5 stages: stirring the ink → summoning the shadows → sharpening the blade → aligning the ring → sealing the ledger
-  - Blade line + 5 panels exit animation
-- Vanilla JS logic:
-  - Session-aware (once per tab)
-  - Reduced-motion safe (hidden)
-  - Skippable (pointerdown/keydown)
-  - Counter animation 0→100 with stage switching
-  - Exits with blade + panel curtain (translateY -101%)
-  - Dispatches `sq:initial-loader-done` event for React
+Both are fixed below. There is now exactly ONE loader, and it is impossible
+for a second/old one to appear — React renders no loader markup at all.
 
-### 2. `src/components/Boot.tsx` — React Cinematic Loader
-- Now cooperates with HTML loader:
-  - If `#sq-initial-loader` exists, hides it immediately and takes over
-  - If session already seen and HTML loader gone, skips entirely
-  - Same GSAP timeline as before but improved cleanup
-  - Listens for `sq:initial-loader-done` to avoid double
-  - Removes HTML loader on finish
-  - Session key consistent: `sq.boot.seen.v3`
-- This is THE official site loader component
+> Note: no user-supplied HTML loader file was found anywhere in the repo or
+> workspace. If you have one, follow section 4 — it becomes the site loader
+> verbatim, in one step, with no competing copy left to override it.
 
-### 3. `src/styles/loader.css` — Canonical Loader Stylesheet
-- Extracted and documented boot styles
-- Used by both HTML loader and React loader
-- Imported in `main.tsx` before `home.css`
-- Media queries: thins glyphs/ink on mobile, hides on reduced-motion
+## 2. The fix: single-loader architecture
 
-### 4. `public/loader-preview.html`
-- Standalone preview of loader for quick visual check
+```
+index.html                 #sq-initial-loader markup + #sq-critical-loader CSS (instant paint)
+public/sq-loader.js        its ONLY driver (counter, stages, skip, session, exit)
+src/components/Boot.tsx    renders NOTHING — waits for `sq:initial-loader-done`, then reveals chrome
+src/styles/loader.css      mirror of the critical CSS in the bundle (keep in sync)
+public/loader-preview.html standalone visual preview (not used by the site)
+```
 
-## How to customize your loader
+Rules (enforced by code review, not convention):
 
-### Option A: Edit HTML instant loader
-Edit `index.html` `#sq-initial-loader` markup and `#sq-critical-loader` style.
+- Only ONE `#sq-initial-loader` may exist, only in `index.html`.
+- Only ONE driver may exist: `/sq-loader.js` (external file — CSP-safe).
+- `Boot.tsx` must never contain loader markup, loader CSS, GSAP timelines,
+  or any call that hides/removes the loader before it finishes itself.
+- Session key: `sq.boot.seen.v4` (bumped so the fixed loader shows fresh).
+- `?loader` forces the loader, `?noloader` skips it, reduced-motion removes it.
+- Every exit path dispatches `sq:initial-loader-done` + sets
+  `window.__SQ_LOADER_STATE = "done"`; React also polls + has a 6s safety
+  timer. The curtain can never trap the page.
 
-### Option B: Edit React loader
-Edit `src/components/Boot.tsx`:
-- `GLYPHS` array — change floating kanji
-- `STAGES` array — change stage texts
-- `Sigil` — replace with your logo
-- GSAP timeline — adjust durations
+## 3. Proof (re-run after any loader change)
 
-### Option C: Provide your own HTML file
-If you have a custom loader HTML file:
-1. Copy its markup into `index.html` inside `#sq-initial-loader`
-2. Copy its CSS into `#sq-critical-loader` style tag
-3. Keep IDs `data-boot-num`, `data-boot-fill`, `data-boot-stage` for counter logic, or replace JS in inline script
+```bash
+npm run build
+# 1. exactly one loader in the built page:
+grep -c 'id="sq-initial-loader"' dist/index.html        # -> 1
+# 2. no inline scripts (CSP-safe), driver is external:
+grep -c '<script src="/sq-loader.js">' dist/index.html  # -> 1
+grep -c '<script>' dist/index.html                      # -> 0
+# 3. driver shipped:
+ls -la dist/sq-loader.js
+# 4. React renders no competing loader:
+grep -rn "boot__\|gsap" src/components/Boot.tsx         # -> no matches
+```
 
-### Session reset for testing
+Then serve and check visually (first visit in the tab, or `?loader`):
+
+```bash
+npx vite preview --host 0.0.0.0 --port 4173
+# open /?loader -> curtain 000→100 with stages -> blade + 5 panels exit
+```
+
+Session reset for testing:
+
 ```js
-sessionStorage.removeItem('sq.boot.seen.v3')
-location.reload()
+sessionStorage.removeItem("sq.boot.seen.v4");
+location.reload();
 ```
 
-## Verification
+## 4. Installing YOUR html file as the site loader (one step)
 
-Build passes:
-```
-dist/index.html  24.79 kB
-dist/assets/index-*.css  154 kB
-dist/assets/index-*.js  538 kB
+Paste your loader's HTML **inside** `#sq-initial-loader` in `index.html`,
+its CSS **inside** `#sq-critical-loader` in `index.html`, and its JS **into**
+`public/sq-loader.js` (never inline — production CSP blocks inline scripts).
+
+Keep this contract so React knows when you finish:
+
+- Keep the element id `sq-initial-loader`.
+- When your animation ends: remove the element (or add your own exit class
+  then remove it), release `document.documentElement.style.overflow`, and call:
+
+```js
+window.__SQ_LOADER_STATE = "done";
+window.dispatchEvent(new CustomEvent("sq:initial-loader-done"));
 ```
 
-Loader now:
-- ✅ Instant paint (0ms, before JS)
-- ✅ Seamless handoff to React
-- ✅ Session-aware, skippable, reduced-motion safe
-- ✅ No blank screen
-- ✅ Same visual language across HTML + React
-- ✅ Official site loader
+- Keep honoring `sq.boot.seen.v4` (once per tab), `?loader` / `?noloader`,
+  reduced-motion removal, skip-on-interaction, and a ≤4.5s safety timeout —
+  all already implemented in `public/sq-loader.js`; reuse them.
+- Mirror any CSS selector changes into `src/styles/loader.css`.
+
+That is the whole integration. There is no second copy to update and no
+React animation left to override yours.

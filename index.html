@@ -406,11 +406,11 @@
     </style>
   </head>
   <body>
-    <!-- ================= SITE LOADER (YOUR LOADER) =================
-         This is now the official site loader. It renders instantly,
-         before React loads, with the same ShadowQuest design language
-         as the React <Boot /> component. Session-aware, skippable,
-         reduced-motion safe.
+    <!-- ================= THE SITE LOADER (only one) =================
+         This IS the site loader — the single source of truth. It renders
+         instantly, before React loads. Session-aware (?loader forces it,
+         ?noloader skips it), skippable, reduced-motion safe.
+         Driver: /sq-loader.js — React only waits for `sq:initial-loader-done`.
          ========================================================== -->
     <div id="sq-initial-loader" aria-hidden="true">
       <div class="boot__sky">
@@ -500,111 +500,10 @@
 
     <div id="root"></div>
 
-    <!-- Instant loader logic: counter, stage, skip, session -->
-    <script>
-      (function () {
-        const KEY = "sq.boot.seen.v3";
-        const loader = document.getElementById("sq-initial-loader");
-        if (!loader) return;
-
-        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        try {
-          if (sessionStorage.getItem(KEY) || reduced) {
-            loader.remove();
-            return;
-          }
-        } catch (e) {}
-
-        const numEl = loader.querySelector("[data-boot-num]");
-        const fillEl = loader.querySelector("[data-boot-fill]");
-        const stageEl = loader.querySelector("[data-boot-stage]");
-        const stages = [
-          "stirring the ink",
-          "summoning the shadows",
-          "sharpening the blade",
-          "aligning the ring",
-          "sealing the ledger",
-        ];
-
-        let progress = 0;
-        let raf = 0;
-        let exiting = false;
-
-        function setStageByProgress(p) {
-          let idx = 0;
-          if (p >= 84) idx = 4;
-          else if (p >= 64) idx = 3;
-          else if (p >= 44) idx = 2;
-          else if (p >= 22) idx = 1;
-          if (stageEl && stageEl.textContent !== stages[idx]) {
-            stageEl.textContent = stages[idx];
-          }
-        }
-
-        function tick() {
-          if (exiting) return;
-          // ease: fast start, slow end
-          if (progress < 60) progress += 1.7 + Math.random() * 0.8;
-          else if (progress < 85) progress += 0.7 + Math.random() * 0.5;
-          else progress += 0.35 + Math.random() * 0.3;
-
-          if (progress >= 100) progress = 100;
-
-          if (numEl) numEl.textContent = String(Math.floor(progress)).padStart(3, "0");
-          if (fillEl) fillEl.style.transform = "scaleX(" + progress / 100 + ")";
-          setStageByProgress(progress);
-
-          if (progress < 100) {
-            raf = requestAnimationFrame(tick);
-          } else {
-            // hold 300ms then exit
-            setTimeout(exit, 320);
-          }
-        }
-
-        function exit() {
-          if (exiting) return;
-          exiting = true;
-          cancelAnimationFrame(raf);
-          loader.classList.add("is-exiting");
-          try {
-            sessionStorage.setItem(KEY, "1");
-          } catch (e) {}
-          document.documentElement.style.overflow = "";
-          setTimeout(function () {
-            if (loader.parentNode) loader.parentNode.removeChild(loader);
-            // dispatch event so React Boot knows initial loader is gone
-            window.dispatchEvent(new CustomEvent("sq:initial-loader-done"));
-          }, 900);
-        }
-
-        // expose for React to call
-        window.__SQ_EXIT_INITIAL_LOADER = exit;
-
-        // skip on any interaction
-        function skip() {
-          if (progress > 20) {
-            progress = 100;
-            if (numEl) numEl.textContent = "100";
-            if (fillEl) fillEl.style.transform = "scaleX(1)";
-          }
-          exit();
-        }
-
-        window.addEventListener("pointerdown", skip, { once: true });
-        window.addEventListener("keydown", skip, { once: true });
-
-        // safety timeout
-        setTimeout(exit, 4500);
-
-        // lock scroll until done
-        if (!/Capacitor/.test(navigator.userAgent)) {
-          document.documentElement.style.overflow = "hidden";
-        }
-
-        raf = requestAnimationFrame(tick);
-      })();
-    </script>
+    <!-- Site loader logic — external file only (CSP-safe: production builds
+         block inline scripts via script-src 'self', so the driver lives in
+         /sq-loader.js and must never be inlined here). -->
+    <script src="/sq-loader.js"></script>
 
     <script type="module" src="/src/main.tsx"></script>
   </body>
