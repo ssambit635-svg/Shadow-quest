@@ -152,6 +152,7 @@ We asked: **What if a productivity app felt like ink, not plastic?**
 | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" width="20"/> **TypeScript** | `5.8.3` Strict | Type safety | [typescriptlang.org](https://www.typescriptlang.org/) |
 | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg" width="20"/> **Vanilla CSS** | Tokens + Layers | No UI kit, no framework | [tokens.css](./src/styles/tokens.css) |
 | **GSAP** | `3.13.0` + Free Plugins | Motion: `SplitText`, `DrawSVG`, `ScrambleText`, `CustomEase` | [gsap.com](https://gsap.com/) |
+| **WebGL** | Hand-written GLSL | Hero backdrop: one ray per pixel, bent through curved space | [docs/BLACKHOLE.md](./docs/BLACKHOLE.md) |
 | **PWA** | `manifest.webmanifest` | Installable, standalone | [web.dev/pwa](https://web.dev/progressive-web-apps/) |
 
 **Fonts:** Cinzel (display, epic serif) · Manrope (body) · Oswald (labels) · Shippori Mincho (Japanese accents) via Google Fonts.
@@ -245,6 +246,7 @@ shadow-quest/
 │   │   ├── Boot.tsx      # Passive waiter for the HTML site loader (renders nothing)
 │   │   ├── Nav.tsx       # Top nav with theme toggle
 │   │   ├── FaultLine.tsx # Error boundary - sealed recovery screen
+│   │   ├── BlackHole.tsx # Hero backdrop - ray-marched, lensed gas disc (WebGL)
 │   │   ├── session/      # Ensō ring - brushed, turbulence-displaced
 │   │   ├── habits/       # Daily ritual panel - kanji seals
 │   │   └── hud/          # HUD elements
@@ -294,7 +296,7 @@ shadow-quest/
 │   └── audio/            # Mizu guide audio
 ├── scripts/
 │   ├── dev.mjs           # Runs BOTH API + web
-│   ├── audit.mjs         # 23 security/crash probes
+│   ├── audit.mjs         # 24 security/crash probes
 │   ├── brand.mjs         # THE logo geometry; emits every mark, tile, favicon, lockup
 │   ├── brand-letterforms.mjs # Re-extract the wordmark's outlines from the TTFs
 │   ├── pwa-icons.mjs     # Generate PWA icons
@@ -305,6 +307,7 @@ shadow-quest/
 │   ├── APK.md            # Android build / release / signing
 │   ├── SECURITY.md       # Full security audit
 │   ├── BRAND.md          # The mark: why it looks like this, rules, workflow
+│   ├── BLACKHOLE.md      # The hero backdrop: physics, layout contract, dials
 │   └── MOBILE.md         # Phone face details
 ├── capacitor.config.ts   # AppId app.arena.shadowquest, ink bg #0c0b0a
 ├── vite.config.ts        # CSP meta, proxy /api → :8788, preview-safe
@@ -541,7 +544,7 @@ Sign-in requires **hard passphrase**: min 12 chars, uppercase + lowercase + digi
 - **No open redirect:** `SQ_APP_ORIGIN` is an allowlist; unlisted origins fall back to an allowed one.
 - **Fails closed:** unconfigured → every Google route 503. The button stays on the gate (website and APK) and the click is refused — it never invents an identity.
 
-Full audit: [`docs/SECURITY.md`](./docs/SECURITY.md) + `node scripts/audit.mjs` (23 probes)
+Full audit: [`docs/SECURITY.md`](./docs/SECURITY.md) + `node scripts/audit.mjs` (24 probes)
 
 ---
 
