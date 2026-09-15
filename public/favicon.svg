@@ -1,6 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" fill="#0c0b0a"/>
-  <circle cx="34" cy="27" r="13" fill="#c1362b"/>
-  <path d="M12 44c8-9 20-13 30-11 6 1 9 4 10 8" fill="none" stroke="#e6ded0" stroke-width="3.4" stroke-linecap="round"/>
-  <path d="M18 52h30" fill="none" stroke="#e6ded0" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="64" height="64" fill="none">
+  <rect width="64" height="64" fill="#08090c"/>
+  <g>
+    <path class="mark__ring" d="M 76.37 287.84 A 184 184 0 0 1 419.22 163.05 L 346.74 189.43 A 108 108 0 0 0 148.84 261.46 Z" fill="#eef1f6"/>
+    <path class="mark__sun" d="M 160.45 257.24 A 96 96 0 0 1 335.14 193.66 Z" fill="#d43d31"/>
+    <path class="mark__shadow" d="M 134.86 266.55 A 174.8 174.8 0 1 0 443.42 154.25 L 367.35 181.93 A 102.6 102.6 0 1 1 210.93 238.86 Z" fill="#4a515e" fill-opacity=".78"/>
+    <path class="mark__shadow" d="M 224.6 233.89 A 91.2 91.2 0 1 0 353.68 186.91 Z" fill="#4a515e" fill-opacity=".78"/>
+  </g>
 </svg>

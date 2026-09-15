@@ -16,6 +16,10 @@ import sharp from "sharp";
 import { readFileSync, existsSync, mkdirSync } from "node:fs";
 
 const OUT = "public/icons";
+/* Same ink as tokens.css --ink-900 and the tile in public/icons/icon.svg; the
+   flatten only matters where the SVG is transparent, and a different value
+   here would show as a seam one pixel wide. */
+const INK = "#08090c";
 const SRC = `${OUT}/icon.svg`;
 
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
@@ -46,7 +50,7 @@ for (const { svg, file, size } of jobs) {
   const dst = `${OUT}/${file}`;
   await sharp(Buffer.from(svg), { density: 384 })
     .resize(size, size)
-    .flatten({ background: "#0c0b0a" })
+    .flatten({ background: INK })
     .png({ compressionLevel: 9 })
     .toFile(dst);
   const { size: bytes } = await import("node:fs/promises").then((m) => m.stat(dst));

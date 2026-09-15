@@ -17,7 +17,9 @@ import { readFileSync, existsSync } from "node:fs";
 const RES = "android/app/src/main/res";
 const ICON = readFileSync("public/icons/icon.svg", "utf8");
 
-const INK = "#0c0b0a";
+/* tokens.css --ink-900. The adaptive backdrop and the splash ground are the
+   same value as the tile the scripts draw, so no edge shows on any launcher. */
+const INK = "#08090c";
 
 /** Wrap the 512-base artwork into a 108dp adaptive canvas, safe zone 66dp. */
 function adaptiveForeground() {

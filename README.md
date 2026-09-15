@@ -9,8 +9,8 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-shadowquest.onrender.com-c1362b?style=for-the-badge&logo=render&logoColor=white)](https://shadowquest.onrender.com)
-[![Version](https://img.shields.io/badge/version-0.1.0-0c0b0a?style=for-the-badge)](./package.json)
+[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-shadowquest.onrender.com-d43d31?style=for-the-badge&logo=render&logoColor=white)](https://shadowquest.onrender.com)
+[![Version](https://img.shields.io/badge/version-0.1.0-08090c?style=for-the-badge)](./package.json)
 [![License](https://img.shields.io/badge/license-All_Rights_Reserved-a98a55?style=for-the-badge)](#copyright--license)
 [![PWA Ready](https://img.shields.io/badge/PWA-Ready-5a8dee?style=for-the-badge&logo=pwa&logoColor=white)](#pwa--android-apk)
 
@@ -39,7 +39,7 @@
 | Hero — Sumi Ink Ground | Deep Work — Ensō Clock | Mobile — App Face |
 |:---:|:---:|:---:|
 | <img src="./public/img/samurai-hero.jpg" width="280" alt="Samurai Hero" /> | <img src="./public/img/duel-wide.jpg" width="280" alt="Duel" /> | <img src="./public/icons/icon-512.png" width="180" alt="App Icon" /> |
-| Warm black `#0c0b0a` · Bone paper `#f4efe6` | One circle fills, one drains | Thumb-ready · 44px targets · PWA |
+| Ink `#08090c` · Bone paper `#eef1f6` — the tokens, not a mood board | One circle fills, one drains | Thumb-ready · 44px targets · PWA |
 
 *Every artwork is paper mounted on ink — the inversion is the whole art direction.*
 
@@ -60,6 +60,7 @@
 - [API Reference](#api-reference)
 - [PWA & Android APK](#pwa--android-apk)
 - [Security & Password Gate](#security--password-gate)
+- [Brand & Logo](#brand--logo)
 - [Motion System](#motion-system)
 - [Testing & Audits](#testing--audits)
 - [Roadmap](#roadmap)
@@ -288,11 +289,14 @@ shadow-quest/
 ├── public/
 │   ├── img-src/          # Painted masters
 │   ├── img/              # Derived JPEG + alpha masks
-│   ├── icons/            # PWA icons from icon.svg
+│   ├── icons/            # PWA icons, cut from icon.svg by script
+│   ├── brand/            # Generated logo system + the brand sheet (index.html)
 │   └── audio/            # Mizu guide audio
 ├── scripts/
 │   ├── dev.mjs           # Runs BOTH API + web
 │   ├── audit.mjs         # 23 security/crash probes
+│   ├── brand.mjs         # THE logo geometry; emits every mark, tile, favicon, lockup
+│   ├── brand-letterforms.mjs # Re-extract the wordmark's outlines from the TTFs
 │   ├── pwa-icons.mjs     # Generate PWA icons
 │   ├── android-assets.mjs# Generate Android launcher + splash
 │   └── smoke*.mjs        # Desktop + mobile smoke tests
@@ -300,6 +304,7 @@ shadow-quest/
 │   ├── BACKEND.md        # API + env + sync details
 │   ├── APK.md            # Android build / release / signing
 │   ├── SECURITY.md       # Full security audit
+│   ├── BRAND.md          # The mark: why it looks like this, rules, workflow
 │   └── MOBILE.md         # Phone face details
 ├── capacitor.config.ts   # AppId app.arena.shadowquest, ink bg #0c0b0a
 ├── vite.config.ts        # CSP meta, proxy /api → :8788, preview-safe
@@ -537,6 +542,54 @@ Sign-in requires **hard passphrase**: min 12 chars, uppercase + lowercase + digi
 - **Fails closed:** unconfigured → every Google route 503. The button stays on the gate (website and APK) and the click is refused — it never invents an identity.
 
 Full audit: [`docs/SECURITY.md`](./docs/SECURITY.md) + `node scripts/audit.mjs` (23 probes)
+
+---
+
+## Brand & Logo
+
+One geometry, generated. [`scripts/brand.mjs`](../scripts/brand.mjs) holds the
+construction and writes everything else from it — the React mark, the PWA tile,
+the Android launcher and splash, the favicon, both lockups and the brand sheet —
+so the logo in the nav bar and the logo in someone's app drawer are the same
+arithmetic rather than the same intentions.
+
+<div align="center">
+
+| Mark on ink | Mark on paper | One colour, on texture | App tile |
+|:---:|:---:|:---:|:---:|
+| <img src="./public/brand/mark-on-ink.svg" width="150" alt="ShadowQuest mark on ink" /> | <img src="./public/brand/mark-on-paper.svg" width="150" alt="ShadowQuest mark on paper" /> | <img src="./public/brand/mark-mono-light.svg" width="150" alt="Monochrome mark" /> | <img src="./public/icons/icon-512.png" width="150" alt="App icon" /> |
+
+| Horizontal lockup | Stacked lockup |
+|:---:|:---:|
+| <img src="./public/brand/lockup-horizontal.svg" width="420" alt="ShadowQuest horizontal lockup" /> | <img src="./public/brand/lockup-stacked.svg" width="200" alt="ShadowQuest stacked lockup" /> |
+
+**The Sheared Eclipse** — a bone orbit around a vermilion sun, cut once and pulled
+apart along the cut: the upper half keeps the light, the lower half is the shadow.
+
+</div>
+
+```bash
+npm run brand          # regenerate every artefact from the geometry
+npm run brand:check    # exit 1 if anything on disk disagrees with the generator
+npm run brand:icons    # cut the PWA + Android rasters from public/icons/icon.svg
+npm run brand:preview  # proofs: 16px, paper, Android's crop, mono, lockups
+```
+
+- **The mark has no colour props.** The sun is `--vermilion`, the orbit and the
+  shadow are `currentColor` — one component is correct on ink, on paper, on a
+  photo, in a light bottom bar or a dark one.
+- **Sizes are engineered, not scaled.** The favicon geometry (thicker orbit,
+  wider cut, deeper slip) is a separate tuning because a hairline at 16px is a
+  rounding error. Both are the same four paths.
+- **Crop-proof by construction.** The generator refuses to emit a tile whose
+  slipped half crosses Android's centre-80% circle (`205px` of `512`).
+- **The lockups are outlined.** Orbitron/Rajdhani are extracted to paths, so a
+  logo file never renders as somebody else's typeface.
+- **The palette is the theme's.** Ink, bone, one vermilion, brass for data — the
+  mark is `tokens.css` shrunk, not a new design brought to it.
+
+Open `/brand/` in dev for the full sheet — construction, minimum sizes, tile
+crop, do/don't. Prose and rationale: [docs/BRAND.md](./docs/BRAND.md).
 
 ---
 

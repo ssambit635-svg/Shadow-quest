@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <rect width="512" height="512" fill="#eef1f6"/>
+  <path d="M34 58V34H58M454 34H478V58M478 454V478H454M58 478H34V454" stroke="#191611" stroke-opacity=".16" stroke-width="3" fill="none"/>
+  <g>
+    <path class="mark__ring" d="M 92.55 294.72 A 170 170 0 0 1 411.25 178.73 L 377.31 191.08 A 134 134 0 0 0 126.48 282.37 Z" fill="#191611"/>
+    <path class="mark__sun" d="M 141.59 276.87 A 118 118 0 0 1 362.2 196.57 Z" fill="#b83227"/>
+    <path class="mark__shadow" d="M 116.23 286.1 A 165.75 165.75 0 1 0 423.27 174.35 L 389.67 186.58 A 130.65 130.65 0 1 1 149.83 273.87 Z" fill="#191611" fill-opacity=".38"/>
+    <path class="mark__shadow" d="M 164.89 268.39 A 115.05 115.05 0 1 0 374.61 192.06 Z" fill="#191611" fill-opacity=".38"/>
+  </g>
+</svg>

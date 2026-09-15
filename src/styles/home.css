@@ -443,8 +443,21 @@
   transition: color var(--t-2) var(--e-snap), filter var(--t-2) var(--e-snap);
 }
 
+/* The mark reads currentColor for its orbit and shadow, so hover lifts the
+   whole thing to full bone and lets the sun flare to --vermilion-lit. Going
+   vermilion-on-hover instead would flood every path the same colour and the
+   eclipse — the one thing the mark is — disappears. */
 .nav__brand:hover .nav__mark {
-  color: var(--vermilion);
+  color: var(--bone-100);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--vermilion) 32%, transparent));
+}
+
+.nav__brand:hover .mark__sun {
+  fill: var(--vermilion-lit);
+}
+
+.mark__sun {
+  transition: fill var(--t-2) var(--e-snap);
 }
 
 .nav__word {

@@ -78,6 +78,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The launcher icons and splash in this APK are cut from public/icons/icon.svg,
+      # which is itself generated. If the geometry in scripts/brand.mjs was changed
+      # without regenerating, this build would ship an icon nobody designed — so the
+      # shell refuses to continue. (docs/BRAND.md §6)
+      - name: Check brand assets match the generator
+        run: npm run brand:check
+
       - name: Build web bundle
         run: npm run build
 

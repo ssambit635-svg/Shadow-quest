@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <g>
+    <path class="mark__ring" d="M 83.7 300.07 A 180 180 0 0 1 421.46 177.13 L 389.45 188.79 A 146 146 0 0 0 115.71 288.42 Z" fill="#eef1f6"/>
+    <path class="mark__sun" d="M 127.01 284.31 A 134 134 0 0 1 378.15 192.9 Z" fill="#eef1f6"/>
+    <path class="mark__shadow" d="M 113.75 289.13 A 175.5 175.5 0 1 0 438.4 170.97 L 406.63 182.53 A 142.35 142.35 0 1 1 145.52 277.57 Z" fill="#eef1f6" fill-opacity=".34"/>
+    <path class="mark__shadow" d="M 156.81 273.46 A 130.65 130.65 0 1 0 395.34 186.64 Z" fill="#eef1f6" fill-opacity=".34"/>
+  </g>
+</svg>
