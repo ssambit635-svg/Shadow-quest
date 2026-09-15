@@ -7,6 +7,7 @@ import { isNativeApp } from "./lib/native";
 import { initTheme } from "./lib/theme";
 import "./styles/tokens.css";
 import "./styles/base.css";
+import "./styles/loader.css";
 import "./styles/home.css";
 import "./styles/dashboard.css";
 import "./styles/stats.css";
