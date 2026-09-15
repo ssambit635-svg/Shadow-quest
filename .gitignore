@@ -35,3 +35,7 @@ yarn-error.log*
 .env.*
 !.env.example
 node_modules/.tmp
+
+# Raster proofs from `npm run brand:preview` — regenerable evidence, not assets.
+public/brand/proof-*.jpg
+public/brand/probe.jpg
