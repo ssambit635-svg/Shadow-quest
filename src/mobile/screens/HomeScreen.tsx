@@ -15,6 +15,7 @@ import type { Ledger } from "../useLedger";
 import { goToTab } from "../nav";
 import { levelTrack, rankTrack } from "../stats";
 import { Avatar, Caption, FactorRow, Meter, Panel, initialsOf } from "../parts";
+import type { TrendMap } from "../../lib/factorTrends";
 import { TaskCard } from "../TaskCard";
 import { Sigil } from "../../components/Sigil";
 
@@ -38,11 +39,14 @@ function dateLine(d = new Date()): string {
 export function HomeScreen({
   user,
   ledger,
+  trends,
   onComplete,
   onNew,
 }: {
   user: User;
   ledger: Ledger;
+  /** Change in each Life Factor against the previous period. */
+  trends?: TrendMap;
   onComplete: (t: Task) => void;
   onNew: () => void;
 }) {
@@ -171,7 +175,13 @@ export function HomeScreen({
 
       <Panel className="m-factors">
         {(Object.keys(LIFE_FACTOR_META) as LifeFactor[]).map((f) => (
-          <FactorRow key={f} factor={f} value={profile.factors[f]} compact />
+          <FactorRow
+            key={f}
+            factor={f}
+            value={profile.factors[f]}
+            trend={trends?.[f]?.delta ?? null}
+            compact
+          />
         ))}
       </Panel>
 

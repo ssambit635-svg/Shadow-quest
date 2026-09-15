@@ -40,6 +40,7 @@ import {
 export interface Ledger {
   tasks: Task[];
   profile: Profile;
+  /** Reward balance the server reported — authoritative over the local copy. */
   today: Task[];
   upcoming: Task[];
   overdue: Task[];
@@ -52,9 +53,11 @@ export interface Ledger {
   reopen: (task: Task) => void;
   remove: (id: string) => void;
   reload: () => void;
+  /** Adopt a balance the backend paid (daily bonus, shield purchase). */
+  setRewardPoints: (points: number) => void;
 }
 
-export function useLedger(scope: string): Ledger {
+export function useLedger(scope: string, protectedDates: string[] = []): Ledger {
   const [tasks, setTasks] = useState<Task[]>(() => loadTasks(scope));
   const [profile, setProfile] = useState<Profile>(() => loadProfile(scope));
 
@@ -112,12 +115,15 @@ export function useLedger(scope: string): Ledger {
           t.id === task.id ? { ...t, status: "completed", completedAt: Date.now() } : t,
         ),
       );
-      const { profile: next, events } = completeTask(profile, task);
+      // The shielded days come from the backend's reward state: a covered day
+      // holds the chain, so completing through one continues the streak
+      // instead of resetting it.
+      const { profile: next, events } = completeTask(profile, task, protectedDates);
       setProfile(next);
       schedulePush(scope);
       return events;
     },
-    [profile, scope],
+    [profile, scope, protectedDates],
   );
 
   /**
@@ -150,6 +156,18 @@ export function useLedger(scope: string): Ledger {
     setProfile(loadProfile(scope));
   }, [scope]);
 
+  /**
+   * The backend's balance wins after it pays or charges. Writing the server's
+   * own number (not local + amount) is what keeps the next pushed ledger from
+   * undoing a payout.
+   */
+  const setRewardPoints = useCallback(
+    (points: number) => {
+      setProfile((prev) => ({ ...prev, rewardPoints: Math.max(0, Math.round(points)) }));
+    },
+    [],
+  );
+
   const todayDoneCount = today.filter((t) => t.status === "completed").length;
 
   return {
@@ -167,5 +185,6 @@ export function useLedger(scope: string): Ledger {
     reopen,
     remove,
     reload,
+    setRewardPoints,
   };
 }

@@ -26,8 +26,9 @@ import { Field } from "./pages/Field";
 import { Dashboard } from "./sections/Dashboard";
 import { Ladder } from "./sections/Ladder";
 import { StatsBoard } from "./sections/StatsBoard";
-import { logout, scopeOf, useUser } from "./lib/auth";
+import { currentUser, logout, scopeOf, useUser } from "./lib/auth";
 import { forgetProvider, hasGoogleReturn } from "./lib/googleAuth";
+import { forgetRewardCache } from "./lib/rewards";
 import { gsap, REDUCED } from "./lib/motion";
 import { isNativeApp } from "./lib/native";
 import { ReadyContext } from "./lib/ready";
@@ -204,6 +205,9 @@ export default function App() {
 
   const signOut = useCallback(() => {
     signingOutRef.current = true;
+    // The cached reward record goes with the identity it belongs to.
+    const leaving = currentUser();
+    if (leaving) forgetRewardCache(scopeOf(leaving));
     logout();
     // Drop the provider marker and the cached Google profile too: signing
     // out must leave nothing behind that says who was here.

@@ -26,6 +26,11 @@
  *   GET  /v1/ledger                        — the operator's stored ledger     (auth)
  *   PUT  /v1/ledger                        — replace the operator's ledger    (auth)
  *   GET  /v1/stats                         — aggregated stats for the operator(auth)
+ *   GET  /v1/progress/factors              — Life Factor trends, from real work(auth)
+ *   GET  /v1/rewards                       — daily bonus + streak shield state(auth)
+ *   POST /v1/rewards/daily/claim           — pay today's bonus, once a day     (auth)
+ *   POST /v1/rewards/shield/buy            — buy a shield with Reward Points   (auth)
+ *   POST /v1/rewards/shield/use            — cover one missed day with a shield(auth)
  *   GET  /v1/leaderboard                   — real operators, ranked
  *   GET  /v1/people                        — other registered operators       (auth)
  *   POST /v1/admin/elevate                 — PIN gate for the admin panel     (auth+role)
@@ -44,11 +49,19 @@ import express from "express";
 import cors from "cors";
 import { createStore, publicUser } from "./store.mjs";
 import {
+  factorTrends,
   leaderRow,
   personOf,
   sanitizeLedger,
   statsFor,
 } from "./engine.mjs";
+import {
+  claimOp,
+  buyOp,
+  useOp,
+  dayKeyOfRequest,
+  rewardsState,
+} from "./rewards.mjs";
 import { adminConfig, adminVault, isAdminEmail, pinMatches, roleOf } from "./admin.mjs";
 import {
   beginAuth,
@@ -223,7 +236,9 @@ async function adminOnly(req, res, next) {
 }
 
 app.get("/v1/health", (_req, res) => {
-  res.json({ ok: true, db: store.kind, name: "shadowquest", at: Date.now() });
+  // `pid` identifies the process that answered: a deploy (or a test harness)
+  // that restarts the service can tell a fresh boot from a stale one.
+  res.json({ ok: true, db: store.kind, name: "shadowquest", pid: process.pid, at: Date.now() });
 });
 
 /* ------------------------------------------------------------------ *
@@ -490,6 +505,111 @@ app.get("/v1/stats", authed, (req, res) => {
   res.json(statsFor(req.user));
 });
 
+/* ------------------------------------------------------------------ *
+ * rewards — the daily bonus and the streak shield
+ *
+ * Both are currency, so both are decided here: the browser only ever asks
+ * (see rewards.mjs for the rules). The state lives in the operator's own
+ * MongoDB document next to the ledger, so a refresh, another device, or a
+ * sign-out and back in all read the same answer. Every mutation answers
+ * with the full state — the UI never has to guess what changed.
+ * ------------------------------------------------------------------ */
+
+const rewardByToken = limiter(60, 60_000);
+
+/**
+ * The operator's local day + timezone, from the query (GET) or body (POST).
+ * Null when the request cannot honestly name one — the day it claims must be
+ * the day its own declared offset produces.
+ */
+function requestDay(req) {
+  const src =
+    req.method === "GET"
+      ? { tz: req.query?.tz, day: req.query?.day }
+      : (req.body ?? {});
+  const target = dayKeyOfRequest(src, Date.now());
+  // rewardsState() and the (filter, update) builders speak in these names.
+  return target ? { dayKey: target.day, tzOffset: target.tz } : null;
+}
+
+/** Re-read the operator so the answer carries the post-write balance. */
+async function reload(user) {
+  return (await store.byEmail(user.email)) ?? user;
+}
+
+app.get("/v1/rewards", authed, (req, res) => {
+  const target = requestDay(req);
+  if (!target) return res.status(400).json({ error: "a valid timezone offset is required" });
+  res.set("cache-control", "no-store");
+  res.json({ state: rewardsState(req.user, target) });
+});
+
+/** Pay today's bonus — once per local day, from recorded work only. */
+app.post("/v1/rewards/daily/claim", authed, async (req, res) => {
+  const limit = rewardByToken(tokenKey(req));
+  if (!limit.allowed) return refused(res, limit.retryAfterMs, "rewards throttled");
+  const target = requestDay(req);
+  if (!target) return res.status(400).json({ error: "a valid timezone offset is required" });
+
+  await store.ensureRewards(req.user.email);
+  const at = Date.now();
+  const before = rewardsState(await reload(req.user), { ...target, now: at });
+  if (!before.daily.ready) {
+    return res.json({ awarded: false, reason: before.daily.reason, state: before });
+  }
+  const awarded = await store.applyRewardUpdate(
+    req.user.email,
+    claimOp(target.dayKey, before.daily.amount, at),
+  );
+  const state = rewardsState(await reload(req.user), { ...target, now: at });
+  res.json({ awarded, reason: awarded ? "awarded" : "already-claimed", state });
+});
+
+/** Buy one shield with Reward Points. The balance is checked server-side. */
+app.post("/v1/rewards/shield/buy", authed, async (req, res) => {
+  const limit = rewardByToken(tokenKey(req));
+  if (!limit.allowed) return refused(res, limit.retryAfterMs, "rewards throttled");
+  const target = requestDay(req);
+  if (!target) return res.status(400).json({ error: "a valid timezone offset is required" });
+
+  await store.ensureRewards(req.user.email);
+  const at = Date.now();
+  const before = rewardsState(await reload(req.user), { ...target, now: at });
+  if (!before.shield.canBuy) {
+    return res.json({ bought: false, reason: before.shield.buyReason, state: before });
+  }
+  const bought = await store.applyRewardUpdate(req.user.email, buyOp(at));
+  const state = rewardsState(await reload(req.user), { ...target, now: at });
+  res.json({ bought, reason: bought ? "bought" : "refused", state });
+});
+
+/** Spend one shield on the one missed day it can honestly hold. */
+app.post("/v1/rewards/shield/use", authed, async (req, res) => {
+  const limit = rewardByToken(tokenKey(req));
+  if (!limit.allowed) return refused(res, limit.retryAfterMs, "rewards throttled");
+  const target = requestDay(req);
+  if (!target) return res.status(400).json({ error: "a valid timezone offset is required" });
+
+  await store.ensureRewards(req.user.email);
+  const at = Date.now();
+  const before = rewardsState(await reload(req.user), { ...target, now: at });
+  // The day to cover is chosen here, from the stored ledger — a client that
+  // asks to protect some other day is simply not answering this request.
+  const date = before.shield.missedDate;
+  if (!before.shield.canUse || !date) {
+    return res.json({ used: false, reason: before.shield.useReason, state: before });
+  }
+  const used = await store.applyRewardUpdate(req.user.email, useOp(date, target.dayKey, at));
+  const state = rewardsState(await reload(req.user), { ...target, now: at });
+  res.json({ used, reason: used ? "used" : "refused", date: used ? date : null, state });
+});
+
+/** Life Factor trends: this window's earned factor points vs the last one. */
+app.get("/v1/progress/factors", authed, (req, res) => {
+  res.set("cache-control", "no-store");
+  res.json(factorTrends(req.user, Number(req.query?.days ?? 7)));
+});
+
 app.get("/v1/leaderboard", async (_req, res) => {
   const all = await store.all();
   const rows = all
@@ -639,6 +759,11 @@ if (!WEB_READY) {
         "GET /v1/ledger",
         "PUT /v1/ledger",
         "GET /v1/stats",
+        "GET /v1/progress/factors",
+        "GET /v1/rewards",
+        "POST /v1/rewards/daily/claim",
+        "POST /v1/rewards/shield/buy",
+        "POST /v1/rewards/shield/use",
         "GET /v1/leaderboard",
         "GET /v1/people",
         "POST /v1/admin/elevate",

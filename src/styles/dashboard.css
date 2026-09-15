@@ -189,6 +189,29 @@
   color: var(--bone-400);
 }
 
+.factor__meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+/* The change against the previous period: brass when the factor is being
+   fed, accent when it is being neglected, dim when nothing moved. */
+.factor__trend {
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--bone-500);
+  white-space: nowrap;
+}
+
+.factor__trend[data-dir="up"] {
+  color: var(--brass);
+}
+
+.factor__trend[data-dir="down"] {
+  color: var(--vermilion-lit);
+}
+
 .factor__bar {
   height: 3px;
   background: var(--line);
@@ -200,6 +223,83 @@
   height: 100%;
   background: var(--brass);
   transition: width 0.8s var(--e-brush);
+}
+
+/* ----- The two spends: daily reward, streak shield ----- */
+.dash__rewards {
+  margin-top: 1.4rem;
+}
+
+.dash__rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.9rem;
+  margin-top: 0.7rem;
+}
+
+.rw-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink-800) 80%, transparent);
+}
+
+.rw-card__v {
+  flex: none;
+  min-width: 3.1rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--bone-300);
+}
+
+.rw-card[data-state="ready"] .rw-card__v {
+  border-color: color-mix(in srgb, var(--brass) 45%, transparent);
+  color: var(--brass);
+}
+
+.rw-card[data-state="claimed"] .rw-card__v {
+  color: var(--brass);
+}
+
+.rw-card__b {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.rw-card__t {
+  font-family: var(--font-label);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone-200);
+}
+
+.rw-card__s {
+  font-size: 0.74rem;
+  color: var(--bone-400);
+  line-height: 1.35;
+}
+
+.rw-card__b-btn,
+.rw-card__acts {
+  margin-left: auto;
+  flex: none;
+}
+
+.rw-card__acts {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.rw-card__acts .btn,
+.rw-card__b-btn {
+  font-size: 0.68rem;
+  padding: 0.45rem 0.7rem;
 }
 
 /* ----- Filters ----- */
@@ -1196,6 +1296,44 @@
 }
 
 .streak__mile[data-earned] i { color: var(--brass); }
+
+/* A day a shield held: outlined, never filled — the work did not happen. */
+.streak__grid i[data-shield],
+.streak__dot i[data-shield] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brass) 65%, transparent);
+}
+
+.streak__shield {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.streak__shield-badge {
+  font-size: 0.78rem;
+  color: var(--bone-300);
+}
+
+.streak__shield[data-ready] .streak__shield-badge {
+  color: var(--brass);
+}
+
+.streak__shield .btn {
+  margin-left: auto;
+  font-size: 0.68rem;
+  padding: 0.45rem 0.7rem;
+}
+
+.streak__shield-note {
+  margin-left: auto;
+  color: var(--bone-500);
+  font-size: 0.66rem;
+}
 .streak__mile[data-earned] b { color: var(--bone-100); }
 
 .streak__mile[data-next] i {

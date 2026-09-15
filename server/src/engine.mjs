@@ -139,6 +139,62 @@ const dayISO = (ms) => {
 };
 
 /**
+ * Life Factor momentum for one operator.
+ *
+ * A factor's standing is a single stored number, so "how is it trending" can
+ * only be answered honestly by the work that moved it: the factor points
+ * their completed goals paid in over the last `days` days, against the `days`
+ * before that. `value` is the standing as stored, `delta` the change in
+ * activity between the two windows — positive means they are putting more
+ * into it than they were, negative means less. Nothing is invented: both
+ * windows are sums of the operator's own stored, completed tasks.
+ */
+export function factorTrends(user, days = 7) {
+  const span = Math.max(1, Math.min(84, Math.round(num(days, 7))));
+  const now = Date.now();
+  const recentStart = now - span * 86400000;
+  const previousStart = now - 2 * span * 86400000;
+
+  const current = Object.fromEntries(LIFE_FACTORS.map((f) => [f, 0]));
+  const previous = Object.fromEntries(LIFE_FACTORS.map((f) => [f, 0]));
+
+  for (const t of (user.tasks ?? []).filter(Boolean)) {
+    if (t.status !== "completed" || !Number.isFinite(t.completedAt)) continue;
+    const bucket =
+      t.completedAt >= recentStart
+        ? current
+        : t.completedAt >= previousStart
+          ? previous
+          : null;
+    if (!bucket) continue;
+    for (const g of t.factors ?? []) {
+      if (bucket[g.factor] === undefined) continue;
+      bucket[g.factor] += Math.max(0, Math.round(num(g.amount)));
+    }
+  }
+
+  const stored = user.profile?.factors ?? {};
+  return {
+    days: span,
+    at: now,
+    items: LIFE_FACTORS.map((f) => {
+      const delta = current[f] - previous[f];
+      return {
+        factor: f,
+        /** The standing on the character sheet, as stored. */
+        value: Math.max(0, Math.min(100, Math.round(num(stored[f])))),
+        /** Factor points earned in this window. */
+        current: current[f],
+        /** Factor points earned in the window before it. */
+        previous: previous[f],
+        delta,
+        direction: delta > 0 ? "up" : delta < 0 ? "down" : "flat",
+      };
+    }),
+  };
+}
+
+/**
  * Per-operator stats, all derived from their stored ledger:
  *   daily    — the last `days` days, tasks sealed + habit seals + points
  *   weekly   — progress sealed per ISO week, last 8 weeks

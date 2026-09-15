@@ -1189,8 +1189,28 @@
   opacity: 0.75;
 }
 .m-factor__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
   font-size: 12px;
   color: var(--m-fg-2);
+}
+/* The change against the previous period, beside the label: brass when the
+   factor is being fed, accent when it is being neglected, dim when flat. */
+.m-factor__t {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--m-fg-4);
+  white-space: nowrap;
+}
+.m-factor__t[data-dir="up"] {
+  color: var(--m-brass, #c7a46a);
+}
+.m-factor__t[data-dir="down"] {
+  color: var(--m-acc);
+  opacity: 0.85;
 }
 .m-factor__v {
   grid-row: 1 / span 2;
@@ -1482,6 +1502,9 @@
   text-transform: uppercase;
   color: var(--m-fg-4);
   margin-left: auto;
+}
+.m-attr__head .m-factor__t {
+  margin-left: 2px;
 }
 .m-attr__v {
   font-size: 12.5px;
@@ -2790,6 +2813,13 @@
   box-shadow: 0 0 6px rgba(255, 90, 74, 0.6);
 }
 
+/* A day a shield covered reads as held: brass outline, no heat fill — the
+   work did not happen, the chain simply survived it. */
+.m-streak__grid i[data-shield] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m-brass, #c7a46a) 70%, transparent);
+}
+
 .m-streak__miles {
   display: flex;
   align-items: center;
@@ -2824,6 +2854,177 @@
   font-style: normal;
   font-size: 10px;
   color: var(--m-fg-4);
+}
+
+/* --- shield ---------------------------------------------------------
+   The chain can be held through one missed day. The strip reports the
+   count, and offers the spend only when the backend says a day is
+   actually missed — never as a generic button. */
+.m-shield {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--m-line);
+}
+
+.m-shield__badge {
+  font-size: 11.5px;
+  color: var(--m-fg-2);
+  letter-spacing: 0.02em;
+}
+
+.m-shield[data-ready] .m-shield__badge {
+  color: var(--m-brass, #c7a46a);
+}
+
+.m-shield__b {
+  margin-left: auto;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--m-line-2);
+  background: transparent;
+  color: var(--m-acc);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.m-shield__b:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.m-shield__note {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--m-fg-4);
+  text-align: right;
+}
+
+/* ============================================================
+   daily reward + streak shield — the two spends on the Rewards tab
+   ============================================================ */
+
+.m-daily {
+  display: grid;
+  gap: 8px;
+}
+
+.m-daily__head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.m-daily__amt {
+  flex: none;
+  min-width: 52px;
+  padding: 7px 0;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--m-gold) 40%, transparent);
+  color: var(--m-gold);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.m-daily__b {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.m-daily__t {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--m-fg);
+}
+
+.m-daily__s {
+  font-size: 11px;
+  color: var(--m-fg-3);
+}
+
+.m-daily__s[data-state="ready"] {
+  color: var(--m-brass, #c7a46a);
+}
+
+.m-daily__s[data-state="claimed"] {
+  color: var(--m-gold);
+}
+
+.m-daily__b-btn {
+  margin-left: auto;
+  flex: none;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--m-gold) 45%, transparent);
+  background: transparent;
+  color: var(--m-gold);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.m-daily__b-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.m-daily__meta,
+.m-shop__meta {
+  font-size: 10.5px;
+  color: var(--m-fg-4);
+}
+
+.m-shop {
+  display: grid;
+  gap: 9px;
+}
+
+.m-shop__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.m-shop__badge {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--m-fg);
+}
+
+.m-shop__cost {
+  font-size: 10.5px;
+  color: var(--m-fg-4);
+}
+
+.m-shop__s {
+  font-size: 11.5px;
+  color: var(--m-fg-3);
+}
+
+.m-shop__s[data-tone="ready"] {
+  color: var(--m-brass, #c7a46a);
+}
+
+.m-shop__acts {
+  display: flex;
+  gap: 8px;
+}
+
+.m-shop__acts .m-btn {
+  flex: 1;
+  min-height: 38px;
+  font-size: 12px;
 }
 
 /* ------------------------------------------------------------------ *

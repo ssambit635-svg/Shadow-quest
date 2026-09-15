@@ -14,6 +14,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { scopeOf, useUser } from "../lib/auth";
+import { cachedProtectedDates } from "../lib/rewards";
 import {
   type Task,
   loadTasks,
@@ -108,7 +109,9 @@ export function Field({ onExit }: { onExit: () => void }) {
       const profile = loadProfile(scope);
       const done = stored.find((t) => t.id === task.id);
       if (done) {
-        const { profile: next } = completeTask(profile, done);
+        // A day a shield held is a link in the chain here too, so sealing
+        // through one continues the streak instead of restarting it.
+        const { profile: next } = completeTask(profile, done, cachedProtectedDates(scope));
         saveProfile(scope, next);
       }
       setTasks(stored);

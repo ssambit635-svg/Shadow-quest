@@ -9,6 +9,7 @@
 import { useMemo } from "react";
 import { streakSnapshot, type StreakSnapshot } from "../lib/streaks";
 import type { Profile, Task } from "../lib/todo";
+import type { RewardState } from "../api/ledger";
 import { Caption, Panel } from "./parts";
 
 const statusOf = (s: StreakSnapshot): { line: string; tone: "hold" | "open" | "broken" } => {
@@ -17,8 +18,26 @@ const statusOf = (s: StreakSnapshot): { line: string; tone: "hold" | "open" | "b
   return { line: "The chain is broken. Seal today to re-light it.", tone: "broken" };
 };
 
-export function StreakCard({ profile, tasks }: { profile: Profile; tasks: Task[] }) {
-  const snap = useMemo(() => streakSnapshot(profile, tasks, []), [profile, tasks]);
+export function StreakCard({
+  profile,
+  tasks,
+  rewards,
+  onUseShield,
+  busy = false,
+}: {
+  profile: Profile;
+  tasks: Task[];
+  /** Server reward state — the shield count and the days it already holds. */
+  rewards?: RewardState | null;
+  onUseShield?: () => void;
+  busy?: boolean;
+}) {
+  const protectedKey = (rewards?.protectedDates ?? rewards?.shield?.protectedDates ?? []).join(",");
+  const snap = useMemo(
+    () => streakSnapshot(profile, tasks, [], 84, protectedKey ? protectedKey.split(",") : []),
+    [profile, tasks, protectedKey],
+  );
+  const shield = rewards?.shield;
   const status = statusOf(snap);
   const last28 = snap.cells.slice(-28);
 
@@ -47,7 +66,8 @@ export function StreakCard({ profile, tasks }: { profile: Profile; tasks: Task[]
             <i
               key={c.date}
               data-level={c.active ? Math.max(1, c.level) : 0}
-              title={c.date}
+              data-shield={c.shielded || undefined}
+              title={c.shielded ? `${c.date} — held by a shield` : c.date}
             />
           ))}
         </div>
@@ -64,7 +84,45 @@ export function StreakCard({ profile, tasks }: { profile: Profile; tasks: Task[]
             </em>
           )}
         </div>
+
+        {shield ? (
+          <div className="m-shield" data-ready={shield.canUse || undefined}>
+            <span className="m-shield__badge num">
+              🛡️ Streak Shield: {shield.count}
+            </span>
+            {shield.canUse && onUseShield ? (
+              <button
+                type="button"
+                className="m-shield__b"
+                onClick={onUseShield}
+                disabled={busy}
+              >
+                Use on {shield.missedDate}
+              </button>
+            ) : (
+              <span className="m-shield__note">{shieldLine(shield)}</span>
+            )}
+          </div>
+        ) : null}
       </Panel>
     </>
   );
+}
+
+/** One honest line about why the shield can or cannot be spent right now. */
+function shieldLine(shield: NonNullable<RewardState["shield"]>): string {
+  switch (shield.useReason) {
+    case "open":
+      return "Ready to hold a missed day.";
+    case "no-shield":
+      return `None held · ${shield.cost} Reward Points each.`;
+    case "no-chain":
+      return "No chain running yet — nothing to protect.";
+    case "chain-broken":
+      return "More than one day is missing; one shield cannot bridge that.";
+    case "used-today":
+      return "Already spent today.";
+    default:
+      return shield.count > 0 ? "The chain is whole." : "Buy one to protect a missed day.";
+  }
 }

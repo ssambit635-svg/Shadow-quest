@@ -108,14 +108,34 @@ export function Meter({
   );
 }
 
-/** One Life Factor, as a row: seal, label, value, hairline bar. */
+/**
+ * The trend on one Life Factor: the change in factor points earned between
+ * this window and the last (lib/factorTrends). Omitted entirely when there is
+ * nothing to compare — an arrow on an unmeasured factor would be a claim the
+ * data does not make.
+ */
+export function FactorTrend({ delta }: { delta: number }) {
+  const dir = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+  const arrow = dir === "up" ? "↑" : dir === "down" ? "↓" : "·";
+  return (
+    <i className="m-factor__t num" data-dir={dir} title="Change against the previous period">
+      {arrow} {delta > 0 ? "+" : ""}
+      {delta}
+    </i>
+  );
+}
+
+/** One Life Factor, as a row: seal, label, value, hairline bar, trend. */
 export function FactorRow({
   factor,
   value,
+  trend,
   compact = false,
 }: {
   factor: LifeFactor;
   value: number;
+  /** Change against the previous period, when it is known. */
+  trend?: number | null;
   compact?: boolean;
 }) {
   const meta = LIFE_FACTOR_META[factor];
@@ -125,7 +145,10 @@ export function FactorRow({
       <span className="m-factor__code num" aria-hidden="true">
         {meta.code}
       </span>
-      <span className="m-factor__label">{meta.label}</span>
+      <span className="m-factor__label">
+        {meta.label}
+        {typeof trend === "number" ? <FactorTrend delta={trend} /> : null}
+      </span>
       <span className="m-factor__bar">
         <Meter value={v} tone="accent" />
       </span>

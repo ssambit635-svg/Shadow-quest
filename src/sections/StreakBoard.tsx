@@ -11,6 +11,7 @@ import { useMemo } from "react";
 import { streakSnapshot, type StreakSnapshot } from "../lib/streaks";
 import type { Profile, Task } from "../lib/todo";
 import type { Habit } from "../lib/habits";
+import type { ShieldState } from "../api/ledger";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -24,12 +25,26 @@ export function StreakBoard({
   profile,
   tasks,
   habits,
+  protectedDates = [],
+  shield,
+  onUseShield,
+  busy = false,
 }: {
   profile: Profile;
   tasks: Task[];
   habits: Habit[];
+  /** Days a Streak Shield covers — held days, counted in the chain. */
+  protectedDates?: string[];
+  /** Server reward state, when the caller has it. */
+  shield?: ShieldState | null;
+  onUseShield?: () => void;
+  busy?: boolean;
 }) {
-  const snap = useMemo(() => streakSnapshot(profile, tasks, habits), [profile, tasks, habits]);
+  const protectedKey = protectedDates.join(",");
+  const snap = useMemo(
+    () => streakSnapshot(profile, tasks, habits, 84, protectedKey ? protectedKey.split(",") : []),
+    [profile, tasks, habits, protectedKey],
+  );
   const status = statusOf(snap);
   const last7 = snap.cells.slice(-7);
   const weeks = Math.ceil(snap.cells.length / 7);
@@ -65,7 +80,14 @@ export function StreakBoard({
                 <i
                   key={c.date}
                   data-level={c.active ? Math.max(1, c.level) : 0}
-                  title={c.active ? `${c.date} · ${c.level} seal${c.level === 1 ? "" : "s"}` : c.date}
+                  data-shield={c.shielded || undefined}
+                  title={
+                    c.shielded
+                      ? `${c.date} · held by a Streak Shield`
+                      : c.active
+                        ? `${c.date} · ${c.level} seal${c.level === 1 ? "" : "s"}`
+                        : c.date
+                  }
                 />
               ))}
             </div>
@@ -76,7 +98,10 @@ export function StreakBoard({
         <div className="streak__week-strip">
           {last7.map((c) => (
             <span key={c.date} className="streak__dot" data-active={c.active || undefined}>
-              <i data-level={c.active ? Math.max(1, c.level) : 0} />
+              <i
+                data-level={c.active ? Math.max(1, c.level) : 0}
+                data-shield={c.shielded || undefined}
+              />
               <em>{DAY_LETTERS[(new Date(`${c.date}T00:00:00`).getDay() + 6) % 7]}</em>
             </span>
           ))}
@@ -104,6 +129,24 @@ export function StreakBoard({
           next seal: {snap.next.days} days — pays {snap.next.points} reward points
         </p>
       )}
+
+      {/* the shield: one missed day, held — the count and the one spend */}
+      {shield ? (
+        <div className="streak__shield" data-ready={shield.canUse || undefined}>
+          <span className="streak__shield-badge num">🛡️ Streak Shield: {shield.count}</span>
+          {shield.canUse && onUseShield ? (
+            <button type="button" className="btn" onClick={onUseShield} disabled={busy}>
+              Use on {shield.missedDate}
+            </button>
+          ) : (
+            <span className="streak__shield-note label">
+              {shield.protectedDates.length
+                ? `held: ${shield.protectedDates.join(", ")}`
+                : "one shield protects one missed day"}
+            </span>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
