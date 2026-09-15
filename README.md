@@ -177,6 +177,8 @@ We asked: **What if a productivity app felt like ink, not plastic?**
 
 - **Happy DOM** `20.14.5` — Smoke tests without browser
 - **Render** — Live hosting https://shadowquest.onrender.com
+- **Keepalive** — `.github/workflows/keepalive.yml` pings `/v1/health` every
+  10 minutes, so the free Render instance is awake for the first click
 - **GitHub Actions** — `.github/workflows/android.yml` builds & releases APK
 - **CSP Meta** — Injected at build, works inside APK WebView (no headers there)
 

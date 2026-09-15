@@ -103,7 +103,12 @@ Three production notes:
    optional hardening.
 3. **Free tiers sleep.** A cold Render service answers the first request
    slowly; the frontend treats that as "API away" and degrades to the
-   device ledger rather than failing.
+   device ledger rather than failing. For a link that strangers are about to
+   click — a submission, a demo — `.github/workflows/keepalive.yml` pings
+   `GET /v1/health` every ten minutes so the first click is never the one
+   that pays for the boot. Delete that workflow when the evaluation is over,
+   or point a free uptime monitor (UptimeRobot, cron-job.org) at the same
+   URL, which also tells you when the service is genuinely down.
 
 With `MONGODB_URI` set and reachable the API uses MongoDB (collection
 `users`, one document per operator, ledger embedded). Without it, the API
